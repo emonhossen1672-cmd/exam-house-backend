@@ -16,7 +16,7 @@ router.post('/login', async (req, res) => {
   if (!ok) return res.status(401).json({ error: 'ভুল ইউজারনেম বা পাসওয়ার্ড' });
 
   const token = jwt.sign(
-    { id: rows[0].id, username: rows[0].username },
+    { id: rows[0].id, username: rows[0].username, role: 'admin' },
     process.env.JWT_SECRET || 'dev-secret-change-me',
     { expiresIn: '7d' }
   );
