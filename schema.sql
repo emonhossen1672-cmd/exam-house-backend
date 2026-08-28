@@ -12,6 +12,14 @@ CREATE TABLE IF NOT EXISTS ministries (
   name VARCHAR(150) UNIQUE NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  phone VARCHAR(30) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS questions (
   id SERIAL PRIMARY KEY,
   ministry_id INTEGER REFERENCES ministries(id) ON DELETE SET NULL,
@@ -49,6 +57,7 @@ CREATE TABLE IF NOT EXISTS exam_questions (
 CREATE TABLE IF NOT EXISTS results (
   id SERIAL PRIMARY KEY,
   exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   participant_name VARCHAR(150) NOT NULL,
   participant_phone VARCHAR(30),
   answers JSONB NOT NULL, -- { "question_id": "A" }
@@ -59,6 +68,10 @@ CREATE TABLE IF NOT EXISTS results (
   submitted_at TIMESTAMP DEFAULT NOW()
 );
 
+ALTER TABLE results ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS idx_questions_ministry ON questions(ministry_id);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_exam ON results(exam_id);
+CREATE INDEX IF NOT EXISTS idx_results_user ON results(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
