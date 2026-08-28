@@ -328,7 +328,7 @@
         ministry_id: document.getElementById('e-ministry').value || null,
         grade: document.getElementById('e-grade').value || null,
         duration_minutes: type==='live' ? document.getElementById('e-duration').value : document.getElementById('e-duration2').value,
-        start_time: type==='live' ? document.getElementById('e-start').value : null,
+        start_time: type==='live' ? new Date(document.getElementById('e-start').value).toISOString() : null,
         question_ids: Array.from(SELECTED_QIDS)
       })});
       msg.className='msg ok'; msg.textContent='পরীক্ষা তৈরি হয়েছে ✅';
