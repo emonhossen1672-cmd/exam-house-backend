@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
@@ -197,6 +197,7 @@
     border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Noto Sans Bengali';
   }
   .btn-enter.model{background:var(--success);}
+  .btn-enter.archive{background:var(--gold);}
   .btn-enter:disabled{background:var(--ink-faint); cursor:not-allowed;}
   .btn-enter:active{opacity:0.85;}
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
@@ -334,6 +335,31 @@
     border:none; padding:14px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;
   }
 
+  /* ---------- Archive overlay ---------- */
+  .archive-overlay{
+    position:fixed; inset:0; z-index:105; background:var(--paper);
+    display:none; flex-direction:column; max-width:430px; margin:0 auto;
+  }
+  .archive-overlay.active{display:flex;}
+  .archive-top{
+    padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--navy-deep); color:#fff;
+  }
+  .archive-top .ttl{font-family:'Noto Serif Bengali',serif; font-size:15px; line-height:1.4;}
+  .archive-top .ttl span{display:block; font-family:'Space Mono',monospace; font-size:10px; color:var(--gold-soft); margin-bottom:3px;}
+  .archive-exit{background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:16px; width:32px; height:32px; border-radius:50%; cursor:pointer; flex-shrink:0;}
+  .archive-body{flex:1; overflow-y:auto; padding:16px 18px 40px;}
+  .aq{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px 16px; margin-bottom:12px;}
+  .aq-num{font-family:'Space Mono',monospace; font-size:10.5px; color:var(--gold); letter-spacing:1px; margin-bottom:6px;}
+  .aq-text{font-family:'Noto Serif Bengali',serif; font-size:15.5px; line-height:1.5; margin-bottom:12px; color:var(--ink);}
+  .aq-opt{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px;
+    font-size:13.5px; margin-bottom:6px; background:var(--paper-deep); color:var(--ink-soft);
+  }
+  .aq-opt.correct{background:var(--success-bg); color:var(--success); font-weight:600;}
+  .aq-opt .b{width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; font-size:10.5px; flex-shrink:0; font-family:'Space Mono',monospace;}
+  .aq-opt.correct .b{background:var(--success); color:#fff;}
+
   ::-webkit-scrollbar{width:0;}
   @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
 </style>
@@ -465,6 +491,15 @@
     <button class="result-close" onclick="closeResult()">ফিরে যান</button>
   </div>
 
+  <!-- ============ ARCHIVE OVERLAY ============ -->
+  <div class="archive-overlay" id="archive-overlay">
+    <div class="archive-top">
+      <div class="ttl"><span>সমাধান / আর্কাইভ</span><span id="archive-title">—</span></div>
+      <button class="archive-exit" onclick="closeArchive()">✕</button>
+    </div>
+    <div class="archive-body" id="archive-body"></div>
+  </div>
+
 </div>
 
 <script>
@@ -509,7 +544,7 @@
     const end = start + (exam.duration_minutes||60)*60000;
     if(now < start) return {label:'শুরু হয়নি', canEnter:false, cta:'অপেক্ষা করুন', countdown: start-now};
     if(now <= end) return {label:'লাইভ চলছে', canEnter:true, cta:'প্রবেশ করুন', live:true};
-    return {label:'সময় শেষ', canEnter:false, cta:'সময় শেষ হয়েছে'};
+    return {label:'সময় শেষ', canEnter:true, cta:'সমাধান দেখুন', archive:true};
   }
 
   function fmtCountdown(ms){
@@ -525,15 +560,16 @@
     const tagsHtml = `
       ${exam.ministry_name ? `<span class="tag ministry">${exam.ministry_name}</span>` : ''}
       ${exam.grade ? `<span class="tag grade">গ্রেড ${toBnDigits(exam.grade)}</span>` : ''}
-      ${st.live ? `<span class="tag live">লাইভ</span>` : (exam.type==='live' && !st.canEnter && st.label==='সময় শেষ' ? `<span class="tag closed">সময় শেষ</span>` : '')}
+      ${st.live ? `<span class="tag live">লাইভ</span>` : (st.archive ? `<span class="tag closed">আর্কাইভ</span>` : '')}
     `;
     const cdHtml = exam.type==='live'
       ? (st.countdown!==undefined
           ? `<div class="ticket-cd"><b>${fmtCountdown(st.countdown)}</b><span>বাকি</span></div>`
           : `<div class="ticket-cd"><b>${st.live?'চলছে':'শেষ'}</b><span>&nbsp;</span></div>`)
       : '';
-    const btnClass = exam.type==='model' ? 'btn-enter model' : 'btn-enter';
+    const btnClass = exam.type==='model' ? 'btn-enter model' : (st.archive ? 'btn-enter archive' : 'btn-enter');
     const disabled = st.canEnter ? '' : 'disabled';
+    const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
     return `
       <div class="ticket" data-exam-id="${exam.id}">
         <div class="ticket-top">
@@ -547,7 +583,7 @@
         <div class="ticket-divider"></div>
         <div class="ticket-bottom">
           <span class="ticket-serial">${exam.serial||''}</span>
-          <button class="${btnClass}" ${disabled} onclick="openNameSheet(${exam.id})">${st.cta}</button>
+          <button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>
         </div>
       </div>`;
   }
@@ -604,6 +640,31 @@
     const phone = document.getElementById('pphone').value.trim();
     document.getElementById('name-overlay').classList.remove('active');
     startExam(PENDING_EXAM_ID, name, phone);
+  }
+
+  // ---------- Archive / solutions (after a live exam's window has closed) ----------
+  async function openArchive(examId){
+    try{
+      const data = await apiGet('/api/exams/public/'+examId+'/archive');
+      document.getElementById('archive-title').textContent = data.exam.title;
+      const letters = ['A','B','C','D'];
+      const optKeys = ['option_a','option_b','option_c','option_d'];
+      document.getElementById('archive-body').innerHTML = data.questions.map((q,i)=>`
+        <div class="aq">
+          <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</div>
+          <div class="aq-text">${q.question_text}</div>
+          ${letters.map((L,idx)=>`
+            <div class="aq-opt ${q.correct_option===L?'correct':''}">
+              <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${q[optKeys[idx]]}</span>
+            </div>`).join('')}
+        </div>`).join('');
+      document.getElementById('archive-overlay').classList.add('active');
+    }catch(err){
+      alert(err.message || 'সমাধান এখনো দেখা যাচ্ছে না');
+    }
+  }
+  function closeArchive(){
+    document.getElementById('archive-overlay').classList.remove('active');
   }
 
   // ---------- Exam taking ----------
