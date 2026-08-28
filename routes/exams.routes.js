@@ -112,4 +112,44 @@ router.get('/public/:id/questions', async (req, res) => {
   res.json({ exam, questions: rows });
 });
 
+// GET /api/exams/public/:id/archive — WITH correct answers, but only once the exam window has closed
+router.get('/public/:id/archive', async (req, res) => {
+  const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
+  if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
+  const exam = examRes.rows[0];
+
+  if (exam.type === 'live' && exam.start_time) {
+    const end = new Date(exam.start_time).getTime() + (exam.duration_minutes || 60) * 60000;
+    if (Date.now() < end) {
+      return res.status(403).json({ error: 'পরীক্ষা এখনো চলছে — শেষ হলে সমাধান দেখা যাবে' });
+    }
+  }
+  if (exam.type === 'live' && !exam.start_time) {
+    return res.status(403).json({ error: 'পরীক্ষার সময় এখনো নির্ধারিত হয়নি' });
+  }
+
+  const { rows } = await pool.query(`
+    SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option, eq.position
+    FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
+    WHERE eq.exam_id = $1 ORDER BY eq.position
+  `, [req.params.id]);
+
+  res.json({ exam, questions: rows });
+});
+
+// GET /api/exams/public/archive/list — closed/expired live exams, most recent first
+router.get('/public/archive/list', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT e.id, e.title, e.grade, e.duration_minutes, e.start_time, e.serial,
+      m.name AS ministry_name,
+      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
+      (SELECT COUNT(*) FROM results r WHERE r.exam_id = e.id) AS attempt_count
+    FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
+    WHERE e.type = 'live' AND e.start_time IS NOT NULL
+      AND e.start_time + (e.duration_minutes || ' minutes')::interval < NOW()
+    ORDER BY e.start_time DESC
+  `);
+  res.json(rows);
+});
+
 module.exports = router;
