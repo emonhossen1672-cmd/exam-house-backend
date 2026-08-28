@@ -7,17 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// main student-facing website — served at "/"
-app.use(express.static(path.join(__dirname, 'public-site')));
-
-// admin panel — served at "/admin"
+// serve the admin panel (static single-page HTML) at /admin
 app.use('/admin', express.static(path.join(__dirname, 'public')));
 
-app.get('/api/status', (req, res) => {
-  res.json({ ok: true, service: 'Exam House API' });
+app.get('/', (req, res) => {
+  res.json({ ok: true, service: 'Exam House API', admin: '/admin' });
 });
 
 app.use('/api/admin', require('./routes/admin.routes'));
+app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/bulk-upload', require('./routes/bulkUpload.routes'));
 app.use('/api/questions', require('./routes/questions.routes'));
 app.use('/api/exams', require('./routes/exams.routes'));
