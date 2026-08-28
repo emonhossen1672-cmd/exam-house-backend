@@ -21,4 +21,8 @@ app.use('/api/exams', require('./routes/exams.routes'));
 app.use('/api/results', require('./routes/results.routes'));
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Exam House API running on port ${PORT}`));
+
+const autoInit = require('./autoInit');
+autoInit().finally(() => {
+  app.listen(PORT, () => console.log(`Exam House API running on port ${PORT}`));
+});
