@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam House — লাইভ পরীক্ষা ও মডেল টেস্ট</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&family=Hind+Siliguri:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF6EC;
+    --paper-deep:#F2EBD8;
+    --card:#FFFFFF;
+    --line:#E4DCC6;
+    --ink:#17223B;
+    --ink-soft:#5B6580;
+    --ink-faint:#8A93A8;
+    --seal:#A6332B;
+    --seal-deep:#7E241D;
+    --gold:#B8902E;
+    --gold-soft:#E7D6A3;
+    --success:#2F7A4F;
+    --success-bg:#E6F1EA;
+    --wrong:#A6332B;
+    --wrong-bg:#F7E9E7;
+    --navy-deep:#10182C;
+    --radius:18px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Hind Siliguri', sans-serif;
+    background:var(--paper-deep);
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .display{font-family:'Tiro Bangla', serif;}
+  .mono{font-family:'Space Mono', monospace;}
+
+  /* ---------- Phone frame ---------- */
+  .device{
+    width:100%;
+    max-width:430px;
+    min-height:100vh;
+    background:var(--paper);
+    position:relative;
+    overflow-x:hidden;
+    box-shadow:0 0 60px rgba(16,24,44,0.25);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:30;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:14px 18px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{
+    width:38px; height:38px; border-radius:50%;
+    background:var(--seal);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    box-shadow:0 2px 0 var(--seal-deep);
+  }
+  .brand-mark::after{
+    content:"";
+    position:absolute; inset:4px;
+    border:1.4px dashed rgba(255,255,255,0.65);
+    border-radius:50%;
+  }
+  .brand-mark svg{width:18px; height:18px; position:relative; z-index:2;}
+  .brand-word{line-height:1.05;}
+  .brand-word .name{font-family:'Tiro Bangla', serif; font-size:19px; font-weight:700; color:var(--ink);}
+  .brand-word .sub{font-family:'Hind Siliguri', sans-serif; font-size:10.5px; font-weight:600; letter-spacing:0.3px; color:var(--gold);}
+  .live-pill{
+    display:flex; align-items:center; gap:6px;
+    background:var(--navy-deep); color:#fff;
+    padding:6px 10px; border-radius:20px;
+    font-size:11px; font-family:'Space Mono',monospace;
+  }
+  .live-dot{width:6px; height:6px; border-radius:50%; background:#5FE39B; animation:blink 1.4s infinite;}
+  @keyframes blink{0%,100%{opacity:1;} 50%{opacity:0.25;}}
+
+  /* ---------- Screens ---------- */
+  .screen{display:none; padding:20px 18px 100px; animation:fadeUp .45s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ---------- Hero admit card ---------- */
+  .hero-ticket{
+    position:relative;
+    background:var(--navy-deep);
+    color:#fff;
+    border-radius:20px;
+    padding:26px 22px 22px;
+    overflow:hidden;
+    margin-bottom:22px;
+  }
+  .hero-ticket::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 12% 20%, rgba(184,144,46,0.28), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(166,51,43,0.35), transparent 45%);
+  }
+  .hero-eyebrow{
+    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:2px;
+    color:var(--gold-soft); text-transform:uppercase; position:relative; z-index:2;
+  }
+  .hero-title{
+    font-family:'Tiro Bangla', serif; font-size:26px; line-height:1.35;
+    margin:10px 0 8px; position:relative; z-index:2;
+  }
+  .hero-sub{
+    font-size:14px; color:#C7CEE0; line-height:1.6; position:relative; z-index:2; max-width:92%;
+  }
+  .hero-stub{
+    margin-top:20px; padding-top:16px;
+    border-top:1.5px dashed rgba(255,255,255,0.25);
+    display:flex; justify-content:space-between; align-items:center;
+    position:relative; z-index:2;
+  }
+  .hero-stat{text-align:left;}
+  .hero-stat b{display:block; font-family:'Space Mono',monospace; font-size:17px; color:#fff;}
+  .hero-stat span{font-size:10.5px; color:#9AA4BE;}
+  .hero-cta{
+    background:var(--seal); color:#fff; border:none;
+    padding:10px 16px; border-radius:10px; font-family:'Hind Siliguri'; font-weight:600;
+    font-size:13.5px; cursor:pointer;
+  }
+
+  .hero-ticket .punch{
+    position:absolute; width:16px; height:16px; background:var(--paper);
+    border-radius:50%; top:calc(100% - 46px); z-index:3;
+  }
+  .hero-ticket .punch.left{left:-8px;}
+  .hero-ticket .punch.right{right:-8px;}
+
+  /* ---------- Section headers ---------- */
+  .sec-head{display:flex; align-items:baseline; justify-content:space-between; margin:26px 0 12px;}
+  .sec-head h2{font-family:'Tiro Bangla', serif; font-size:18px; color:var(--ink);}
+  .sec-head a{font-size:12px; color:var(--seal); font-weight:600; text-decoration:none; cursor:pointer;}
+
+  /* ---------- Category grid ---------- */
+  .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .cat-item{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:12px 6px; text-align:center; cursor:pointer;
+    transition:transform .15s ease;
+  }
+  .cat-item:active{transform:scale(0.94);}
+  .cat-item .ic{
+    width:34px; height:34px; margin:0 auto 8px; border-radius:10px;
+    background:var(--paper-deep); display:flex; align-items:center; justify-content:center;
+  }
+  .cat-item .ic svg{width:17px; height:17px; stroke:var(--seal);}
+  .cat-item span{font-size:10.5px; color:var(--ink-soft); font-weight:600; line-height:1.3; display:block;}
+
+  /* ---------- Exam ticket cards ---------- */
+  .ticket{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .ticket-top{padding:16px 16px 14px; display:flex; justify-content:space-between; gap:10px;}
+  .ticket-tags{display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;}
+  .tag{font-size:10px; padding:3px 8px; border-radius:20px; font-weight:600;}
+  .tag.ministry{background:var(--paper-deep); color:var(--ink-soft);}
+  .tag.grade{background:var(--gold-soft); color:#7A5E12;}
+  .tag.live{background:var(--seal); color:#fff; display:flex; align-items:center; gap:4px;}
+  .tag.live::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.4s infinite;}
+  .tag.closed{background:var(--paper-deep); color:var(--ink-faint);}
+  .ticket-name{font-family:'Tiro Bangla', serif; font-size:15.5px; color:var(--ink); line-height:1.4;}
+  .ticket-meta{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
+  .ticket-cd{text-align:center; flex-shrink:0; min-width:64px;}
+  .ticket-cd b{display:block; font-family:'Space Mono',monospace; font-size:15px; color:var(--seal);}
+  .ticket-cd span{font-size:9px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:1px;}
+  .ticket-divider{position:relative; border-top:1.5px dashed var(--line); margin:0 16px;}
+  .ticket-divider::before, .ticket-divider::after{
+    content:""; position:absolute; top:-8px; width:16px; height:16px; background:var(--paper); border-radius:50%;
+  }
+  .ticket-divider::before{left:-24px;}
+  .ticket-divider::after{right:-24px;}
+  .ticket-bottom{padding:12px 16px 15px; display:flex; align-items:center; justify-content:space-between;}
+  .ticket-serial{font-family:'Space Mono',monospace; font-size:10px; color:var(--ink-faint); letter-spacing:1px;}
+  .btn-enter{
+    background:var(--ink); color:#fff; border:none; padding:9px 16px;
+    border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Hind Siliguri';
+  }
+  .btn-enter.model{background:var(--success);}
+  .btn-enter:disabled{background:var(--ink-faint); cursor:not-allowed;}
+  .btn-enter:active{opacity:0.85;}
+  .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
+  .loading-note{text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:13px;}
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px;
+    background:var(--card); border-top:1px solid var(--line);
+    display:flex; z-index:40;
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  .nav-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:6px 0; cursor:pointer; color:var(--ink-faint); border:none; background:none;
+    font-family:'Hind Siliguri';
+  }
+  .nav-item svg{width:19px; height:19px; stroke:var(--ink-faint);}
+  .nav-item span{font-size:10px; font-weight:600;}
+  .nav-item.active{color:var(--seal);}
+  .nav-item.active svg{stroke:var(--seal);}
+
+  /* ---------- Name-entry overlay ---------- */
+  .name-overlay{
+    position:fixed; inset:0; z-index:95; background:rgba(16,24,44,0.55);
+    display:none; align-items:flex-end; justify-content:center;
+    max-width:430px; margin:0 auto;
+  }
+  .name-overlay.active{display:flex;}
+  .name-sheet{
+    background:var(--card); width:100%; border-radius:22px 22px 0 0; padding:24px 22px calc(24px + env(safe-area-inset-bottom));
+    animation:fadeUp .3s ease;
+  }
+  .name-sheet h3{font-family:'Tiro Bangla',serif; font-size:18px; margin-bottom:4px;}
+  .name-sheet p{font-size:12.5px; color:var(--ink-faint); margin-bottom:16px;}
+  .name-sheet label{font-size:11.5px; font-weight:600; color:var(--ink-soft); display:block; margin:12px 0 5px;}
+  .name-sheet input{
+    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px;
+    font-family:inherit; font-size:14px; background:var(--paper);
+  }
+  .name-actions{display:flex; gap:10px; margin-top:18px;}
+  .name-actions button{flex:1; padding:12px; border-radius:11px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family:'Hind Siliguri';}
+  .name-actions .cancel{background:var(--paper-deep); color:var(--ink-soft);}
+  .name-actions .go{background:var(--seal); color:#fff;}
+  .name-err{color:var(--seal); font-size:12px; margin-top:8px; display:none;}
+
+  /* ---------- Exam overlay ---------- */
+  .exam-overlay{
+    position:fixed; inset:0; z-index:100; background:var(--navy-deep);
+    display:none; flex-direction:column;
+    max-width:430px; margin:0 auto;
+  }
+  .exam-overlay.active{display:flex;}
+  .exam-top{
+    padding:16px 18px 14px; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+  }
+  .exam-exit{background:none; border:none; color:#9AA4BE; font-size:20px; cursor:pointer;}
+  .exam-timer{
+    font-family:'Space Mono',monospace; color:#fff; font-size:15px;
+    background:rgba(255,255,255,0.08); padding:6px 12px; border-radius:20px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .exam-timer.warn{color:#FF9B8A; background:rgba(166,51,43,0.35);}
+  .exam-progress{padding:14px 18px 0; display:flex; gap:5px;}
+  .dot{flex:1; height:4px; border-radius:3px; background:rgba(255,255,255,0.14);}
+  .dot.done{background:var(--gold);}
+  .dot.now{background:#fff;}
+
+  .exam-body{flex:1; overflow-y:auto; padding:24px 20px 20px;}
+  .q-label{font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:1px; margin-bottom:10px;}
+  .q-text{font-family:'Tiro Bangla', serif; font-size:19px; color:#fff; line-height:1.55; margin-bottom:22px;}
+  .opt{
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12);
+    border-radius:12px; padding:13px 14px; margin-bottom:10px; cursor:pointer;
+    color:#E4E8F2; font-size:14.5px; transition:all .15s ease;
+  }
+  .opt .bullet{
+    width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.35);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-family:'Space Mono',monospace; font-size:11px; color:#C7CEE0;
+  }
+  .opt.selected{background:rgba(184,144,46,0.18); border-color:var(--gold);}
+  .opt.selected .bullet{background:var(--gold); border-color:var(--gold); color:var(--navy-deep);}
+
+  .exam-bottom{
+    padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(255,255,255,0.1);
+    display:flex; gap:10px;
+  }
+  .ebtn{flex:1; padding:13px; border-radius:11px; border:none; font-weight:600; font-size:14px; font-family:'Hind Siliguri'; cursor:pointer;}
+  .ebtn.ghost{background:rgba(255,255,255,0.08); color:#C7CEE0;}
+  .ebtn.primary{background:var(--seal); color:#fff;}
+  .ebtn.submit{background:var(--success); color:#fff;}
+  .ebtn:disabled{opacity:0.35;}
+
+  /* ---------- Result overlay ---------- */
+  .result-overlay{
+    position:fixed; inset:0; z-index:110; background:var(--paper);
+    display:none; flex-direction:column; max-width:430px; margin:0 auto; overflow-y:auto;
+  }
+  .result-overlay.active{display:flex;}
+  .result-hero{
+    background:var(--navy-deep); color:#fff; padding:40px 24px 34px; text-align:center;
+    border-radius:0 0 28px 28px; position:relative;
+  }
+  .result-hero .rk{font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:2px; text-transform:uppercase;}
+  .score-ring{
+    width:130px; height:130px; border-radius:50%; margin:20px auto 14px;
+    display:flex; align-items:center; justify-content:center; position:relative;
+    background:conic-gradient(var(--gold) calc(var(--pct,0) * 1%), rgba(255,255,255,0.12) 0);
+  }
+  .score-ring::before{content:""; position:absolute; inset:8px; background:var(--navy-deep); border-radius:50%;}
+  .score-ring b{position:relative; font-family:'Tiro Bangla',serif; font-size:30px; z-index:2;}
+  .result-hero p{color:#C7CEE0; font-size:13.5px;}
+  .result-stats{display:flex; justify-content:center; gap:26px; padding:22px 18px 8px;}
+  .rstat{text-align:center;}
+  .rstat b{display:block; font-family:'Space Mono',monospace; font-size:19px;}
+  .rstat span{font-size:10.5px; color:var(--ink-faint);}
+  .rstat.correct b{color:var(--success);}
+  .rstat.wrong b{color:var(--wrong);}
+  .review-list{padding:6px 18px 100px;}
+  .merit-item{
+    background:var(--card); border:1px solid var(--line); border-radius:13px;
+    padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px;
+  }
+  .merit-item.me{border-color:var(--gold); background:var(--gold-soft);}
+  .merit-rank{font-family:'Space Mono',monospace; font-weight:700; color:var(--ink-soft); width:22px;}
+  .merit-name{flex:1; font-size:13.5px;}
+  .merit-score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700;}
+  .result-close{
+    position:sticky; bottom:0; margin:0 18px 18px; background:var(--ink); color:#fff;
+    border:none; padding:14px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;
+  }
+
+  ::-webkit-scrollbar{width:0;}
+  @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <!-- ============ TOPBAR ============ -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 21V7a2 2 0 0 1 2-2h6l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M12 5v6h6"/></svg>
+      </div>
+      <div class="brand-word">
+        <div class="name">Exam House</div>
+        <div class="sub">কঠিন প্রস্তুতি · সহজ জয়</div>
+      </div>
+    </div>
+    <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
+  </div>
+
+  <!-- ============ HOME SCREEN ============ -->
+  <div class="screen active" id="screen-home">
+    <div class="hero-ticket">
+      <div class="punch left"></div><div class="punch right"></div>
+      <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
+      <div class="hero-title">যে প্রশ্ন একবার এসেছে,<br>সে বারবার ফিরে আসে</div>
+      <div class="hero-sub">বিভিন্ন মন্ত্রণালয় ও অধিদপ্তরে ইতিপূর্বে আসা গ্রেড ১১–২০ নিয়োগ পরীক্ষার প্রশ্নের ভিত্তিতে লাইভ পরীক্ষা ও মডেল টেস্ট দিন।</div>
+      <div class="hero-stub">
+        <div class="hero-stat"><b id="stat-total">—</b><span>মোট পরীক্ষা</span></div>
+        <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
+        <button class="hero-cta" onclick="goScreen('live')">লাইভ পরীক্ষা দেখুন</button>
+      </div>
+    </div>
+
+    <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
+    <div id="home-live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ LIVE EXAM SCREEN ============ -->
+  <div class="screen" id="screen-live">
+    <div class="sec-head" style="margin-top:4px;"><h2>লাইভ পরীক্ষাসমূহ</h2></div>
+    <div id="live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ MODEL TEST SCREEN ============ -->
+  <div class="screen" id="screen-model">
+    <div class="sec-head" style="margin-top:4px;"><h2>মডেল টেস্ট</h2></div>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">যেকোনো সময় নিজের গতিতে অনুশীলন করুন — ফলাফল সাথে সাথে দেখুন।</p>
+    <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ RESULT (history) SCREEN ============ -->
+  <div class="screen" id="screen-history">
+    <div class="sec-head" style="margin-top:4px;"><h2>আমার ফলাফল</h2></div>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">এই সেশনে যে পরীক্ষা দিয়েছেন তার ফলাফল এখানে দেখাবে।</p>
+    <div id="history-empty" class="empty-note">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ============ BOTTOM NAV ============ -->
+  <div class="bottom-nav">
+    <button class="nav-item active" data-nav="home" onclick="goScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>হোম</span>
+    </button>
+    <button class="nav-item" data-nav="live" onclick="goScreen('live')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span>লাইভ পরীক্ষা</span>
+    </button>
+    <button class="nav-item" data-nav="model" onclick="goScreen('model')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>মডেল টেস্ট</span>
+    </button>
+    <button class="nav-item" data-nav="history" onclick="goScreen('history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg><span>ফলাফল</span>
+    </button>
+  </div>
+
+  <!-- ============ NAME ENTRY SHEET ============ -->
+  <div class="name-overlay" id="name-overlay">
+    <div class="name-sheet">
+      <h3 id="name-sheet-title">পরীক্ষায় প্রবেশ</h3>
+      <p>ফলাফল ও মেধাতালিকায় দেখানোর জন্য আপনার নাম দিন</p>
+      <label>আপনার নাম *</label>
+      <input id="pname" placeholder="যেমনঃ রাকিব হাসান">
+      <label>মোবাইল নম্বর (ঐচ্ছিক)</label>
+      <input id="pphone" placeholder="01XXXXXXXXX">
+      <div class="name-err" id="name-err">নাম দিতে হবে</div>
+      <div class="name-actions">
+        <button class="cancel" onclick="closeNameSheet()">বাতিল</button>
+        <button class="go" onclick="confirmNameAndStart()">শুরু করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EXAM OVERLAY ============ -->
+  <div class="exam-overlay" id="exam-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="exitExam()">✕</button>
+      <div class="exam-timer" id="exam-timer">⏱ --:--</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-progress" id="exam-progress"></div>
+    <div class="exam-body">
+      <div class="q-label" id="q-label">লোড হচ্ছে...</div>
+      <div class="q-text" id="q-text"></div>
+      <div id="q-options"></div>
+    </div>
+    <div class="exam-bottom">
+      <button class="ebtn ghost" id="btn-prev" onclick="prevQ()">পূর্বের</button>
+      <button class="ebtn primary" id="btn-next" onclick="nextQ()">পরবর্তী</button>
+      <button class="ebtn submit" id="btn-submit" style="display:none;" onclick="submitExam()">জমা দিন</button>
+    </div>
+  </div>
+
+  <!-- ============ RESULT OVERLAY ============ -->
+  <div class="result-overlay" id="result-overlay">
+    <div class="result-hero">
+      <div class="rk">পরীক্ষা সম্পন্ন হয়েছে</div>
+      <div class="score-ring" id="score-ring"><b id="score-num">০/০</b></div>
+      <p id="result-exam-title">—</p>
+    </div>
+    <div class="result-stats">
+      <div class="rstat correct"><b id="stat-correct">0</b><span>সঠিক</span></div>
+      <div class="rstat wrong"><b id="stat-wrong">0</b><span>ভুল</span></div>
+      <div class="rstat"><b id="stat-skip">0</b><span>উত্তর দেননি</span></div>
+    </div>
+    <div class="sec-head" style="margin:6px 18px 4px;"><h2>মেধা তালিকা</h2></div>
+    <div class="review-list" id="merit-list"></div>
+    <button class="result-close" onclick="closeResult()">ফিরে যান</button>
+  </div>
+
+</div>
+
+<script>
+  // Backend is served from this same origin
+  const API_BASE = '';
+
+  function toBnDigits(str){
+    const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+    return String(str).replace(/[0-9]/g, d=>bn[d]);
+  }
+  async function apiGet(path){
+    const r = await fetch(API_BASE + path);
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+    return data;
+  }
+  async function apiPost(path, body){
+    const r = await fetch(API_BASE + path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+    return data;
+  }
+
+  // ---------- Navigation ----------
+  function goScreen(name){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    const navMap = {home:0, live:1, model:2, history:3};
+    document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  // ---------- Load exam lists from the real backend ----------
+  let ALL_EXAMS = [];
+
+  function examStatus(exam){
+    const now = Date.now();
+    if(exam.type === 'model') return {label:'উপলব্ধ', canEnter:true, cta:'শুরু করুন'};
+    if(!exam.start_time) return {label:'সময় নির্ধারিত হয়নি', canEnter:false, cta:'শীঘ্রই আসছে'};
+    const start = new Date(exam.start_time).getTime();
+    const end = start + (exam.duration_minutes||60)*60000;
+    if(now < start) return {label:'শুরু হয়নি', canEnter:false, cta:'অপেক্ষা করুন', countdown: start-now};
+    if(now <= end) return {label:'লাইভ চলছে', canEnter:true, cta:'প্রবেশ করুন', live:true};
+    return {label:'সময় শেষ', canEnter:false, cta:'সময় শেষ হয়েছে'};
+  }
+
+  function fmtCountdown(ms){
+    const totalSec = Math.max(0, Math.floor(ms/1000));
+    const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60);
+    if(h>0) return toBnDigits(h)+'ঘ '+toBnDigits(m)+'মি';
+    const s = totalSec%60;
+    return toBnDigits(m)+':'+toBnDigits(String(s).padStart(2,'0'));
+  }
+
+  function ticketHtml(exam){
+    const st = examStatus(exam);
+    const tagsHtml = `
+      ${exam.ministry_name ? `<span class="tag ministry">${exam.ministry_name}</span>` : ''}
+      ${exam.grade ? `<span class="tag grade">গ্রেড ${toBnDigits(exam.grade)}</span>` : ''}
+      ${st.live ? `<span class="tag live">লাইভ</span>` : (exam.type==='live' && !st.canEnter && st.label==='সময় শেষ' ? `<span class="tag closed">সময় শেষ</span>` : '')}
+    `;
+    const cdHtml = exam.type==='live'
+      ? (st.countdown!==undefined
+          ? `<div class="ticket-cd"><b>${fmtCountdown(st.countdown)}</b><span>বাকি</span></div>`
+          : `<div class="ticket-cd"><b>${st.live?'চলছে':'শেষ'}</b><span>&nbsp;</span></div>`)
+      : '';
+    const btnClass = exam.type==='model' ? 'btn-enter model' : 'btn-enter';
+    const disabled = st.canEnter ? '' : 'disabled';
+    return `
+      <div class="ticket" data-exam-id="${exam.id}">
+        <div class="ticket-top">
+          <div>
+            <div class="ticket-tags">${tagsHtml}</div>
+            <div class="ticket-name">${exam.title}</div>
+            <div class="ticket-meta">${toBnDigits(exam.question_count)} প্রশ্ন · ${toBnDigits(exam.duration_minutes)} মিনিট</div>
+          </div>
+          ${cdHtml}
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-bottom">
+          <span class="ticket-serial">${exam.serial||''}</span>
+          <button class="${btnClass}" ${disabled} onclick="openNameSheet(${exam.id})">${st.cta}</button>
+        </div>
+      </div>`;
+  }
+
+  function renderList(containerId, exams, emptyMsg){
+    const el = document.getElementById(containerId);
+    if(!exams.length){ el.innerHTML = `<div class="empty-note">${emptyMsg}</div>`; return; }
+    el.innerHTML = exams.map(ticketHtml).join('');
+  }
+
+  async function loadHome(){
+    try{
+      const all = await apiGet('/api/exams/public/list');
+      ALL_EXAMS = all;
+      const live = all.filter(e=>e.type==='live');
+      const model = all.filter(e=>e.type==='model');
+      document.getElementById('stat-total').textContent = toBnDigits(all.length);
+      document.getElementById('stat-live').textContent = toBnDigits(live.length);
+      renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
+      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+      renderList('model-list', model, 'এখনো কোনো মডেল টেস্ট যুক্ত হয়নি।');
+    }catch(err){
+      document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
+    }
+  }
+  loadHome();
+  setInterval(()=>{
+    // refresh countdowns/status every 15s without a full reload feel
+    if(ALL_EXAMS.length){
+      const live = ALL_EXAMS.filter(e=>e.type==='live');
+      const model = ALL_EXAMS.filter(e=>e.type==='model');
+      renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
+      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+      renderList('model-list', model, 'এখনো কোনো মডেল টেস্ট যুক্ত হয়নি।');
+    }
+  }, 15000);
+
+  // ---------- Name-entry sheet ----------
+  let PENDING_EXAM_ID = null;
+  function openNameSheet(examId){
+    PENDING_EXAM_ID = examId;
+    document.getElementById('pname').value = '';
+    document.getElementById('pphone').value = '';
+    document.getElementById('name-err').style.display = 'none';
+    document.getElementById('name-overlay').classList.add('active');
+  }
+  function closeNameSheet(){
+    document.getElementById('name-overlay').classList.remove('active');
+    PENDING_EXAM_ID = null;
+  }
+  function confirmNameAndStart(){
+    const name = document.getElementById('pname').value.trim();
+    if(!name){ document.getElementById('name-err').style.display = 'block'; return; }
+    const phone = document.getElementById('pphone').value.trim();
+    document.getElementById('name-overlay').classList.remove('active');
+    startExam(PENDING_EXAM_ID, name, phone);
+  }
+
+  // ---------- Exam taking ----------
+  let CURRENT_EXAM = null;
+  let CURRENT_QUESTIONS = [];
+  let curQ = 0;
+  let answers = {};
+  let participant = {name:'', phone:''};
+  let timeLeft = 0;
+  let timerHandle = null;
+
+  async function startExam(examId, name, phone){
+    try{
+      const data = await apiGet('/api/exams/public/'+examId+'/questions');
+      CURRENT_EXAM = data.exam;
+      CURRENT_QUESTIONS = data.questions;
+      participant = {name, phone};
+      answers = {};
+      curQ = 0;
+
+      if(CURRENT_EXAM.type === 'live' && CURRENT_EXAM.start_time){
+        const end = new Date(CURRENT_EXAM.start_time).getTime() + (CURRENT_EXAM.duration_minutes||60)*60000;
+        timeLeft = Math.max(0, Math.floor((end - Date.now())/1000));
+      } else {
+        timeLeft = (CURRENT_EXAM.duration_minutes||60)*60;
+      }
+
+      document.getElementById('exam-overlay').classList.add('active');
+      buildProgress();
+      renderQuestion();
+      clearInterval(timerHandle);
+      timerHandle = setInterval(tick, 1000);
+    }catch(err){
+      alert(err.message || 'পরীক্ষা শুরু করা যায়নি');
+    }
+  }
+
+  function tick(){
+    timeLeft--;
+    const m = String(Math.floor(timeLeft/60)).padStart(2,'0');
+    const s = String(timeLeft%60).padStart(2,'0');
+    const t = document.getElementById('exam-timer');
+    t.textContent = '⏱ ' + toBnDigits(m) + ':' + toBnDigits(s);
+    t.classList.toggle('warn', timeLeft <= 60);
+    if(timeLeft <= 0){ clearInterval(timerHandle); submitExam(); }
+  }
+
+  function buildProgress(){
+    const wrap = document.getElementById('exam-progress');
+    wrap.innerHTML = CURRENT_QUESTIONS.map(()=>'<div class="dot"></div>').join('');
+    updateProgress();
+  }
+  function updateProgress(){
+    const dots = document.querySelectorAll('#exam-progress .dot');
+    dots.forEach((d,i)=>{
+      const q = CURRENT_QUESTIONS[i];
+      d.className = 'dot' + (answers[q.id]!==undefined ? ' done' : '') + (i===curQ ? ' now' : '');
+    });
+  }
+
+  function renderQuestion(){
+    const q = CURRENT_QUESTIONS[curQ];
+    document.getElementById('q-label').textContent = 'প্রশ্ন ' + toBnDigits(curQ+1) + ' / ' + toBnDigits(CURRENT_QUESTIONS.length) + ' · ' + q.subject;
+    document.getElementById('q-text').textContent = q.question_text;
+    const letters = ['A','B','C','D'];
+    const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d];
+    const optWrap = document.getElementById('q-options');
+    optWrap.innerHTML = '';
+    letters.forEach((L,i)=>{
+      const div = document.createElement('div');
+      div.className = 'opt' + (answers[q.id]===L ? ' selected' : '');
+      div.innerHTML = `<span class="bullet">${['ক','খ','গ','ঘ'][i]}</span><span>${optTexts[i]}</span>`;
+      div.onclick = ()=>{ answers[q.id]=L; renderQuestion(); };
+      optWrap.appendChild(div);
+    });
+    document.getElementById('btn-prev').disabled = curQ===0;
+    const isLast = curQ === CURRENT_QUESTIONS.length-1;
+    document.getElementById('btn-next').style.display = isLast ? 'none' : 'block';
+    document.getElementById('btn-submit').style.display = isLast ? 'block' : 'none';
+    updateProgress();
+  }
+
+  function nextQ(){ if(curQ < CURRENT_QUESTIONS.length-1){ curQ++; renderQuestion(); } }
+  function prevQ(){ if(curQ > 0){ curQ--; renderQuestion(); } }
+
+  function exitExam(){
+    if(!confirm('পরীক্ষা থেকে বের হয়ে যেতে চান? অগ্রগতি সংরক্ষিত হবে না।')) return;
+    clearInterval(timerHandle);
+    document.getElementById('exam-overlay').classList.remove('active');
+  }
+
+  async function submitExam(){
+    clearInterval(timerHandle);
+    document.getElementById('exam-overlay').classList.remove('active');
+    try{
+      const result = await apiPost('/api/results', {
+        exam_id: CURRENT_EXAM.id,
+        participant_name: participant.name,
+        participant_phone: participant.phone || null,
+        answers
+      });
+      showResult(result);
+      addHistory(CURRENT_EXAM.title, result);
+    }catch(err){
+      alert('জমা দেওয়া যায়নি: ' + err.message);
+    }
+  }
+
+  async function showResult(result){
+    const total = result.correct_count + result.wrong_count + result.skipped_count;
+    document.getElementById('score-ring').style.setProperty('--pct', result.score);
+    document.getElementById('score-num').textContent = toBnDigits(result.correct_count) + '/' + toBnDigits(total);
+    document.getElementById('result-exam-title').textContent = CURRENT_EXAM.title;
+    document.getElementById('stat-correct').textContent = toBnDigits(result.correct_count);
+    document.getElementById('stat-wrong').textContent = toBnDigits(result.wrong_count);
+    document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
+
+    try{
+      const merit = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
+      document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
+        <div class="merit-item ${m.id===result.id ? 'me' : ''}">
+          <div class="merit-rank">${toBnDigits(i+1)}</div>
+          <div class="merit-name">${m.participant_name}</div>
+          <div class="merit-score">${m.score}%</div>
+        </div>`).join('');
+    }catch(e){
+      document.getElementById('merit-list').innerHTML = '';
+    }
+
+    document.getElementById('result-overlay').classList.add('active');
+  }
+
+  function closeResult(){
+    document.getElementById('result-overlay').classList.remove('active');
+    goScreen('history');
+  }
+
+  // ---------- Session history (in-memory) ----------
+  let historyItems = [];
+  function addHistory(title, result){
+    historyItems.unshift({title, result});
+    renderHistory();
+  }
+  function renderHistory(){
+    const list = document.getElementById('history-list');
+    const empty = document.getElementById('history-empty');
+    if(historyItems.length===0){ empty.style.display='block'; list.innerHTML=''; return; }
+    empty.style.display='none';
+    list.innerHTML = historyItems.map(h=>{
+      const total = h.result.correct_count + h.result.wrong_count + h.result.skipped_count;
+      return `<div class="ticket"><div class="ticket-top" style="width:100%;">
+        <div><div class="ticket-name">${h.title}</div>
+        <div class="ticket-meta">স্কোর: ${toBnDigits(h.result.correct_count)}/${toBnDigits(total)} (${h.result.score}%)</div></div>
+        </div></div>`;
+    }).join('');
+  }
+</script>
+</body>
+</html>
