@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam House — অ্যাডমিন প্যানেল</title>
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&family=Hind+Siliguri:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF6EC; --card:#FFFFFF; --line:#E4DCC6; --ink:#17223B; --ink-soft:#5B6580;
+    --ink-faint:#8A93A8; --seal:#A6332B; --gold:#B8902E; --navy:#10182C;
+    --success:#2F7A4F; --success-bg:#E6F1EA; --wrong-bg:#F7E9E7;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Hind Siliguri',sans-serif; background:var(--paper); color:var(--ink);}
+  h1,h2,h3{font-family:'Tiro Bangla',serif; margin:0;}
+  .topbar{background:var(--navy); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;}
+  .topbar h1{font-size:18px;}
+  .topbar span{font-family:'Space Mono',monospace; font-size:11px; color:var(--gold); display:block;}
+  .logout{background:rgba(255,255,255,0.1); border:none; color:#fff; padding:7px 12px; border-radius:8px; font-size:12px; cursor:pointer;}
+  .tabs{display:flex; gap:6px; padding:14px 20px 0; max-width:1000px; margin:0 auto; flex-wrap:wrap;}
+  .tab{padding:9px 16px; border-radius:9px 9px 0 0; background:var(--card); border:1px solid var(--line); border-bottom:none; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink-soft);}
+  .tab.active{background:var(--card); color:var(--seal); border-bottom:2px solid var(--card); margin-bottom:-1px;}
+  .panel{max-width:1000px; margin:0 auto; background:var(--card); border:1px solid var(--line); padding:22px; border-radius:0 12px 12px 12px;}
+  .view{display:none;} .view.active{display:block;}
+  label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin:12px 0 5px;}
+  input,select,textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-family:inherit; font-size:14px; background:#fff;}
+  textarea{min-height:60px; resize:vertical;}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
+  button.primary{background:var(--seal); color:#fff; border:none; padding:11px 18px; border-radius:9px; font-weight:600; font-size:14px; cursor:pointer; margin-top:16px;}
+  button.secondary{background:var(--navy); color:#fff; border:none; padding:9px 14px; border-radius:8px; font-size:12.5px; cursor:pointer;}
+  button.ghost{background:none; border:1px solid var(--line); padding:8px 12px; border-radius:8px; font-size:12px; cursor:pointer;}
+  .msg{padding:10px 14px; border-radius:9px; font-size:13px; margin-top:12px; display:none;}
+  .msg.ok{background:var(--success-bg); color:var(--success); display:block;}
+  .msg.err{background:var(--wrong-bg); color:var(--seal); display:block;}
+  table{width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line);}
+  th{color:var(--ink-faint); font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px;}
+  .qchk{display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid var(--line);}
+  .qchk input{width:auto;}
+  .pill{font-size:10.5px; padding:2px 8px; border-radius:20px; background:var(--paper); color:var(--ink-soft); margin-right:5px;}
+  .login-wrap{max-width:360px; margin:80px auto; background:var(--card); border:1px solid var(--line); padding:30px; border-radius:16px;}
+  .drop{border:2px dashed var(--line); border-radius:12px; padding:24px; text-align:center; color:var(--ink-faint); font-size:13px; margin-top:10px; cursor:pointer;}
+  .hint{font-size:11.5px; color:var(--ink-faint); margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div id="login-view" class="login-wrap">
+  <h2 style="margin-bottom:4px;">Exam House</h2>
+  <p style="font-size:12.5px; color:var(--ink-faint); margin-bottom:18px;">অ্যাডমিন লগইন</p>
+  <label>ইউজারনেম</label>
+  <input id="li-user" value="admin">
+  <label>পাসওয়ার্ড</label>
+  <input id="li-pass" type="password">
+  <button class="primary" onclick="doLogin()">লগইন করুন</button>
+  <div class="msg" id="login-msg"></div>
+</div>
+
+<div id="app-view" style="display:none;">
+  <div class="topbar">
+    <div><h1>Exam House</h1><span>অ্যাডমিন প্যানেল</span></div>
+    <button class="logout" onclick="doLogout()">লগআউট</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="questions" onclick="showTab('questions')">প্রশ্ন ব্যাংক</div>
+    <div class="tab" data-tab="bulk" onclick="showTab('bulk')">বাল্ক আপলোড</div>
+    <div class="tab" data-tab="exams" onclick="showTab('exams')">পরীক্ষা তৈরি</div>
+    <div class="tab" data-tab="manage" onclick="showTab('manage')">পরীক্ষা তালিকা</div>
+    <div class="tab" data-tab="results" onclick="showTab('results')">ফলাফল</div>
+  </div>
+
+  <div class="panel">
+
+    <!-- QUESTIONS -->
+    <div class="view active" id="view-questions">
+      <h3>নতুন প্রশ্ন যোগ করুন</h3>
+      <div class="row3">
+        <div><label>মন্ত্রণালয়</label><select id="q-ministry"></select></div>
+        <div><label>গ্রেড</label><input id="q-grade" type="number" placeholder="যেমনঃ ১৬"></div>
+        <div><label>বিষয়</label>
+          <select id="q-subject">
+            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>সাধারণ জ্ঞান</option>
+          </select>
+        </div>
+      </div>
+      <label>প্রশ্ন</label>
+      <textarea id="q-text" placeholder="প্রশ্নটি লিখুন"></textarea>
+      <div class="row">
+        <div><label>অপশন ক</label><input id="q-a"></div>
+        <div><label>অপশন খ</label><input id="q-b"></div>
+        <div><label>অপশন গ</label><input id="q-c"></div>
+        <div><label>অপশন ঘ</label><input id="q-d"></div>
+      </div>
+      <label>সঠিক উত্তর</label>
+      <select id="q-correct"><option value="A">ক</option><option value="B">খ</option><option value="C">গ</option><option value="D">ঘ</option></select>
+      <button class="primary" onclick="addQuestion()">প্রশ্ন যোগ করুন</button>
+      <div class="msg" id="q-msg"></div>
+
+      <h3 style="margin-top:28px;">সব প্রশ্ন (<span id="q-count">0</span>)</h3>
+      <input placeholder="খুঁজুন..." style="margin-top:8px;" oninput="loadQuestions(this.value)">
+      <table>
+        <thead><tr><th>বিষয়</th><th>প্রশ্ন</th><th>মন্ত্রণালয়</th><th>গ্রেড</th><th>সঠিক</th><th></th></tr></thead>
+        <tbody id="q-table"></tbody>
+      </table>
+    </div>
+
+    <!-- BULK UPLOAD -->
+    <div class="view" id="view-bulk">
+      <h3>CSV / Excel থেকে বাল্ক আপলোড</h3>
+      <p style="font-size:13px; color:var(--ink-soft); margin-top:8px;">ফাইলে এই কলামগুলো থাকতে হবে (হেডার রো):</p>
+      <p class="hint">ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D)</p>
+      <div class="drop" onclick="document.getElementById('bulk-file').click()">📄 ফাইল বেছে নিতে এখানে ট্যাপ করুন (.csv বা .xlsx)</div>
+      <input type="file" id="bulk-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="uploadBulk(this.files[0])">
+      <div class="msg" id="bulk-msg"></div>
+      <div id="bulk-errors" style="margin-top:12px; font-size:12.5px; color:var(--seal);"></div>
+    </div>
+
+    <!-- CREATE EXAM -->
+    <div class="view" id="view-exams">
+      <h3>নতুন পরীক্ষা তৈরি করুন</h3>
+      <label>শিরোনাম</label>
+      <input id="e-title" placeholder="যেমনঃ অফিস সহায়ক নিয়োগ পরীক্ষা — পুনর্মডেল">
+      <div class="row3">
+        <div><label>ধরন</label><select id="e-type" onchange="toggleLiveFields()"><option value="live">লাইভ পরীক্ষা</option><option value="model">মডেল টেস্ট</option></select></div>
+        <div><label>মন্ত্রণালয়</label><select id="e-ministry"></select></div>
+        <div><label>গ্রেড</label><input id="e-grade" type="number"></div>
+      </div>
+      <div class="row" id="e-live-fields">
+        <div><label>শুরুর সময়</label><input id="e-start" type="datetime-local"></div>
+        <div><label>সময়কাল (মিনিট)</label><input id="e-duration" type="number" value="60"></div>
+      </div>
+      <div id="e-duration-only" style="display:none;"><label>সময়কাল (মিনিট)</label><input id="e-duration2" type="number" value="60"></div>
+
+      <h3 style="margin-top:22px;">প্রশ্ন বেছে নিন</h3>
+      <div class="row3">
+        <div><label>মন্ত্রণালয় ফিল্টার</label><select id="ef-ministry" onchange="loadQuestionPicker()"></select></div>
+        <div><label>বিষয় ফিল্টার</label><select id="ef-subject" onchange="loadQuestionPicker()"><option value="">সব</option><option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>সাধারণ জ্ঞান</option></select></div>
+        <div><label>নির্বাচিত</label><input value="0" id="e-selected-count" disabled></div>
+      </div>
+      <div id="q-picker" style="max-height:320px; overflow-y:auto; margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:8px 12px;"></div>
+
+      <button class="primary" onclick="createExam()">পরীক্ষা তৈরি করুন</button>
+      <div class="msg" id="e-msg"></div>
+    </div>
+
+    <!-- MANAGE EXAMS -->
+    <div class="view" id="view-manage">
+      <h3>সব পরীক্ষা</h3>
+      <table>
+        <thead><tr><th>শিরোনাম</th><th>ধরন</th><th>প্রশ্ন</th><th>অংশগ্রহণ</th><th>অবস্থা</th><th>সিরিয়াল</th><th></th></tr></thead>
+        <tbody id="manage-table"></tbody>
+      </table>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="view" id="view-results">
+      <h3>ফলাফল দেখুন</h3>
+      <label>পরীক্ষা বেছে নিন</label>
+      <select id="r-exam" onchange="loadResults()"></select>
+      <table>
+        <thead><tr><th>#</th><th>নাম</th><th>সঠিক</th><th>ভুল</th><th>স্কোর</th><th>সময়</th></tr></thead>
+        <tbody id="r-table"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let TOKEN = localStorage.getItem('eh_admin_token') || null;
+  let QUESTIONS_CACHE = [];
+  let MINISTRIES_CACHE = [];
+  let SELECTED_QIDS = new Set();
+
+  function api(path, opts={}){
+    opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{}, TOKEN?{'Authorization':'Bearer '+TOKEN}:{});
+    return fetch(path, opts).then(async r=>{
+      const data = await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+      return data;
+    });
+  }
+
+  async function doLogin(){
+    const msg = document.getElementById('login-msg');
+    try{
+      const data = await api('/api/admin/login', {method:'POST', body: JSON.stringify({
+        username: document.getElementById('li-user').value,
+        password: document.getElementById('li-pass').value
+      })});
+      TOKEN = data.token;
+      localStorage.setItem('eh_admin_token', TOKEN);
+      enterApp();
+    }catch(err){
+      msg.className='msg err'; msg.textContent = err.message;
+    }
+  }
+  function doLogout(){
+    localStorage.removeItem('eh_admin_token'); TOKEN=null;
+    document.getElementById('app-view').style.display='none';
+    document.getElementById('login-view').style.display='block';
+  }
+  async function enterApp(){
+    document.getElementById('login-view').style.display='none';
+    document.getElementById('app-view').style.display='block';
+    await loadMinistries();
+    await loadQuestions();
+    await loadQuestionPicker();
+    await loadExamsForManage();
+    await loadExamsForResults();
+  }
+  if(TOKEN) enterApp();
+
+  function showTab(name){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    if(name==='manage') loadExamsForManage();
+    if(name==='results') loadExamsForResults();
+  }
+
+  // ---------- Ministries ----------
+  async function loadMinistries(){
+    MINISTRIES_CACHE = await api('/api/questions/ministries/list');
+    const opts = m => MINISTRIES_CACHE.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    ['q-ministry','e-ministry','ef-ministry'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.innerHTML = (id==='ef-ministry' ? '<option value="">সব মন্ত্রণালয়</option>' : '<option value="">— বেছে নিন —</option>') + opts();
+    });
+  }
+
+  // ---------- Questions ----------
+  async function loadQuestions(search){
+    const q = search ? '?search='+encodeURIComponent(search) : '';
+    QUESTIONS_CACHE = await api('/api/questions'+q);
+    document.getElementById('q-count').textContent = QUESTIONS_CACHE.length;
+    document.getElementById('q-table').innerHTML = QUESTIONS_CACHE.map(q=>`
+      <tr>
+        <td>${q.subject}</td>
+        <td style="max-width:260px;">${q.question_text}</td>
+        <td>${q.ministry_name||'—'}</td>
+        <td>${q.grade||'—'}</td>
+        <td>${q.correct_option}</td>
+        <td><button class="ghost" onclick="deleteQuestion(${q.id})">মুছুন</button></td>
+      </tr>`).join('');
+  }
+  async function addQuestion(){
+    const msg = document.getElementById('q-msg');
+    try{
+      await api('/api/questions', {method:'POST', body: JSON.stringify({
+        ministry_id: document.getElementById('q-ministry').value || null,
+        grade: document.getElementById('q-grade').value || null,
+        subject: document.getElementById('q-subject').value,
+        question_text: document.getElementById('q-text').value,
+        option_a: document.getElementById('q-a').value,
+        option_b: document.getElementById('q-b').value,
+        option_c: document.getElementById('q-c').value,
+        option_d: document.getElementById('q-d').value,
+        correct_option: document.getElementById('q-correct').value
+      })});
+      msg.className='msg ok'; msg.textContent='প্রশ্ন যোগ হয়েছে ✅';
+      ['q-text','q-a','q-b','q-c','q-d'].forEach(id=>document.getElementById(id).value='');
+      loadQuestions(); loadQuestionPicker();
+    }catch(err){ msg.className='msg err'; msg.textContent = err.message; }
+  }
+  async function deleteQuestion(id){
+    if(!confirm('প্রশ্নটি মুছে ফেলতে চান?')) return;
+    await api('/api/questions/'+id, {method:'DELETE'});
+    loadQuestions(); loadQuestionPicker();
+  }
+
+  // ---------- Bulk upload ----------
+  async function uploadBulk(file){
+    if(!file) return;
+    const msg = document.getElementById('bulk-msg');
+    const errBox = document.getElementById('bulk-errors');
+    msg.className='msg'; msg.style.display='none'; errBox.innerHTML='';
+    const fd = new FormData();
+    fd.append('file', file);
+    try{
+      const r = await fetch('/api/bulk-upload', {method:'POST', headers:{'Authorization':'Bearer '+TOKEN}, body: fd});
+      const data = await r.json();
+      if(!r.ok) throw new Error(data.error||'আপলোড ব্যর্থ');
+      msg.className='msg ok'; msg.textContent = `${data.added} টি প্রশ্ন যোগ হয়েছে। ব্যর্থ: ${data.failed}`;
+      if(data.errors && data.errors.length){
+        errBox.innerHTML = data.errors.map(e=>'• '+e).join('<br>');
+      }
+      loadQuestions(); loadQuestionPicker();
+    }catch(err){
+      msg.className='msg err'; msg.textContent = err.message;
+    }
+  }
+
+  // ---------- Exam creation ----------
+  function toggleLiveFields(){
+    const isLive = document.getElementById('e-type').value === 'live';
+    document.getElementById('e-live-fields').style.display = isLive ? 'grid' : 'none';
+    document.getElementById('e-duration-only').style.display = isLive ? 'none' : 'block';
+  }
+  async function loadQuestionPicker(){
+    const ministry = document.getElementById('ef-ministry')?.value;
+    const subject = document.getElementById('ef-subject')?.value;
+    let url = '/api/questions?';
+    if(ministry) url += 'ministry_id='+ministry+'&';
+    if(subject) url += 'subject='+encodeURIComponent(subject);
+    const list = await api(url);
+    document.getElementById('q-picker').innerHTML = list.map(q=>`
+      <div class="qchk">
+        <input type="checkbox" value="${q.id}" ${SELECTED_QIDS.has(q.id)?'checked':''} onchange="toggleQ(${q.id}, this.checked)">
+        <div><span class="pill">${q.subject}</span>${q.question_text}</div>
+      </div>`).join('') || '<p class="hint">কোনো প্রশ্ন নেই — আগে প্রশ্ন ব্যাংকে প্রশ্ন যোগ করুন।</p>';
+  }
+  function toggleQ(id, checked){
+    if(checked) SELECTED_QIDS.add(id); else SELECTED_QIDS.delete(id);
+    document.getElementById('e-selected-count').value = SELECTED_QIDS.size;
+  }
+  async function createExam(){
+    const msg = document.getElementById('e-msg');
+    const type = document.getElementById('e-type').value;
+    try{
+      if(SELECTED_QIDS.size === 0) throw new Error('অন্তত একটি প্রশ্ন বেছে নিন');
+      await api('/api/exams', {method:'POST', body: JSON.stringify({
+        title: document.getElementById('e-title').value,
+        type,
+        ministry_id: document.getElementById('e-ministry').value || null,
+        grade: document.getElementById('e-grade').value || null,
+        duration_minutes: type==='live' ? document.getElementById('e-duration').value : document.getElementById('e-duration2').value,
+        start_time: type==='live' ? document.getElementById('e-start').value : null,
+        question_ids: Array.from(SELECTED_QIDS)
+      })});
+      msg.className='msg ok'; msg.textContent='পরীক্ষা তৈরি হয়েছে ✅';
+      SELECTED_QIDS.clear();
+      document.getElementById('e-title').value='';
+      loadExamsForManage();
+    }catch(err){ msg.className='msg err'; msg.textContent = err.message; }
+  }
+
+  // ---------- Manage exams ----------
+  async function loadExamsForManage(){
+    const list = await api('/api/exams/admin/list');
+    document.getElementById('manage-table').innerHTML = list.map(e=>`
+      <tr>
+        <td>${e.title}</td>
+        <td>${e.type==='live'?'লাইভ':'মডেল'}</td>
+        <td>${e.question_count}</td>
+        <td>${e.attempt_count}</td>
+        <td>${e.status}</td>
+        <td class="hint">${e.serial}</td>
+        <td>
+          <button class="ghost" onclick="setStatus(${e.id},'active')">চালু</button>
+          <button class="ghost" onclick="setStatus(${e.id},'closed')">বন্ধ</button>
+          <button class="ghost" onclick="deleteExam(${e.id})">মুছুন</button>
+        </td>
+      </tr>`).join('');
+  }
+  async function setStatus(id, status){
+    await api('/api/exams/'+id+'/status', {method:'PUT', body: JSON.stringify({status})});
+    loadExamsForManage();
+  }
+  async function deleteExam(id){
+    if(!confirm('পরীক্ষাটি মুছে ফেলতে চান?')) return;
+    await api('/api/exams/'+id, {method:'DELETE'});
+    loadExamsForManage();
+  }
+
+  // ---------- Results ----------
+  async function loadExamsForResults(){
+    const list = await api('/api/exams/admin/list');
+    document.getElementById('r-exam').innerHTML = list.map(e=>`<option value="${e.id}">${e.title} (${e.serial})</option>`).join('');
+    if(list.length) loadResults();
+  }
+  async function loadResults(){
+    const id = document.getElementById('r-exam').value;
+    if(!id) return;
+    const list = await api('/api/results/admin/exam/'+id);
+    document.getElementById('r-table').innerHTML = list.map((r,i)=>`
+      <tr>
+        <td>${i+1}</td><td>${r.participant_name}</td><td>${r.correct_count}</td>
+        <td>${r.wrong_count}</td><td>${r.score}%</td>
+        <td class="hint">${new Date(r.submitted_at).toLocaleString('bn-BD')}</td>
+      </tr>`).join('');
+  }
+</script>
+</body>
+</html>
