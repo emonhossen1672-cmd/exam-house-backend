@@ -1,13 +1,14 @@
-// middleware/auth.js — protects /api/admin/* routes
+// middleware/auth.js — protects admin routes and user (student) routes
 const jwt = require('jsonwebtoken');
+const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 function requireAdmin(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'লগইন প্রয়োজন' });
-
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-change-me');
+    const payload = jwt.verify(token, SECRET);
+    if (payload.role !== 'admin') return res.status(403).json({ error: 'অনুমতি নেই' });
     req.admin = payload;
     next();
   } catch (err) {
@@ -15,4 +16,32 @@ function requireAdmin(req, res, next) {
   }
 }
 
-module.exports = { requireAdmin };
+// requires a logged-in student/user — blocks the request if missing/invalid
+function requireUser(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'লগইন প্রয়োজন' });
+  try {
+    const payload = jwt.verify(token, SECRET);
+    if (payload.role !== 'user') return res.status(403).json({ error: 'অনুমতি নেই' });
+    req.user = payload;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'সেশন মেয়াদোত্তীর্ণ, আবার লগইন করুন' });
+  }
+}
+
+// attaches req.user if a valid user token is present, but never blocks (guests allowed)
+function optionalUser(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, SECRET);
+      if (payload.role === 'user') req.user = payload;
+    } catch (err) { /* invalid/expired token — just continue as guest */ }
+  }
+  next();
+}
+
+module.exports = { requireAdmin, requireUser, optionalUser };
