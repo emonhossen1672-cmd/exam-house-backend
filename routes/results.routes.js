@@ -17,17 +17,26 @@ router.post('/', optionalUser, async (req, res) => {
   }
 
   const qRes = await pool.query(
-    `SELECT q.id, q.correct_option FROM exam_questions eq
-     JOIN questions q ON q.id = eq.question_id WHERE eq.exam_id=$1`,
+    `SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+      q.correct_option, q.explanation, eq.position
+     FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
+     WHERE eq.exam_id=$1 ORDER BY eq.position`,
     [exam_id]
   );
 
   let correct = 0, wrong = 0, skipped = 0;
-  qRes.rows.forEach(q => {
-    const given = answers[q.id];
-    if (!given) skipped++;
-    else if (given.toUpperCase() === q.correct_option) correct++;
-    else wrong++;
+  const review = qRes.rows.map(q => {
+    const given = answers[q.id] ? String(answers[q.id]).toUpperCase() : null;
+    let status;
+    if (!given) { skipped++; status = 'skipped'; }
+    else if (given === q.correct_option) { correct++; status = 'correct'; }
+    else { wrong++; status = 'wrong'; }
+    return {
+      id: q.id, subject: q.subject, question_text: q.question_text,
+      option_a: q.option_a, option_b: q.option_b, option_c: q.option_c, option_d: q.option_d,
+      correct_option: q.correct_option, explanation: q.explanation,
+      given, status
+    };
   });
   const total = qRes.rows.length || 1;
   const score = Math.round((correct / total) * 10000) / 100;
@@ -38,7 +47,7 @@ router.post('/', optionalUser, async (req, res) => {
     [exam_id, userId, name, phone, JSON.stringify(answers), correct, wrong, skipped, score]
   );
 
-  res.status(201).json(rows[0]);
+  res.status(201).json({ ...rows[0], review });
 });
 
 // GET /api/results/me — logged-in student's own exam history, across all exams
@@ -50,6 +59,54 @@ router.get('/me', requireUser, async (req, res) => {
     WHERE r.user_id = $1 ORDER BY r.submitted_at DESC
   `, [req.user.id]);
   res.json(rows);
+});
+
+// GET /api/results/me/subject-stats — subject-wise accuracy across ALL of this
+// user's submitted exams, so they can see which subjects need more work.
+router.get('/me/subject-stats', requireUser, async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT q.subject,
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE ans.given IS NOT NULL AND UPPER(ans.given) = q.correct_option)::int AS correct,
+      COUNT(*) FILTER (WHERE ans.given IS NOT NULL AND UPPER(ans.given) != q.correct_option)::int AS wrong,
+      COUNT(*) FILTER (WHERE ans.given IS NULL)::int AS skipped
+    FROM results r
+    JOIN exam_questions eq ON eq.exam_id = r.exam_id
+    JOIN questions q ON q.id = eq.question_id
+    LEFT JOIN LATERAL (SELECT r.answers->>(eq.question_id::text) AS given) ans ON true
+    WHERE r.user_id = $1
+    GROUP BY q.subject
+    ORDER BY total DESC
+  `, [req.user.id]);
+  res.json(rows);
+});
+
+// GET /api/results/:id/review — per-question breakdown (with explanations) for
+// a specific past result, so the student can review it again later.
+router.get('/:id/review', requireUser, async (req, res) => {
+  const rRes = await pool.query('SELECT * FROM results WHERE id=$1', [req.params.id]);
+  if (!rRes.rows.length) return res.status(404).json({ error: 'ফলাফল পাওয়া যায়নি' });
+  const result = rRes.rows[0];
+  if (result.user_id !== req.user.id) return res.status(403).json({ error: 'অনুমতি নেই' });
+
+  const qRes = await pool.query(`
+    SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+      q.correct_option, q.explanation, eq.position
+    FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
+    WHERE eq.exam_id=$1 ORDER BY eq.position
+  `, [result.exam_id]);
+
+  const answers = result.answers || {};
+  const review = qRes.rows.map(q => {
+    const given = answers[q.id] ? String(answers[q.id]).toUpperCase() : null;
+    const status = !given ? 'skipped' : (given === q.correct_option ? 'correct' : 'wrong');
+    return {
+      id: q.id, subject: q.subject, question_text: q.question_text,
+      option_a: q.option_a, option_b: q.option_b, option_c: q.option_c, option_d: q.option_d,
+      correct_option: q.correct_option, explanation: q.explanation, given, status
+    };
+  });
+  res.json({ result, review });
 });
 
 // GET /api/results/exam/:examId — merit list / leaderboard, public
