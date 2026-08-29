@@ -300,6 +300,13 @@
   .rev-opt.is-correct{ background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700; }
   .rev-opt.is-wrong{ background:var(--wrong-bg); border-color:var(--wrong); color:var(--wrong); font-weight:700; }
   .rev-explain{ margin-top:10px; background:var(--paper); border-left:3px solid var(--gold); padding:9px 11px; font-size:12px; color:var(--ink-soft); border-radius:0 8px 8px 0; }
+  .rev-opt.clickable{ cursor:pointer; }
+  .rev-opt.clickable:active{ opacity:0.7; }
+  .revision-trigger{
+    width:100%; background:var(--seal); color:#fff; border:none; border-radius:12px;
+    padding:13px; font-size:13.5px; font-weight:700; cursor:pointer; margin-top:12px;
+    display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Noto Sans Bengali';
+  }
 
   /* ---------- Bottom nav ---------- */
   .bottom-nav{
@@ -521,6 +528,9 @@
       <div class="sec-head" style="margin:22px 0 12px;"><h2>আপনার পারফরম্যান্স</h2><a onclick="goScreen('history')">বিস্তারিত →</a></div>
       <div id="home-perf-empty" class="empty-note" style="display:none;">একটি পরীক্ষা দিলে এখানে আপনার বিষয়ভিত্তিক ফলাফল দেখাবে।</div>
       <div id="home-perf-list"></div>
+      <button class="revision-trigger" id="home-revision-trigger-btn" style="display:none;" onclick="openRevision()">
+        🎯 <span id="home-revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
+      </button>
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
@@ -591,6 +601,10 @@
           <div class="streak-best">সর্বোচ্চ: <span id="profile-streak-best">০</span> দিন</div>
         </div>
       </div>
+
+      <button class="revision-trigger" id="revision-trigger-btn" style="display:none;" onclick="openRevision()">
+        🎯 <span id="revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
+      </button>
 
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
       <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
@@ -687,6 +701,16 @@
     <div class="exam-body" id="review-body" style="padding-bottom:40px;"></div>
   </div>
 
+  <!-- ============ REVISION QUIZ OVERLAY (practice past wrong answers) ============ -->
+  <div class="exam-overlay" id="revision-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeRevision()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">ভুল প্রশ্ন থেকে প্র্যাকটিস</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="revision-body" style="padding-bottom:40px;"></div>
+  </div>
+
   <!-- ============ ARCHIVE OVERLAY ============ -->
   <div class="archive-overlay" id="archive-overlay">
     <div class="archive-top">
@@ -770,11 +794,13 @@
 
   function doUserLogout(){
     localStorage.removeItem('eh_user_token');
-    USER_TOKEN = null; USER_INFO = null; SUBJ_STATS_CACHE = null;
+    USER_TOKEN = null; USER_INFO = null; SUBJ_STATS_CACHE = null; WRONG_QUESTIONS_CACHE = null;
     document.getElementById('auth-guest').style.display = 'block';
     document.getElementById('auth-profile').style.display = 'none';
     document.getElementById('home-perf-widget').style.display = 'none';
     document.getElementById('home-streak-pill').style.display = 'none';
+    document.getElementById('revision-trigger-btn').style.display = 'none';
+    document.getElementById('home-revision-trigger-btn').style.display = 'none';
     showAuthForm('login');
   }
 
@@ -816,10 +842,27 @@
       await renderSubjectStats([
         {listId:'home-perf-list', emptyId:'home-perf-empty', limit:2}
       ], true);
+
+      refreshRevisionTrigger();
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
     }
+  }
+
+  let WRONG_QUESTIONS_CACHE = null;
+  async function refreshRevisionTrigger(){
+    try{
+      WRONG_QUESTIONS_CACHE = await apiGetAuth('/api/results/me/wrong-questions');
+      const count = WRONG_QUESTIONS_CACHE.length;
+      const label = count ? `ভুল প্রশ্ন থেকে প্র্যাকটিস করুন (${toBnDigits(count)}টি)` : '';
+      ['revision-trigger-btn','home-revision-trigger-btn'].forEach((btnId, idx)=>{
+        const btn = document.getElementById(btnId);
+        const labelEl = document.getElementById(idx===0 ? 'revision-trigger-label' : 'home-revision-trigger-label');
+        if(count){ btn.style.display = 'flex'; labelEl.textContent = label; }
+        else { btn.style.display = 'none'; }
+      });
+    }catch(e){ /* silent — trigger just won't show */ }
   }
 
   function applyStreakDisplay(current, longest){
@@ -1345,6 +1388,7 @@
       applyStreakDisplay(result.streak.current_streak, result.streak.longest_streak);
     }
     SUBJ_STATS_CACHE = null; // stale after a new submission — refetch next time profile/home is viewed
+    if(USER_TOKEN) refreshRevisionTrigger();
 
     document.getElementById('result-overlay').classList.add('active');
   }
@@ -1408,6 +1452,44 @@
 
   function closeReview(){
     document.getElementById('review-overlay').classList.remove('active');
+  }
+
+  // ---------- Revision quiz (practice past wrong answers) ----------
+  function openRevision(){
+    if(!WRONG_QUESTIONS_CACHE || !WRONG_QUESTIONS_CACHE.length) return;
+    const optKeys = ['a','b','c','d'];
+    document.getElementById('revision-body').innerHTML = WRONG_QUESTIONS_CACHE.map((q,i)=>{
+      const opts = optKeys.map(k=>{
+        const letter = k.toUpperCase();
+        return `<div class="rev-opt clickable" data-qid="${q.id}" data-letter="${letter}" data-correct="${q.correct_option}" onclick="answerRevisionOption(this)">${letter}. ${q['option_'+k]}</div>`;
+      }).join('');
+      const explain = q.explanation ? `<div class="rev-explain" style="display:none;">💡 ${q.explanation}</div>` : '';
+      return `<div class="rev-q">
+        <div class="rev-q-top">
+          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
+        </div>
+        <div class="rev-q-text">${q.question_text}</div>
+        ${opts}
+        ${explain}
+      </div>`;
+    }).join('');
+    document.getElementById('revision-overlay').classList.add('active');
+  }
+
+  function answerRevisionOption(el){
+    const card = el.closest('.rev-q');
+    if(card.querySelector('.rev-opt.is-correct, .rev-opt.is-wrong')) return; // already answered
+    const correct = el.dataset.correct;
+    card.querySelectorAll('.rev-opt').forEach(opt=>{
+      if(opt.dataset.letter === correct) opt.classList.add('is-correct');
+      else if(opt === el) opt.classList.add('is-wrong');
+    });
+    const explain = card.querySelector('.rev-explain');
+    if(explain) explain.style.display = 'block';
+  }
+
+  function closeRevision(){
+    document.getElementById('revision-overlay').classList.remove('active');
   }
 </script>
 </body>
