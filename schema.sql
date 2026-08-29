@@ -113,3 +113,21 @@ CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_exam ON results(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_user ON results(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+
+-- ===== Feature: OTP-based phone verification =====
+-- Verifies a phone number actually belongs to whoever registers, so the
+-- users table can't be filled with fake numbers.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS otp_codes (
+  id SERIAL PRIMARY KEY,
+  phone VARCHAR(30) NOT NULL,
+  code_hash TEXT NOT NULL,
+  purpose VARCHAR(20) NOT NULL DEFAULT 'register', -- register | reset_password
+  attempts INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMP NOT NULL,
+  verified_at TIMESTAMP,
+  consumed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_codes(phone, purpose, created_at DESC);
