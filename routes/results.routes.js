@@ -16,6 +16,9 @@ router.post('/', optionalUser, async (req, res) => {
     return res.status(400).json({ error: 'নাম ও উত্তর প্রয়োজন' });
   }
 
+  const examRes = await pool.query('SELECT negative_marks FROM exams WHERE id=$1', [exam_id]);
+  const negativeMarks = examRes.rows.length ? Number(examRes.rows[0].negative_marks) || 0 : 0;
+
   const qRes = await pool.query(
     `SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
       q.correct_option, q.explanation, eq.position
@@ -39,12 +42,15 @@ router.post('/', optionalUser, async (req, res) => {
     };
   });
   const total = qRes.rows.length || 1;
-  const score = Math.round((correct / total) * 10000) / 100;
+  // Negative marking: each wrong answer deducts `negative_marks` marks (out of 1 per question).
+  // Score is still shown as a 0-100 percentage, clamped at 0 so it never goes negative.
+  const rawMarks = correct - (wrong * negativeMarks);
+  const score = Math.max(0, Math.round((rawMarks / total) * 10000) / 100);
 
   const { rows } = await pool.query(
-    `INSERT INTO results (exam_id, user_id, participant_name, participant_phone, answers, correct_count, wrong_count, skipped_count, score)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-    [exam_id, userId, name, phone, JSON.stringify(answers), correct, wrong, skipped, score]
+    `INSERT INTO results (exam_id, user_id, participant_name, participant_phone, answers, correct_count, wrong_count, skipped_count, score, raw_marks)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [exam_id, userId, name, phone, JSON.stringify(answers), correct, wrong, skipped, score, rawMarks]
   );
 
   let streak = null;
@@ -166,6 +172,30 @@ router.get('/:id/review', requireUser, async (req, res) => {
     };
   });
   res.json({ result, review });
+});
+
+// GET /api/results/leaderboard/overall — site-wide ranking across ALL exams,
+// so users can see how they compare beyond a single exam. Ranked by total
+// score summed across every exam they've taken (rewards both accuracy and
+// consistency). Public — no login required to view.
+router.get('/leaderboard/overall', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const { rows } = await pool.query(`
+    SELECT
+      u.id AS user_id, u.name,
+      COUNT(r.id)::int AS exams_taken,
+      SUM(r.score)::numeric(10,2) AS total_score,
+      ROUND(AVG(r.score)::numeric, 2) AS avg_score,
+      SUM(r.correct_count)::int AS total_correct,
+      RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank
+    FROM results r
+    JOIN users u ON u.id = r.user_id
+    WHERE r.user_id IS NOT NULL
+    GROUP BY u.id, u.name
+    ORDER BY total_score DESC
+    LIMIT $1
+  `, [limit]);
+  res.json(rows);
 });
 
 // GET /api/results/exam/:examId — merit list / leaderboard, public
