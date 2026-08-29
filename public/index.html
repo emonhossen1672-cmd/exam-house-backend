@@ -162,6 +162,7 @@
     <button class="tab-btn" data-tab="list">প্রশ্ন তালিকা</button>
     <button class="tab-btn" data-tab="ministries">মন্ত্রণালয়</button>
     <button class="tab-btn" data-tab="exams">পরীক্ষা তৈরি করুন</button>
+    <button class="tab-btn" data-tab="reports">রিপোর্ট</button>
   </div>
 
   <div class="panel-wrap">
@@ -364,6 +365,16 @@
       <div id="examListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
     </div>
 
+    <div class="panel" id="panel-reports">
+      <h2>প্রশ্ন রিপোর্ট</h2>
+      <div class="desc">শিক্ষার্থীরা যেসব প্রশ্নে সমস্যা মনে করে রিপোর্ট করেছে।</div>
+      <div class="filters">
+        <button class="btn btn-ghost btn-small" id="rp_open" onclick="loadReports('open')">নতুন</button>
+        <button class="btn btn-ghost btn-small" id="rp_resolved" onclick="loadReports('resolved')">সমাধান হয়েছে</button>
+      </div>
+      <div id="reportsWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -445,6 +456,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'ministries') loadMinistries();
     if (btn.dataset.tab === 'exams') { loadExamMinistries(); loadExamQuestionPicker(); loadExamsList(); }
     if (btn.dataset.tab === 'quicktext') { loadQuickTextMinistries(); }
+    if (btn.dataset.tab === 'reports') { loadReports(); }
   });
 });
 
@@ -840,6 +852,44 @@ async function deleteQuestion(id){
 
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadReports(status){
+  status = status || 'open';
+  document.getElementById('rp_open').classList.toggle('active', status==='open');
+  document.getElementById('rp_resolved').classList.toggle('active', status==='resolved');
+  const wrap = document.getElementById('reportsWrap');
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const list = await api('/api/reports?status=' + status);
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state">এই তালিকায় কিছু নেই</div>';
+      return;
+    }
+    wrap.innerHTML = `<table>
+      <tr><th>প্রশ্ন</th><th>বিষয়</th><th>কারণ</th><th>তারিখ</th><th></th></tr>
+      ${list.map(r => `
+        <tr>
+          <td class="qtext">${escapeHtml(r.question_text)}</td>
+          <td><span class="pill">${escapeHtml(r.subject||'')}</span></td>
+          <td>${r.reason ? escapeHtml(r.reason) : '<i>কারণ দেওয়া হয়নি</i>'}</td>
+          <td>${new Date(r.created_at).toLocaleDateString('bn-BD')}</td>
+          <td class="row-actions">
+            ${status==='open' ? `<button class="btn btn-ghost btn-small" onclick="resolveReport(${r.id})">সমাধান হয়েছে</button>` : ''}
+          </td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function resolveReport(id){
+  try{
+    await api('/api/reports/' + id + '/resolve', { method: 'PUT' });
+    loadReports('open');
+  } catch(err){ alert(err.message); }
 }
 
 if (TOKEN) showApp(); else showLogin();
