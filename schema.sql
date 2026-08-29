@@ -70,7 +70,9 @@ CREATE TABLE IF NOT EXISTS results (
 
 ALTER TABLE results ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS post_name VARCHAR(200);
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS subject VARCHAR(30);
 CREATE INDEX IF NOT EXISTS idx_exams_ministry_post ON exams(ministry_id, post_name, grade);
+CREATE INDEX IF NOT EXISTS idx_exams_subject ON exams(subject);
 
 CREATE INDEX IF NOT EXISTS idx_questions_ministry ON questions(ministry_id);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
