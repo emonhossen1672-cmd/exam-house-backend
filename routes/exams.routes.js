@@ -114,6 +114,53 @@ router.get('/public/list', async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/exams/public/daily-quiz — auto-generated 10-question daily quiz.
+// Reuses the normal exam/results flow: creates (or reuses, if already generated
+// today) a real 'model' exam row so taking it, submitting, and reviewing it all
+// work exactly like any other model test.
+router.get('/public/daily-quiz', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const existing = await client.query(
+      `SELECT e.*, (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id)::int AS question_count
+       FROM exams e WHERE e.is_daily = true AND e.quiz_date = CURRENT_DATE`
+    );
+    if (existing.rows.length) {
+      return res.json(existing.rows[0]);
+    }
+
+    await client.query('BEGIN');
+    const qRes = await client.query(
+      `SELECT id FROM questions ORDER BY RANDOM() LIMIT 10`
+    );
+    if (!qRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'এখনো কোনো প্রশ্ন যোগ করা হয়নি' });
+    }
+    const serial = 'EH-DQ-' + Math.floor(1000 + Math.random() * 9000);
+    const dateLabel = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long' });
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, duration_minutes, status, serial, is_daily, quiz_date)
+       VALUES ($1,'model',15,'active',$2,true,CURRENT_DATE) RETURNING *`,
+      [`আজকের কুইজ — ${dateLabel}`, serial]
+    );
+    const exam = examResult.rows[0];
+    for (let i = 0; i < qRes.rows.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, qRes.rows[i].id, i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ...exam, question_count: qRes.rows.length });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // GET /api/exams/public/:id/questions — questions WITHOUT correct answers (for taking the exam)
 router.get('/public/:id/questions', async (req, res) => {
   const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
