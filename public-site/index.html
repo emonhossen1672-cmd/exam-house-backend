@@ -1201,8 +1201,10 @@
     document.getElementById('pname').value = '';
     document.getElementById('pphone').value = '';
     document.getElementById('name-err').style.display = 'none';
+    const negMarksNote = (exam && Number(exam.negative_marks) > 0)
+      ? ` · ⚠️ নেগেটিভ মার্কিং -${toBnDigits(exam.negative_marks)}` : '';
     document.getElementById('name-sheet-meta').textContent = exam
-      ? `📝 ${toBnDigits(exam.question_count)} টি প্রশ্ন · ⏱ ${toBnDigits(exam.duration_minutes)} মিনিট` : '';
+      ? `📝 ${toBnDigits(exam.question_count)} টি প্রশ্ন · ⏱ ${toBnDigits(exam.duration_minutes)} মিনিট${negMarksNote}` : '';
     document.getElementById('name-overlay').classList.add('active');
   }
   function closeNameSheet(){
