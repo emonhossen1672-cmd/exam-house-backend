@@ -49,7 +49,15 @@ router.post('/login', async (req, res) => {
 
 // GET /api/auth/me — current logged-in student's profile
 router.get('/me', requireUser, async (req, res) => {
-  res.json({ id: req.user.id, name: req.user.name, phone: req.user.phone });
+  const { rows } = await pool.query(
+    'SELECT current_streak, longest_streak FROM users WHERE id=$1',
+    [req.user.id]
+  );
+  const streak = rows[0] || { current_streak: 0, longest_streak: 0 };
+  res.json({
+    id: req.user.id, name: req.user.name, phone: req.user.phone,
+    current_streak: streak.current_streak, longest_streak: streak.longest_streak
+  });
 });
 
 module.exports = router;
