@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Exam House — লাইভ পরীক্ষা ও মডেল টেস্ট</title>
+<title>Exam House — অ্যাডমিন প্যানেল</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#FAF6EC;
@@ -18,1107 +18,449 @@
     --seal:#A6332B;
     --seal-deep:#7E241D;
     --gold:#B8902E;
-    --gold-soft:#E7D6A3;
     --success:#2F7A4F;
     --success-bg:#E6F1EA;
     --wrong:#A6332B;
     --wrong-bg:#F7E9E7;
     --navy-deep:#10182C;
-    --radius:18px;
+    --radius:14px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
     font-family:'Noto Sans Bengali', sans-serif;
     background:var(--paper-deep);
     color:var(--ink);
-    display:flex;
-    justify-content:center;
     min-height:100vh;
-    -webkit-font-smoothing:antialiased;
   }
-  .display{font-family:'Noto Serif Bengali', serif;}
   .mono{font-family:'Space Mono', monospace;}
+  a{color:inherit;}
+  button{font-family:inherit; cursor:pointer;}
+  input, select, textarea{font-family:inherit;}
 
-  /* ---------- Phone frame ---------- */
-  .device{
-    width:100%;
-    max-width:430px;
-    min-height:100vh;
-    background:var(--paper);
-    position:relative;
-    overflow-x:hidden;
-    box-shadow:0 0 60px rgba(16,24,44,0.25);
-    display:flex;
-    flex-direction:column;
+  #loginScreen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:36px 30px; width:100%; max-width:380px; box-shadow:0 10px 40px rgba(16,24,44,0.10);
+  }
+  .login-card h1{ font-size:20px; margin-bottom:4px; }
+  .login-card .sub{ color:var(--ink-soft); font-size:13px; margin-bottom:24px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:13px; color:var(--ink-soft); margin-bottom:6px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:14px; color:var(--ink); outline:none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--gold); }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:11px 18px; border-radius:10px; border:none; font-size:14px; font-weight:600;
+  }
+  .btn-primary{ background:var(--seal); color:#fff; width:100%; }
+  .btn-primary:hover{ background:var(--seal-deep); }
+  .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--ink); }
+  .btn-ghost:hover{ background:var(--paper); }
+  .btn-small{ padding:7px 12px; font-size:13px; border-radius:8px; }
+  .err-box{
+    background:var(--wrong-bg); color:var(--wrong); padding:10px 12px; border-radius:8px;
+    font-size:13px; margin-bottom:14px; display:none;
+  }
+  .ok-box{
+    background:var(--success-bg); color:var(--success); padding:10px 12px; border-radius:8px;
+    font-size:13px; margin-bottom:14px; display:none;
   }
 
-  /* ---------- Topbar ---------- */
+  #app{ display:none; min-height:100vh; }
   .topbar{
-    position:sticky; top:0; z-index:30;
-    background:var(--paper);
-    border-bottom:1px solid var(--line);
-    padding:14px 18px 12px;
-    display:flex; align-items:center; justify-content:space-between;
+    background:var(--navy-deep); color:#fff; padding:14px 22px;
+    display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20;
   }
-  .brand{display:flex; align-items:center; gap:10px;}
-  .brand-mark{
-    width:38px; height:38px; border-radius:50%;
-    background:var(--seal);
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-    box-shadow:0 2px 0 var(--seal-deep);
-  }
-  .brand-mark::after{
-    content:"";
-    position:absolute; inset:4px;
-    border:1.4px dashed rgba(255,255,255,0.65);
-    border-radius:50%;
-  }
-  .brand-mark svg{width:18px; height:18px; position:relative; z-index:2;}
-  .brand-word{line-height:1.05;}
-  .brand-word .name{font-family:'Noto Serif Bengali', serif; font-size:19px; font-weight:700; color:var(--ink);}
-  .brand-word .sub{font-family:'Noto Sans Bengali', sans-serif; font-size:10.5px; font-weight:600; letter-spacing:0.3px; color:var(--gold);}
-  .live-pill{
-    display:flex; align-items:center; gap:6px;
-    background:var(--navy-deep); color:#fff;
-    padding:6px 10px; border-radius:20px;
-    font-size:11px; font-family:'Space Mono',monospace;
-  }
-  .live-dot{width:6px; height:6px; border-radius:50%; background:#5FE39B; animation:blink 1.4s infinite;}
-  @keyframes blink{0%,100%{opacity:1;} 50%{opacity:0.25;}}
+  .topbar .brand{ font-weight:700; font-size:16px; letter-spacing:.3px; }
+  .topbar .brand span{ color:var(--gold); }
+  .topbar .who{ font-size:13px; color:#C7CCDC; display:flex; align-items:center; gap:12px; }
+  .logout-link{ color:#E7D6A3; font-size:13px; text-decoration:underline; background:none; border:none; }
 
-  /* ---------- Screens ---------- */
-  .screen{display:none; padding:20px 18px 100px; animation:fadeUp .45s ease;}
-  .screen.active{display:block;}
-  @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  .tabs{
+    display:flex; gap:6px; padding:14px 22px 0; max-width:960px; margin:0 auto; flex-wrap:wrap;
+  }
+  .tab-btn{
+    background:var(--card); border:1px solid var(--line); border-bottom:none;
+    padding:10px 16px; border-radius:10px 10px 0 0; font-size:13.5px; color:var(--ink-soft); font-weight:600;
+  }
+  .tab-btn.active{ color:var(--seal); background:var(--paper); border-color:var(--line); }
 
-  /* ---------- Hero admit card ---------- */
-  .hero-ticket{
-    position:relative;
-    background:var(--navy-deep);
-    color:#fff;
-    border-radius:20px;
-    padding:26px 22px 22px;
-    overflow:hidden;
-    margin-bottom:22px;
+  .panel-wrap{ max-width:960px; margin:0 auto; padding:0 22px 60px; }
+  .panel{
+    background:var(--card); border:1px solid var(--line); border-radius:0 12px 12px 12px;
+    padding:24px; display:none;
   }
-  .hero-ticket::before{
-    content:"";
-    position:absolute; inset:0;
-    background:
-      radial-gradient(circle at 12% 20%, rgba(184,144,46,0.28), transparent 40%),
-      radial-gradient(circle at 90% 85%, rgba(166,51,43,0.35), transparent 45%);
-  }
-  .hero-eyebrow{
-    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:2px;
-    color:var(--gold-soft); text-transform:uppercase; position:relative; z-index:2;
-  }
-  .hero-title{
-    font-family:'Noto Serif Bengali', serif; font-size:26px; line-height:1.35;
-    margin:10px 0 8px; position:relative; z-index:2;
-  }
-  .hero-sub{
-    font-size:14px; color:#C7CEE0; line-height:1.6; position:relative; z-index:2; max-width:92%;
-  }
-  .hero-stub{
-    margin-top:20px; padding-top:16px;
-    border-top:1.5px dashed rgba(255,255,255,0.25);
-    display:flex; justify-content:space-between; align-items:center;
-    position:relative; z-index:2;
-  }
-  .hero-stat{text-align:left;}
-  .hero-stat b{display:block; font-family:'Space Mono',monospace; font-size:17px; color:#fff;}
-  .hero-stat span{font-size:10.5px; color:#9AA4BE;}
-  .hero-cta{
-    background:var(--seal); color:#fff; border:none;
-    padding:10px 16px; border-radius:10px; font-family:'Noto Sans Bengali'; font-weight:600;
-    font-size:13.5px; cursor:pointer;
-  }
+  .panel.active{ display:block; }
+  .panel h2{ font-size:16px; margin-bottom:4px; }
+  .panel .desc{ color:var(--ink-soft); font-size:13px; margin-bottom:20px; }
 
-  .hero-ticket .punch{
-    position:absolute; width:16px; height:16px; background:var(--paper);
-    border-radius:50%; top:calc(100% - 46px); z-index:3;
-  }
-  .hero-ticket .punch.left{left:-8px;}
-  .hero-ticket .punch.right{right:-8px;}
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:600px){ .grid-2{ grid-template-columns:1fr; } .tabs{ padding:14px 12px 0; } .panel-wrap{ padding:0 12px 60px; } }
 
-  /* ---------- Section headers ---------- */
-  .sec-head{display:flex; align-items:baseline; justify-content:space-between; margin:26px 0 12px;}
-  .sec-head h2{font-family:'Noto Serif Bengali', serif; font-size:18px; color:var(--ink);}
-  .sec-head a{font-size:12px; color:var(--seal); font-weight:600; text-decoration:none; cursor:pointer;}
+  table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ color:var(--ink-soft); font-weight:600; font-size:12.5px; }
+  td.qtext{ max-width:280px; }
+  .pill{ display:inline-block; padding:2px 8px; border-radius:20px; background:var(--paper-deep); font-size:11.5px; color:var(--ink-soft); }
+  .correct-pill{ background:var(--success-bg); color:var(--success); font-weight:700; }
+  .row-actions button{ margin-right:6px; }
+  .danger{ color:var(--wrong); border-color:var(--wrong); }
 
-  /* ---------- Category grid ---------- */
-  .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
-  .cat-item{
-    background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:12px 6px; text-align:center; cursor:pointer;
-    transition:transform .15s ease;
-  }
-  .cat-item:active{transform:scale(0.94);}
-  .cat-item .ic{
-    width:34px; height:34px; margin:0 auto 8px; border-radius:10px;
-    background:var(--paper-deep); display:flex; align-items:center; justify-content:center;
-  }
-  .cat-item .ic svg{width:17px; height:17px; stroke:var(--seal);}
-  .cat-item span{font-size:10.5px; color:var(--ink-soft); font-weight:600; line-height:1.3; display:block;}
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .filters input, .filters select{ padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--paper); font-size:13px; }
 
-  /* ---------- Exam ticket cards ---------- */
-  .ticket{
-    position:relative;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:16px;
-    margin-bottom:14px;
-    overflow:hidden;
+  .drop-zone{
+    border:2px dashed var(--line); border-radius:12px; padding:28px; text-align:center; color:var(--ink-soft);
+    font-size:13.5px; margin-bottom:16px; background:var(--paper);
   }
-  .ticket-top{padding:16px 16px 14px; display:flex; justify-content:space-between; gap:10px;}
-  .ticket-tags{display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;}
-  .tag{font-size:10px; padding:3px 8px; border-radius:20px; font-weight:600;}
-  .tag.ministry{background:var(--paper-deep); color:var(--ink-soft);}
-  .tag.grade{background:var(--gold-soft); color:#7A5E12;}
-  .tag.live{background:var(--seal); color:#fff; display:flex; align-items:center; gap:4px;}
-  .tag.live::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.4s infinite;}
-  .tag.closed{background:var(--paper-deep); color:var(--ink-faint);}
-  .ticket-name{font-family:'Noto Serif Bengali', serif; font-size:15.5px; color:var(--ink); line-height:1.4;}
-  .ticket-meta{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
-  .ticket-cd{text-align:center; flex-shrink:0; min-width:64px;}
-  .ticket-cd b{display:block; font-family:'Space Mono',monospace; font-size:15px; color:var(--seal);}
-  .ticket-cd span{font-size:9px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:1px;}
-  .ticket-divider{position:relative; border-top:1.5px dashed var(--line); margin:0 16px;}
-  .ticket-divider::before, .ticket-divider::after{
-    content:""; position:absolute; top:-8px; width:16px; height:16px; background:var(--paper); border-radius:50%;
-  }
-  .ticket-divider::before{left:-24px;}
-  .ticket-divider::after{right:-24px;}
-  .ticket-bottom{padding:12px 16px 15px; display:flex; align-items:center; justify-content:space-between;}
-  .ticket-serial{font-family:'Space Mono',monospace; font-size:10px; color:var(--ink-faint); letter-spacing:1px;}
-  .btn-enter{
-    background:var(--ink); color:#fff; border:none; padding:9px 16px;
-    border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Noto Sans Bengali';
-  }
-  .btn-enter.model{background:var(--success);}
-  .btn-enter.archive{background:var(--gold);}
-  .btn-enter:disabled{background:var(--ink-faint); cursor:not-allowed;}
-  .btn-enter:active{opacity:0.85;}
-  .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
-  .loading-note{text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:13px;}
+  .upload-result{ font-size:13px; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:14px; white-space:pre-wrap; }
 
-  /* ---------- Model test drill-down (ministry / post) ---------- */
-  .model-back{background:none; border:none; color:var(--seal); font-size:12.5px; font-weight:700; cursor:pointer; padding:0 0 10px; font-family:'Noto Sans Bengali'; display:flex; align-items:center; gap:4px;}
-  .group-card{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:14px 15px; margin-bottom:10px; cursor:pointer; transition:transform .1s ease;
-  }
-  .group-card:active{transform:scale(0.98); background:var(--paper-deep);}
-  .group-card .gc-left{display:flex; align-items:center; gap:12px; min-width:0;}
-  .group-card .gc-ic{
-    width:40px; height:40px; border-radius:11px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center; font-size:17px;
-  }
-  .group-card .gc-ic.ministry{background:#EAF1F8; color:#2E6BA8;}
-  .group-card .gc-ic.post{background:var(--gold-soft); color:#7A5E12;}
-  .group-card .gc-name{font-size:14px; color:var(--ink); font-weight:600; line-height:1.4;}
-  .group-card .gc-meta{font-size:11.5px; color:var(--ink-faint); margin-top:3px;}
-  .group-card .gc-arrow{color:var(--ink-faint); font-size:18px; flex-shrink:0;}
-
-  /* ---------- Auth (login/register) & Profile ---------- */
-  .auth-label{font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin:14px 0 6px;}
-  .auth-input{
-    width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:11px;
-    font-family:inherit; font-size:14px; background:var(--card);
-  }
-  .auth-err{color:var(--seal); font-size:12px; margin-top:8px; min-height:14px;}
-  .auth-btn{
-    width:100%; background:var(--seal); color:#fff; border:none; padding:13px;
-    border-radius:11px; font-weight:600; font-size:14.5px; cursor:pointer; margin-top:16px; font-family:'Noto Sans Bengali';
-  }
-  .auth-switch{text-align:center; font-size:12.5px; color:var(--ink-faint); margin-top:16px;}
-  .auth-switch a{color:var(--seal); font-weight:600; cursor:pointer;}
-  .profile-card{
-    display:flex; align-items:center; gap:14px;
-    background:var(--navy-deep); border-radius:18px; padding:18px 16px; color:#fff;
-  }
-  .profile-avatar{
-    width:48px; height:48px; border-radius:50%; background:var(--seal);
-    display:flex; align-items:center; justify-content:center; font-family:'Noto Serif Bengali',serif;
-    font-size:20px; flex-shrink:0;
-  }
-  .profile-name{font-family:'Noto Serif Bengali',serif; font-size:16px;}
-  .profile-phone{font-family:'Space Mono',monospace; font-size:11.5px; color:#9AA4BE; margin-top:2px;}
-  .profile-logout{
-    margin-left:auto; background:rgba(255,255,255,0.1); color:#fff; border:none;
-    padding:8px 12px; border-radius:9px; font-size:11.5px; cursor:pointer; flex-shrink:0; font-family:'Noto Sans Bengali';
-  }
-  .ph-item{
-    background:var(--card); border:1px solid var(--line); border-radius:13px;
-    padding:13px 14px; margin-bottom:9px;
-  }
-  .ph-item .top{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
-  .ph-item .title{font-size:13.5px; color:var(--ink); font-weight:600;}
-  .ph-item .score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700; flex-shrink:0;}
-  .ph-item .meta{font-size:11px; color:var(--ink-faint); margin-top:5px;}
-
-  /* ---------- Bottom nav ---------- */
-  .bottom-nav{
-    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:430px;
-    background:var(--card); border-top:1px solid var(--line);
-    display:flex; z-index:40;
-    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
-  }
-  .nav-item{
-    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
-    padding:6px 0; cursor:pointer; color:var(--ink-faint); border:none; background:none;
-    font-family:'Noto Sans Bengali';
-  }
-  .nav-item svg{width:19px; height:19px; stroke:var(--ink-faint);}
-  .nav-item span{font-size:10px; font-weight:600;}
-  .nav-item.active{color:var(--seal);}
-  .nav-item.active svg{stroke:var(--seal);}
-
-  /* ---------- Name-entry overlay ---------- */
-  .name-overlay{
-    position:fixed; inset:0; z-index:95; background:rgba(16,24,44,0.55);
-    display:none; align-items:flex-end; justify-content:center;
-    max-width:430px; margin:0 auto;
-  }
-  .name-overlay.active{display:flex;}
-  .name-sheet{
-    background:var(--card); width:100%; border-radius:22px 22px 0 0; padding:24px 22px calc(24px + env(safe-area-inset-bottom));
-    animation:fadeUp .3s ease;
-  }
-  .name-sheet h3{font-family:'Noto Serif Bengali',serif; font-size:18px; margin-bottom:4px;}
-  .name-sheet p{font-size:12.5px; color:var(--ink-faint); margin-bottom:16px;}
-  .name-sheet label{font-size:11.5px; font-weight:600; color:var(--ink-soft); display:block; margin:12px 0 5px;}
-  .name-sheet input{
-    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px;
-    font-family:inherit; font-size:14px; background:var(--paper);
-  }
-  .name-actions{display:flex; gap:10px; margin-top:18px;}
-  .name-actions button{flex:1; padding:12px; border-radius:11px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family:'Noto Sans Bengali';}
-  .name-actions .cancel{background:var(--paper-deep); color:var(--ink-soft);}
-  .name-actions .go{background:var(--seal); color:#fff;}
-  .name-err{color:var(--seal); font-size:12px; margin-top:8px; display:none;}
-
-  /* ---------- Exam overlay ---------- */
-  .exam-overlay{
-    position:fixed; inset:0; z-index:100;
-    background:linear-gradient(180deg,var(--navy-deep) 0%,#1B2540 100%);
-    display:none; flex-direction:column;
-    max-width:430px; margin:0 auto;
-  }
-  .exam-overlay.active{display:flex;}
-  .exam-top{
-    padding:16px 18px 14px; display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid rgba(255,255,255,0.1);
-  }
-  .exam-exit{background:none; border:none; color:#9AA4BE; font-size:20px; cursor:pointer;}
-  .exam-timer{
-    font-family:'Space Mono',monospace; color:#fff; font-size:15px;
-    background:rgba(255,255,255,0.08); padding:6px 12px; border-radius:20px;
-    display:flex; align-items:center; gap:6px;
-  }
-  .exam-timer.warn{color:#FF9B8A; background:rgba(166,51,43,0.35); animation:examPulse 1s infinite;}
-  @keyframes examPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
-
-  .exam-progress-wrap{padding:12px 18px 0;}
-  .exam-progress-bar{height:7px; border-radius:5px; background:rgba(255,255,255,0.12); overflow:hidden;}
-  .exam-progress-fill{height:100%; border-radius:5px; width:0%; transition:width .25s ease;
-    background:linear-gradient(90deg,var(--seal) 0%, var(--gold) 55%, var(--success) 100%);}
-  .exam-progress-count{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--gold-soft); margin-top:7px; letter-spacing:0.4px;}
-
-  .exam-body{flex:1; overflow-y:auto; padding:16px 16px 110px;}
-  .qcard{
-    background:rgba(255,255,255,0.045); border:1.5px solid rgba(255,255,255,0.09);
-    border-radius:16px; padding:18px 16px; margin-bottom:14px; transition:border-color .2s ease, background .2s ease;
-  }
-  .qcard.answered{border-color:rgba(184,144,46,0.5); background:rgba(184,144,46,0.05);}
-  .q-label{
-    display:flex; align-items:center; gap:9px;
-    font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:1px; margin-bottom:12px;
-  }
-  .qnum{
-    width:23px; height:23px; border-radius:50%; flex-shrink:0;
-    background:rgba(255,255,255,0.1); color:#C7CEE0;
-    display:flex; align-items:center; justify-content:center; font-size:11px;
-    transition:all .2s ease;
-  }
-  .qcard.answered .qnum{background:var(--gold); color:var(--navy-deep);}
-  .q-text{font-family:'Noto Serif Bengali', serif; font-size:18px; color:#fff; line-height:1.55; margin-bottom:16px;}
-  .opt{
-    display:flex; align-items:center; gap:12px;
-    background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12);
-    border-radius:12px; padding:13px 14px; margin-bottom:9px; cursor:pointer;
-    color:#E4E8F2; font-size:14.5px; transition:all .15s ease;
-  }
-  .opt:active{transform:scale(0.98);}
-  .opt .bullet{
-    width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.35);
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    font-family:'Space Mono',monospace; font-size:11px; color:#C7CEE0;
-  }
-  .opt.selected{background:rgba(184,144,46,0.2); border-color:var(--gold); box-shadow:0 0 0 1px rgba(184,144,46,0.35);}
-  .opt.selected .bullet{background:var(--gold); border-color:var(--gold); color:var(--navy-deep);}
-
-  .exam-bottom{
-    position:sticky; bottom:0;
-    padding:14px 18px calc(14px + env(safe-area-inset-bottom));
-    background:linear-gradient(0deg, var(--navy-deep) 55%, rgba(16,24,44,0));
-    display:flex; gap:10px;
-  }
-  .ebtn{flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:14.5px; font-family:'Noto Sans Bengali'; cursor:pointer;}
-  .ebtn.submit{background:linear-gradient(135deg,var(--success) 0%,#3FA06A 100%); color:#fff; box-shadow:0 4px 14px rgba(47,122,79,0.4);}
-  .ebtn:disabled{opacity:0.35;}
-
-  /* ---------- Result overlay ---------- */
-  .result-overlay{
-    position:fixed; inset:0; z-index:110; background:var(--paper);
-    display:none; flex-direction:column; max-width:430px; margin:0 auto; overflow-y:auto;
-  }
-  .result-overlay.active{display:flex;}
-  .result-hero{
-    background:var(--navy-deep); color:#fff; padding:40px 24px 34px; text-align:center;
-    border-radius:0 0 28px 28px; position:relative;
-  }
-  .result-hero .rk{font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:2px; text-transform:uppercase;}
-  .score-ring{
-    width:130px; height:130px; border-radius:50%; margin:20px auto 14px;
-    display:flex; align-items:center; justify-content:center; position:relative;
-    background:conic-gradient(var(--gold) calc(var(--pct,0) * 1%), rgba(255,255,255,0.12) 0);
-  }
-  .score-ring::before{content:""; position:absolute; inset:8px; background:var(--navy-deep); border-radius:50%;}
-  .score-ring b{position:relative; font-family:'Noto Serif Bengali',serif; font-size:30px; z-index:2;}
-  .result-hero p{color:#C7CEE0; font-size:13.5px;}
-  .result-stats{display:flex; justify-content:center; gap:26px; padding:22px 18px 8px;}
-  .rstat{text-align:center;}
-  .rstat b{display:block; font-family:'Space Mono',monospace; font-size:19px;}
-  .rstat span{font-size:10.5px; color:var(--ink-faint);}
-  .rstat.correct b{color:var(--success);}
-  .rstat.wrong b{color:var(--wrong);}
-  .review-list{padding:6px 18px 100px;}
-  .merit-item{
-    background:var(--card); border:1px solid var(--line); border-radius:13px;
-    padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px;
-  }
-  .merit-item.me{border-color:var(--gold); background:var(--gold-soft);}
-  .merit-rank{font-family:'Space Mono',monospace; font-weight:700; color:var(--ink-soft); width:22px;}
-  .merit-name{flex:1; font-size:13.5px;}
-  .merit-score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700;}
-  .result-close{
-    position:sticky; bottom:0; margin:0 18px 18px; background:var(--ink); color:#fff;
-    border:none; padding:14px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;
-  }
-
-  /* ---------- Archive overlay ---------- */
-  .archive-overlay{
-    position:fixed; inset:0; z-index:105; background:var(--paper);
-    display:none; flex-direction:column; max-width:430px; margin:0 auto;
-  }
-  .archive-overlay.active{display:flex;}
-  .archive-top{
-    padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px;
-    background:var(--navy-deep); color:#fff;
-  }
-  .archive-top .ttl{font-family:'Noto Serif Bengali',serif; font-size:15px; line-height:1.4;}
-  .archive-top .ttl span{display:block; font-family:'Space Mono',monospace; font-size:10px; color:var(--gold-soft); margin-bottom:3px;}
-  .archive-exit{background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:16px; width:32px; height:32px; border-radius:50%; cursor:pointer; flex-shrink:0;}
-  .archive-body{flex:1; overflow-y:auto; padding:16px 18px 40px;}
-  .aq{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px 16px; margin-bottom:12px;}
-  .aq-num{font-family:'Space Mono',monospace; font-size:10.5px; color:var(--gold); letter-spacing:1px; margin-bottom:6px;}
-  .aq-text{font-family:'Noto Serif Bengali',serif; font-size:15.5px; line-height:1.5; margin-bottom:12px; color:var(--ink);}
-  .aq-opt{
-    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px;
-    font-size:13.5px; margin-bottom:6px; background:var(--paper-deep); color:var(--ink-soft);
-  }
-  .aq-opt.correct{background:var(--success-bg); color:var(--success); font-weight:600;}
-  .aq-opt .b{width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; font-size:10.5px; flex-shrink:0; font-family:'Space Mono',monospace;}
-  .aq-opt.correct .b{background:var(--success); color:#fff;}
-
-  ::-webkit-scrollbar{width:0;}
-  @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+  .spinner{ display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .empty-state{ color:var(--ink-faint); font-size:13px; text-align:center; padding:24px 0; }
 </style>
 </head>
 <body>
 
-<div class="device">
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Exam House</h1>
+    <div class="sub">অ্যাডমিন প্যানেলে লগইন করুন</div>
+    <div class="err-box" id="loginErr"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>ইউজারনেম</label>
+        <input type="text" id="loginUsername" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>পাসওয়ার্ড</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" id="loginBtn">লগইন করুন</button>
+    </form>
+  </div>
+</div>
 
-  <!-- ============ TOPBAR ============ -->
+<div id="app">
   <div class="topbar">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 21V7a2 2 0 0 1 2-2h6l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M12 5v6h6"/></svg>
-      </div>
-      <div class="brand-word">
-        <div class="name">Exam House</div>
-        <div class="sub">কঠিন প্রস্তুতি · সহজ জয়</div>
-      </div>
+    <div class="brand">Exam House <span>অ্যাডমিন</span></div>
+    <div class="who">
+      <span id="whoUser"></span>
+      <button class="logout-link" id="logoutBtn">লগআউট</button>
     </div>
-    <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
   </div>
 
-  <!-- ============ HOME SCREEN ============ -->
-  <div class="screen active" id="screen-home">
-    <div class="hero-ticket">
-      <div class="punch left"></div><div class="punch right"></div>
-      <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
-      <div class="hero-title">যে প্রশ্ন একবার এসেছে,<br>সে বারবার ফিরে আসে</div>
-      <div class="hero-sub">বিভিন্ন মন্ত্রণালয় ও অধিদপ্তরে ইতিপূর্বে আসা গ্রেড ১১–২০ নিয়োগ পরীক্ষার প্রশ্নের ভিত্তিতে লাইভ পরীক্ষা ও মডেল টেস্ট দিন।</div>
-      <div class="hero-stub">
-        <div class="hero-stat"><b id="stat-total">—</b><span>মোট পরীক্ষা</span></div>
-        <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
-        <button class="hero-cta" onclick="goScreen('live')">লাইভ পরীক্ষা দেখুন</button>
-      </div>
-    </div>
-
-    <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
-    <div id="home-live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="add">প্রশ্ন যোগ করুন</button>
+    <button class="tab-btn" data-tab="bulk">বাল্ক আপলোড</button>
+    <button class="tab-btn" data-tab="list">প্রশ্ন তালিকা</button>
+    <button class="tab-btn" data-tab="ministries">মন্ত্রণালয়</button>
   </div>
 
-  <!-- ============ LIVE EXAM SCREEN ============ -->
-  <div class="screen" id="screen-live">
-    <div class="sec-head" style="margin-top:4px;"><h2>লাইভ পরীক্ষাসমূহ</h2></div>
-    <div id="live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
-  </div>
+  <div class="panel-wrap">
 
-  <!-- ============ MODEL TEST SCREEN ============ -->
-  <div class="screen" id="screen-model">
-    <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
-    <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
-    <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
-    <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
-  </div>
-
-  <!-- ============ PROFILE / LOGIN SCREEN ============ -->
-  <div class="screen" id="screen-history">
-    <div id="auth-guest">
-      <div class="sec-head" style="margin-top:4px;"><h2 id="auth-heading">লগইন করুন</h2></div>
-      <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">লগইন করলে আপনার সব পরীক্ষার ফলাফল প্রোফাইলে স্থায়ীভাবে জমা থাকবে।</p>
-
-      <div id="login-form">
-        <label class="auth-label">মোবাইল নম্বর</label>
-        <input class="auth-input" id="li-phone" placeholder="01XXXXXXXXX">
-        <label class="auth-label">পাসওয়ার্ড</label>
-        <input class="auth-input" id="li-pass" type="password" placeholder="পাসওয়ার্ড">
-        <div class="auth-err" id="login-err"></div>
-        <button class="auth-btn" onclick="doUserLogin()">লগইন করুন</button>
-        <p class="auth-switch">অ্যাকাউন্ট নেই? <a onclick="showAuthForm('register')">রেজিস্ট্রেশন করুন</a></p>
-      </div>
-
-      <div id="register-form" style="display:none;">
-        <label class="auth-label">আপনার নাম</label>
-        <input class="auth-input" id="rg-name" placeholder="যেমনঃ রাকিব হাসান">
-        <label class="auth-label">মোবাইল নম্বর</label>
-        <input class="auth-input" id="rg-phone" placeholder="01XXXXXXXXX">
-        <label class="auth-label">পাসওয়ার্ড</label>
-        <input class="auth-input" id="rg-pass" type="password" placeholder="কমপক্ষে ৬ অক্ষর">
-        <div class="auth-err" id="register-err"></div>
-        <button class="auth-btn" onclick="doRegister()">রেজিস্ট্রেশন করুন</button>
-        <p class="auth-switch">আগে থেকেই অ্যাকাউন্ট আছে? <a onclick="showAuthForm('login')">লগইন করুন</a></p>
-      </div>
-    </div>
-
-    <div id="auth-profile" style="display:none;">
-      <div class="profile-card">
-        <div class="profile-avatar" id="profile-initial">এ</div>
-        <div>
-          <div class="profile-name" id="profile-name">—</div>
-          <div class="profile-phone" id="profile-phone">—</div>
+    <div class="panel active" id="panel-add">
+      <h2>নতুন প্রশ্ন যোগ করুন</h2>
+      <div class="desc">সব ঘর পূরণ করে জমা দিন।</div>
+      <div class="err-box" id="addErr"></div>
+      <div class="ok-box" id="addOk"></div>
+      <form id="addForm">
+        <div class="grid-2">
+          <div class="field">
+            <label>মন্ত্রণালয় (ঐচ্ছিক)</label>
+            <select id="q_ministry"><option value="">— নির্বাচন করুন —</option></select>
+          </div>
+          <div class="field">
+            <label>গ্রেড (ঐচ্ছিক)</label>
+            <input type="number" id="q_grade" placeholder="যেমন: 9">
+          </div>
         </div>
-        <button class="profile-logout" onclick="doUserLogout()">লগআউট</button>
+        <div class="field">
+          <label>বিষয়</label>
+          <input type="text" id="q_subject" placeholder="বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান" required>
+        </div>
+        <div class="field">
+          <label>প্রশ্ন</label>
+          <textarea id="q_text" rows="3" required></textarea>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>অপশন A</label><input type="text" id="q_a" required></div>
+          <div class="field"><label>অপশন B</label><input type="text" id="q_b" required></div>
+          <div class="field"><label>অপশন C</label><input type="text" id="q_c" required></div>
+          <div class="field"><label>অপশন D</label><input type="text" id="q_d" required></div>
+        </div>
+        <div class="field" style="max-width:200px;">
+          <label>সঠিক উত্তর</label>
+          <select id="q_correct" required>
+            <option value="">— নির্বাচন —</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" id="addBtn" style="width:auto; padding-left:26px; padding-right:26px;">প্রশ্ন যোগ করুন</button>
+      </form>
+    </div>
+
+    <div class="panel" id="panel-bulk">
+      <h2>CSV / Excel থেকে বাল্ক আপলোড</h2>
+      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D)</div>
+      <div class="err-box" id="bulkErr"></div>
+      <div class="drop-zone">
+        <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls">
       </div>
-
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার ফলাফল</h2></div>
-      <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
-      <div id="profile-history-list"></div>
+      <button class="btn btn-primary" id="bulkBtn" style="width:auto; padding-left:26px; padding-right:26px;">আপলোড করুন</button>
+      <div class="upload-result" id="bulkResult" style="display:none;"></div>
     </div>
-  </div>
 
-  <!-- ============ BOTTOM NAV ============ -->
-  <div class="bottom-nav">
-    <button class="nav-item active" data-nav="home" onclick="goScreen('home')">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>হোম</span>
-    </button>
-    <button class="nav-item" data-nav="live" onclick="goScreen('live')">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span>লাইভ পরীক্ষা</span>
-    </button>
-    <button class="nav-item" data-nav="model" onclick="goScreen('model')">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>মডেল টেস্ট</span>
-    </button>
-    <button class="nav-item" data-nav="history" onclick="goScreen('history')">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="8" r="4"/></svg><span id="nav-profile-label">প্রোফাইল</span>
-    </button>
-  </div>
-
-  <!-- ============ NAME ENTRY SHEET ============ -->
-  <div class="name-overlay" id="name-overlay">
-    <div class="name-sheet">
-      <h3 id="name-sheet-title">পরীক্ষায় প্রবেশ</h3>
-      <p>ফলাফল ও মেধাতালিকায় দেখানোর জন্য আপনার নাম দিন</p>
-      <label>আপনার নাম *</label>
-      <input id="pname" placeholder="যেমনঃ রাকিব হাসান">
-      <label>মোবাইল নম্বর (ঐচ্ছিক)</label>
-      <input id="pphone" placeholder="01XXXXXXXXX">
-      <div class="name-err" id="name-err">নাম দিতে হবে</div>
-      <div class="name-actions">
-        <button class="cancel" onclick="closeNameSheet()">বাতিল</button>
-        <button class="go" onclick="confirmNameAndStart()">শুরু করুন</button>
+    <div class="panel" id="panel-list">
+      <h2>সব প্রশ্ন</h2>
+      <div class="filters">
+        <input type="text" id="f_search" placeholder="প্রশ্ন খুঁজুন...">
+        <input type="text" id="f_subject" placeholder="বিষয়">
+        <input type="number" id="f_grade" placeholder="গ্রেড">
+        <button class="btn btn-ghost btn-small" id="f_go">খুঁজুন</button>
       </div>
+      <div id="listWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
     </div>
-  </div>
 
-  <!-- ============ EXAM OVERLAY ============ -->
-  <div class="exam-overlay" id="exam-overlay">
-    <div class="exam-top">
-      <button class="exam-exit" onclick="exitExam()">✕</button>
-      <div class="exam-timer" id="exam-timer">⏱ --:--</div>
-      <div style="width:20px;"></div>
+    <div class="panel" id="panel-ministries">
+      <h2>মন্ত্রণালয় ব্যবস্থাপনা</h2>
+      <div class="field" style="max-width:320px; display:flex; gap:8px; align-items:flex-end;">
+        <div style="flex:1;">
+          <label>নতুন মন্ত্রণালয়ের নাম</label>
+          <input type="text" id="ministryName">
+        </div>
+        <button class="btn btn-primary btn-small" id="addMinistryBtn">যোগ করুন</button>
+      </div>
+      <div id="ministryList" style="margin-top:16px;"></div>
     </div>
-    <div class="exam-progress-wrap">
-      <div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill"></div></div>
-      <div class="exam-progress-count" id="exam-progress-count">০ / ০ উত্তর দেওয়া হয়েছে</div>
-    </div>
-    <div class="exam-body" id="exam-body"></div>
-    <div class="exam-bottom">
-      <button class="ebtn submit" id="btn-submit" onclick="submitExam()">জমা দিন</button>
-    </div>
-  </div>
 
-  <!-- ============ RESULT OVERLAY ============ -->
-  <div class="result-overlay" id="result-overlay">
-    <div class="result-hero">
-      <div class="rk">পরীক্ষা সম্পন্ন হয়েছে</div>
-      <div class="score-ring" id="score-ring"><b id="score-num">০/০</b></div>
-      <p id="result-exam-title">—</p>
-    </div>
-    <div class="result-stats">
-      <div class="rstat correct"><b id="stat-correct">0</b><span>সঠিক</span></div>
-      <div class="rstat wrong"><b id="stat-wrong">0</b><span>ভুল</span></div>
-      <div class="rstat"><b id="stat-skip">0</b><span>উত্তর দেননি</span></div>
-    </div>
-    <div class="sec-head" style="margin:6px 18px 4px;"><h2>মেধা তালিকা</h2></div>
-    <div class="review-list" id="merit-list"></div>
-    <button class="result-close" onclick="closeResult()">ফিরে যান</button>
   </div>
-
-  <!-- ============ ARCHIVE OVERLAY ============ -->
-  <div class="archive-overlay" id="archive-overlay">
-    <div class="archive-top">
-      <div class="ttl"><span>সমাধান / আর্কাইভ</span><span id="archive-title">—</span></div>
-      <button class="archive-exit" onclick="closeArchive()">✕</button>
-    </div>
-    <div class="archive-body" id="archive-body"></div>
-  </div>
-
 </div>
 
 <script>
-  // Backend is served from this same origin
-  const API_BASE = '';
+const API = '';
+let TOKEN = localStorage.getItem('eh_admin_token') || null;
+let USERNAME = localStorage.getItem('eh_admin_username') || '';
 
-  function toBnDigits(str){
-    const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
-    return String(str).replace(/[0-9]/g, d=>bn[d]);
+function showLogin(){
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('whoUser').textContent = USERNAME;
+  loadMinistries();
+  loadQuestions();
+}
+
+async function api(path, opts = {}){
+  opts.headers = Object.assign({}, opts.headers, TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {});
+  if (opts.body && !(opts.body instanceof FormData)){
+    opts.headers['Content-Type'] = 'application/json';
   }
-  async function apiGet(path){
-    const r = await fetch(API_BASE + path);
-    const data = await r.json().catch(()=>({}));
-    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
-    return data;
+  const res = await fetch(API + path, opts);
+  let data = null;
+  try { data = await res.json(); } catch(e){}
+  if (res.status === 401){
+    TOKEN = null; localStorage.removeItem('eh_admin_token');
+    showLogin();
+    throw new Error((data && data.error) || 'সেশন শেষ হয়ে গেছে');
   }
-  async function apiPost(path, body, useAuth){
-    const headers = {'Content-Type':'application/json'};
-    if(useAuth && USER_TOKEN) headers['Authorization'] = 'Bearer ' + USER_TOKEN;
-    const r = await fetch(API_BASE + path, {method:'POST', headers, body: JSON.stringify(body)});
-    const data = await r.json().catch(()=>({}));
-    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
-    return data;
+  if (!res.ok){
+    throw new Error((data && data.error) || 'একটি সমস্যা হয়েছে');
   }
-  async function apiGetAuth(path){
-    const r = await fetch(API_BASE + path, {headers: USER_TOKEN ? {'Authorization':'Bearer '+USER_TOKEN} : {}});
-    const data = await r.json().catch(()=>({}));
-    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
-    return data;
-  }
+  return data;
+}
 
-  // ---------- User auth state ----------
-  let USER_TOKEN = localStorage.getItem('eh_user_token') || null;
-  let USER_INFO = null;
-
-  function showAuthForm(which){
-    document.getElementById('login-form').style.display = which==='login' ? 'block' : 'none';
-    document.getElementById('register-form').style.display = which==='register' ? 'block' : 'none';
-    document.getElementById('auth-heading').textContent = which==='login' ? 'লগইন করুন' : 'রেজিস্ট্রেশন করুন';
-    document.getElementById('login-err').textContent = '';
-    document.getElementById('register-err').textContent = '';
-  }
-
-  async function doUserLogin(){
-    const err = document.getElementById('login-err');
-    err.textContent = '';
-    try{
-      const data = await apiPost('/api/auth/login', {
-        phone: document.getElementById('li-phone').value.trim(),
-        password: document.getElementById('li-pass').value
-      });
-      USER_TOKEN = data.token; USER_INFO = data.user;
-      localStorage.setItem('eh_user_token', USER_TOKEN);
-      renderProfile();
-    }catch(e){ err.textContent = e.message; }
-  }
-
-  async function doRegister(){
-    const err = document.getElementById('register-err');
-    err.textContent = '';
-    try{
-      const data = await apiPost('/api/auth/register', {
-        name: document.getElementById('rg-name').value.trim(),
-        phone: document.getElementById('rg-phone').value.trim(),
-        password: document.getElementById('rg-pass').value
-      });
-      USER_TOKEN = data.token; USER_INFO = data.user;
-      localStorage.setItem('eh_user_token', USER_TOKEN);
-      renderProfile();
-    }catch(e){ err.textContent = e.message; }
-  }
-
-  function doUserLogout(){
-    localStorage.removeItem('eh_user_token');
-    USER_TOKEN = null; USER_INFO = null;
-    document.getElementById('auth-guest').style.display = 'block';
-    document.getElementById('auth-profile').style.display = 'none';
-    showAuthForm('login');
-  }
-
-  async function renderProfile(){
-    if(!USER_TOKEN){
-      document.getElementById('auth-guest').style.display = 'block';
-      document.getElementById('auth-profile').style.display = 'none';
-      return;
-    }
-    try{
-      if(!USER_INFO) USER_INFO = await apiGetAuth('/api/auth/me');
-      document.getElementById('auth-guest').style.display = 'none';
-      document.getElementById('auth-profile').style.display = 'block';
-      document.getElementById('profile-name').textContent = USER_INFO.name;
-      document.getElementById('profile-phone').textContent = USER_INFO.phone;
-      document.getElementById('profile-initial').textContent = USER_INFO.name.trim()[0] || 'এ';
-
-      const history = await apiGetAuth('/api/results/me');
-      const empty = document.getElementById('profile-history-empty');
-      const list = document.getElementById('profile-history-list');
-      if(!history.length){ empty.style.display='block'; list.innerHTML=''; return; }
-      empty.style.display='none';
-      list.innerHTML = history.map(h=>{
-        const total = h.correct_count + h.wrong_count + h.skipped_count;
-        return `<div class="ph-item">
-          <div class="top"><span class="title">${h.exam_title}</span><span class="score">${h.score}%</span></div>
-          <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')}</div>
-        </div>`;
-      }).join('');
-    }catch(e){
-      // token expired/invalid — log out silently
-      doUserLogout();
-    }
-  }
-
-  // ---------- Navigation ----------
-  function goScreen(name){
-    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-    document.getElementById('screen-'+name).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-    const navMap = {home:0, live:1, model:2, history:3};
-    document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
-    if(name === 'history') renderProfile();
-    if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
-    window.scrollTo(0,0);
-  }
-  renderProfile();
-
-  // ---------- Model test drill-down: ministry -> post/grade -> exams ----------
-  let MODEL_NAV = {level:'ministries', ministry:null, post:null, grade:null};
-
-  function groupBy(arr, keyFn){
-    const map = new Map();
-    arr.forEach(item=>{
-      const k = keyFn(item);
-      if(!map.has(k)) map.set(k, []);
-      map.get(k).push(item);
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('loginErr');
+  errBox.style.display = 'none';
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const data = await api('/api/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
     });
-    return map;
+    TOKEN = data.token; USERNAME = data.username;
+    localStorage.setItem('eh_admin_token', TOKEN);
+    localStorage.setItem('eh_admin_username', USERNAME);
+    showApp();
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'লগইন করুন';
   }
+});
 
-  function renderModelScreen(){
-    const model = ALL_EXAMS.filter(e=>e.type==='model');
-    const backBtn = document.getElementById('model-back-btn');
-    const heading = document.getElementById('model-heading');
-    const subtext = document.getElementById('model-subtext');
-    const listEl = document.getElementById('model-list');
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  TOKEN = null;
+  localStorage.removeItem('eh_admin_token');
+  localStorage.removeItem('eh_admin_username');
+  showLogin();
+});
 
-    if(!model.length){
-      backBtn.style.display='none';
-      heading.textContent = 'মডেল টেস্ট';
-      subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
-      listEl.innerHTML = '<div class="empty-note">এখনো কোনো মডেল টেস্ট যুক্ত হয়নি।</div>';
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'list') loadQuestions();
+    if (btn.dataset.tab === 'ministries') loadMinistries();
+  });
+});
+
+async function loadMinistries(){
+  try{
+    const list = await api('/api/questions/ministries/list');
+    const sel = document.getElementById('q_ministry');
+    sel.innerHTML = '<option value="">— নির্বাচন করুন —</option>' +
+      list.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+
+    const box = document.getElementById('ministryList');
+    if (!list.length){
+      box.innerHTML = '<div class="empty-state">কোনো মন্ত্রণালয় যোগ করা হয়নি</div>';
+    } else {
+      box.innerHTML = '<table><tr><th>নাম</th></tr>' +
+        list.map(m => `<tr><td>${escapeHtml(m.name)}</td></tr>`).join('') + '</table>';
+    }
+  } catch(err){ /* silent */ }
+}
+
+document.getElementById('addMinistryBtn').addEventListener('click', async () => {
+  const input = document.getElementById('ministryName');
+  const name = input.value.trim();
+  if (!name) return;
+  try{
+    await api('/api/questions/ministries', { method: 'POST', body: JSON.stringify({ name }) });
+    input.value = '';
+    loadMinistries();
+  } catch(err){ alert(err.message); }
+});
+
+document.getElementById('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('addErr');
+  const okBox = document.getElementById('addOk');
+  errBox.style.display = 'none'; okBox.style.display = 'none';
+  const btn = document.getElementById('addBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const payload = {
+      ministry_id: document.getElementById('q_ministry').value || null,
+      grade: document.getElementById('q_grade').value || null,
+      subject: document.getElementById('q_subject').value.trim(),
+      question_text: document.getElementById('q_text').value.trim(),
+      option_a: document.getElementById('q_a').value.trim(),
+      option_b: document.getElementById('q_b').value.trim(),
+      option_c: document.getElementById('q_c').value.trim(),
+      option_d: document.getElementById('q_d').value.trim(),
+      correct_option: document.getElementById('q_correct').value
+    };
+    await api('/api/questions', { method: 'POST', body: JSON.stringify(payload) });
+    okBox.textContent = 'প্রশ্ন সফলভাবে যোগ হয়েছে ✓';
+    okBox.style.display = 'block';
+    document.getElementById('addForm').reset();
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'প্রশ্ন যোগ করুন';
+  }
+});
+
+document.getElementById('bulkBtn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('bulkFile');
+  const errBox = document.getElementById('bulkErr');
+  const resultBox = document.getElementById('bulkResult');
+  errBox.style.display = 'none';
+  resultBox.style.display = 'none';
+  if (!fileInput.files.length){
+    errBox.textContent = 'একটি ফাইল নির্বাচন করুন';
+    errBox.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('bulkBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    const data = await api('/api/bulk-upload', { method: 'POST', body: fd });
+    let msg = `${data.added} টি প্রশ্ন যোগ হয়েছে।`;
+    if (data.failed) msg += `\n${data.failed} টি সারিতে সমস্যা হয়েছে:\n` + data.errors.join('\n');
+    resultBox.textContent = msg;
+    resultBox.style.display = 'block';
+    fileInput.value = '';
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'আপলোড করুন';
+  }
+});
+
+async function loadQuestions(){
+  const wrap = document.getElementById('listWrap');
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const params = new URLSearchParams();
+    const search = document.getElementById('f_search').value.trim();
+    const subject = document.getElementById('f_subject').value.trim();
+    const grade = document.getElementById('f_grade').value.trim();
+    if (search) params.set('search', search);
+    if (subject) params.set('subject', subject);
+    if (grade) params.set('grade', grade);
+    const list = await api('/api/questions?' + params.toString());
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state">কোনো প্রশ্ন পাওয়া যায়নি</div>';
       return;
     }
-
-    if(MODEL_NAV.level === 'ministries'){
-      backBtn.style.display='none';
-      heading.textContent = 'মডেল টেস্ট';
-      subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
-      const groups = groupBy(model, e=>e.ministry_name || 'অন্যান্য');
-      listEl.innerHTML = [...groups.entries()].map(([name, exams])=>{
-        const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
-        return `
-          <div class="group-card" onclick="modelPickMinistry(${JSON.stringify(name)})">
-            <div class="gc-left">
-              <div class="gc-ic ministry">🏛️</div>
-              <div>
-                <div class="gc-name">${name}</div>
-                <div class="gc-meta">${toBnDigits(posts.size)}টি পদ · ${toBnDigits(exams.length)}টি টেস্ট</div>
-              </div>
-            </div>
-            <div class="gc-arrow">›</div>
-          </div>`;
-      }).join('');
-      return;
-    }
-
-    if(MODEL_NAV.level === 'posts'){
-      backBtn.style.display='flex';
-      heading.textContent = MODEL_NAV.ministry;
-      subtext.textContent = 'পদ বেছে নিন';
-      const inMinistry = model.filter(e=>(e.ministry_name||'অন্যান্য')===MODEL_NAV.ministry);
-      const groups = groupBy(inMinistry, e=>(e.post_name||'সাধারণ')+'|'+(e.grade||''));
-      listEl.innerHTML = [...groups.entries()].map(([key, exams])=>{
-        const [postName, grade] = key.split('|');
-        return `
-          <div class="group-card" onclick="modelPickPost(${JSON.stringify(postName)},${JSON.stringify(grade)})">
-            <div class="gc-left">
-              <div class="gc-ic post">📋</div>
-              <div>
-                <div class="gc-name">${postName}${grade ? ` · গ্রেড ${toBnDigits(grade)}` : ''}</div>
-                <div class="gc-meta">${toBnDigits(exams.length)}টি মডেল টেস্ট</div>
-              </div>
-            </div>
-            <div class="gc-arrow">›</div>
-          </div>`;
-      }).join('');
-      return;
-    }
-
-    if(MODEL_NAV.level === 'exams'){
-      backBtn.style.display='flex';
-      heading.textContent = MODEL_NAV.post;
-      subtext.textContent = MODEL_NAV.ministry + (MODEL_NAV.grade ? ' · গ্রেড '+toBnDigits(MODEL_NAV.grade) : '');
-      const exams = model.filter(e=>
-        (e.ministry_name||'অন্যান্য')===MODEL_NAV.ministry &&
-        (e.post_name||'সাধারণ')===MODEL_NAV.post &&
-        String(e.grade||'')===String(MODEL_NAV.grade||'')
-      );
-      renderList('model-list', exams, 'এই পদের জন্য কোনো মডেল টেস্ট নেই।');
-      return;
-    }
+    wrap.innerHTML = `<table>
+      <tr><th>প্রশ্ন</th><th>বিষয়</th><th>গ্রেড</th><th>সঠিক</th><th>মন্ত্রণালয়</th><th></th></tr>
+      ${list.map(q => `
+        <tr>
+          <td class="qtext">${escapeHtml(q.question_text)}</td>
+          <td><span class="pill">${escapeHtml(q.subject)}</span></td>
+          <td>${q.grade || '-'}</td>
+          <td><span class="pill correct-pill">${q.correct_option}</span></td>
+          <td>${q.ministry_name ? escapeHtml(q.ministry_name) : '-'}</td>
+          <td class="row-actions"><button class="btn btn-ghost btn-small danger" onclick="deleteQuestion(${q.id})">মুছুন</button></td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
   }
+}
+document.getElementById('f_go').addEventListener('click', loadQuestions);
 
-  function modelPickMinistry(name){
-    MODEL_NAV = {level:'posts', ministry:name};
-    renderModelScreen();
-    window.scrollTo(0,0);
-  }
-  function modelPickPost(postName, grade){
-    MODEL_NAV.level = 'exams';
-    MODEL_NAV.post = postName;
-    MODEL_NAV.grade = grade;
-    renderModelScreen();
-    window.scrollTo(0,0);
-  }
-  function modelGoBack(){
-    if(MODEL_NAV.level === 'exams'){ MODEL_NAV.level='posts'; MODEL_NAV.post=null; MODEL_NAV.grade=null; }
-    else if(MODEL_NAV.level === 'posts'){ MODEL_NAV = {level:'ministries'}; }
-    renderModelScreen();
-    window.scrollTo(0,0);
-  }
+async function deleteQuestion(id){
+  if (!confirm('আপনি কি নিশ্চিত এই প্রশ্নটি মুছে ফেলতে চান?')) return;
+  try{
+    await api('/api/questions/' + id, { method: 'DELETE' });
+    loadQuestions();
+  } catch(err){ alert(err.message); }
+}
 
-  // ---------- Load exam lists from the real backend ----------
-  let ALL_EXAMS = [];
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
-  function examStatus(exam){
-    const now = Date.now();
-    if(exam.type === 'model') return {label:'উপলব্ধ', canEnter:true, cta:'শুরু করুন'};
-    if(!exam.start_time) return {label:'সময় নির্ধারিত হয়নি', canEnter:false, cta:'শীঘ্রই আসছে'};
-    const start = new Date(exam.start_time).getTime();
-    const end = start + (exam.duration_minutes||60)*60000;
-    if(now < start) return {label:'শুরু হয়নি', canEnter:false, cta:'অপেক্ষা করুন', countdown: start-now};
-    if(now <= end) return {label:'লাইভ চলছে', canEnter:true, cta:'প্রবেশ করুন', live:true};
-    return {label:'সময় শেষ', canEnter:true, cta:'সমাধান দেখুন', archive:true};
-  }
-
-  function fmtCountdown(ms){
-    const totalSec = Math.max(0, Math.floor(ms/1000));
-    const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60);
-    if(h>0) return toBnDigits(h)+'ঘ '+toBnDigits(m)+'মি';
-    const s = totalSec%60;
-    return toBnDigits(m)+':'+toBnDigits(String(s).padStart(2,'0'));
-  }
-
-  function ticketHtml(exam){
-    const st = examStatus(exam);
-    const tagsHtml = `
-      ${exam.ministry_name ? `<span class="tag ministry">${exam.ministry_name}</span>` : ''}
-      ${exam.grade ? `<span class="tag grade">গ্রেড ${toBnDigits(exam.grade)}</span>` : ''}
-      ${st.live ? `<span class="tag live">লাইভ</span>` : (st.archive ? `<span class="tag closed">আর্কাইভ</span>` : '')}
-    `;
-    const cdHtml = exam.type==='live'
-      ? (st.countdown!==undefined
-          ? `<div class="ticket-cd"><b>${fmtCountdown(st.countdown)}</b><span>বাকি</span></div>`
-          : `<div class="ticket-cd"><b>${st.live?'চলছে':'শেষ'}</b><span>&nbsp;</span></div>`)
-      : '';
-    const btnClass = exam.type==='model' ? 'btn-enter model' : (st.archive ? 'btn-enter archive' : 'btn-enter');
-    const disabled = st.canEnter ? '' : 'disabled';
-    const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
-    return `
-      <div class="ticket" data-exam-id="${exam.id}">
-        <div class="ticket-top">
-          <div>
-            <div class="ticket-tags">${tagsHtml}</div>
-            <div class="ticket-name">${exam.title}</div>
-            <div class="ticket-meta">${toBnDigits(exam.question_count)} প্রশ্ন · ${toBnDigits(exam.duration_minutes)} মিনিট</div>
-          </div>
-          ${cdHtml}
-        </div>
-        <div class="ticket-divider"></div>
-        <div class="ticket-bottom">
-          <span class="ticket-serial">${exam.serial||''}</span>
-          <button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>
-        </div>
-      </div>`;
-  }
-
-  function renderList(containerId, exams, emptyMsg){
-    const el = document.getElementById(containerId);
-    if(!exams.length){ el.innerHTML = `<div class="empty-note">${emptyMsg}</div>`; return; }
-    el.innerHTML = exams.map(ticketHtml).join('');
-  }
-
-  async function loadHome(){
-    try{
-      const all = await apiGet('/api/exams/public/list');
-      ALL_EXAMS = all;
-      const live = all.filter(e=>e.type==='live');
-      const model = all.filter(e=>e.type==='model');
-      document.getElementById('stat-total').textContent = toBnDigits(all.length);
-      document.getElementById('stat-live').textContent = toBnDigits(live.length);
-      renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
-      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      renderModelScreen();
-    }catch(err){
-      document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
-    }
-  }
-  loadHome();
-  setInterval(()=>{
-    // refresh countdowns/status every 15s without a full reload feel
-    if(ALL_EXAMS.length){
-      const live = ALL_EXAMS.filter(e=>e.type==='live');
-      const model = ALL_EXAMS.filter(e=>e.type==='model');
-      renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
-      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      renderModelScreen();
-    }
-  }, 15000);
-
-  // ---------- Name-entry sheet ----------
-  let PENDING_EXAM_ID = null;
-  function openNameSheet(examId){
-    if(USER_TOKEN && USER_INFO){
-      // already logged in — skip the sheet, use their account name/phone directly
-      startExam(examId, USER_INFO.name, USER_INFO.phone);
-      return;
-    }
-    PENDING_EXAM_ID = examId;
-    document.getElementById('pname').value = '';
-    document.getElementById('pphone').value = '';
-    document.getElementById('name-err').style.display = 'none';
-    document.getElementById('name-overlay').classList.add('active');
-  }
-  function closeNameSheet(){
-    document.getElementById('name-overlay').classList.remove('active');
-    PENDING_EXAM_ID = null;
-  }
-  function confirmNameAndStart(){
-    const name = document.getElementById('pname').value.trim();
-    if(!name){ document.getElementById('name-err').style.display = 'block'; return; }
-    const phone = document.getElementById('pphone').value.trim();
-    document.getElementById('name-overlay').classList.remove('active');
-    startExam(PENDING_EXAM_ID, name, phone);
-  }
-
-  // ---------- Archive / solutions (after a live exam's window has closed) ----------
-  async function openArchive(examId){
-    try{
-      const data = await apiGet('/api/exams/public/'+examId+'/archive');
-      document.getElementById('archive-title').textContent = data.exam.title;
-      const letters = ['A','B','C','D'];
-      const optKeys = ['option_a','option_b','option_c','option_d'];
-      document.getElementById('archive-body').innerHTML = data.questions.map((q,i)=>`
-        <div class="aq">
-          <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</div>
-          <div class="aq-text">${q.question_text}</div>
-          ${letters.map((L,idx)=>`
-            <div class="aq-opt ${q.correct_option===L?'correct':''}">
-              <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${q[optKeys[idx]]}</span>
-            </div>`).join('')}
-        </div>`).join('');
-      document.getElementById('archive-overlay').classList.add('active');
-    }catch(err){
-      alert(err.message || 'সমাধান এখনো দেখা যাচ্ছে না');
-    }
-  }
-  function closeArchive(){
-    document.getElementById('archive-overlay').classList.remove('active');
-  }
-
-  // ---------- Exam taking ----------
-  let CURRENT_EXAM = null;
-  let CURRENT_QUESTIONS = [];
-  let curQ = 0;
-  let answers = {};
-  let participant = {name:'', phone:''};
-  let timeLeft = 0;
-  let timerHandle = null;
-
-  async function startExam(examId, name, phone){
-    try{
-      const data = await apiGet('/api/exams/public/'+examId+'/questions');
-      CURRENT_EXAM = data.exam;
-      CURRENT_QUESTIONS = data.questions;
-      participant = {name, phone};
-      answers = {};
-      curQ = 0;
-
-      if(CURRENT_EXAM.type === 'live' && CURRENT_EXAM.start_time){
-        const end = new Date(CURRENT_EXAM.start_time).getTime() + (CURRENT_EXAM.duration_minutes||60)*60000;
-        timeLeft = Math.max(0, Math.floor((end - Date.now())/1000));
-      } else {
-        timeLeft = (CURRENT_EXAM.duration_minutes||60)*60;
-      }
-
-      document.getElementById('exam-overlay').classList.add('active');
-      renderAllQuestions();
-      clearInterval(timerHandle);
-      timerHandle = setInterval(tick, 1000);
-    }catch(err){
-      alert(err.message || 'পরীক্ষা শুরু করা যায়নি');
-    }
-  }
-
-  function tick(){
-    timeLeft--;
-    const m = String(Math.floor(timeLeft/60)).padStart(2,'0');
-    const s = String(timeLeft%60).padStart(2,'0');
-    const t = document.getElementById('exam-timer');
-    t.textContent = '⏱ ' + toBnDigits(m) + ':' + toBnDigits(s);
-    t.classList.toggle('warn', timeLeft <= 60);
-    if(timeLeft <= 0){ clearInterval(timerHandle); submitExam(); }
-  }
-
-  function renderAllQuestions(){
-    const letters = ['A','B','C','D'];
-    const bnLetters = ['ক','খ','গ','ঘ'];
-    const body = document.getElementById('exam-body');
-    body.innerHTML = CURRENT_QUESTIONS.map((q, qi)=>{
-      const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d];
-      const optsHtml = letters.map((L,i)=>`
-        <div class="opt${answers[q.id]===L ? ' selected' : ''}" onclick="selectAnswer(${q.id},'${L}')">
-          <span class="bullet">${bnLetters[i]}</span><span>${optTexts[i]}</span>
-        </div>`).join('');
-      return `
-        <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
-          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span></div>
-          <div class="q-text">${q.question_text}</div>
-          <div>${optsHtml}</div>
-        </div>`;
-    }).join('');
-    updateProgress();
-  }
-
-  function selectAnswer(qid, L){
-    answers[qid] = L;
-    const card = document.getElementById('qcard-'+qid);
-    card.classList.add('answered');
-    const letters = ['A','B','C','D'];
-    card.querySelectorAll('.opt').forEach((el,i)=>{
-      el.classList.toggle('selected', letters[i]===L);
-    });
-    updateProgress();
-  }
-
-  function updateProgress(){
-    const total = CURRENT_QUESTIONS.length;
-    const done = Object.keys(answers).length;
-    const pct = total ? Math.round((done/total)*100) : 0;
-    document.getElementById('exam-progress-fill').style.width = pct + '%';
-    document.getElementById('exam-progress-count').textContent = toBnDigits(done) + ' / ' + toBnDigits(total) + ' উত্তর দেওয়া হয়েছে';
-  }
-
-  function exitExam(){
-    if(!confirm('পরীক্ষা থেকে বের হয়ে যেতে চান? অগ্রগতি সংরক্ষিত হবে না।')) return;
-    clearInterval(timerHandle);
-    document.getElementById('exam-overlay').classList.remove('active');
-  }
-
-  async function submitExam(){
-    const total = CURRENT_QUESTIONS.length;
-    const done = Object.keys(answers).length;
-    if(done < total){
-      const left = total - done;
-      if(!confirm(toBnDigits(left) + 'টি প্রশ্নের উত্তর এখনো দেওয়া হয়নি। তারপরও জমা দিতে চান?')) return;
-    }
-    clearInterval(timerHandle);
-    document.getElementById('exam-overlay').classList.remove('active');
-    try{
-      const result = await apiPost('/api/results', {
-        exam_id: CURRENT_EXAM.id,
-        participant_name: participant.name,
-        participant_phone: participant.phone || null,
-        answers
-      }, true);
-      showResult(result);
-    }catch(err){
-      alert('জমা দেওয়া যায়নি: ' + err.message);
-    }
-  }
-
-  async function showResult(result){
-    const total = result.correct_count + result.wrong_count + result.skipped_count;
-    document.getElementById('score-ring').style.setProperty('--pct', result.score);
-    document.getElementById('score-num').textContent = toBnDigits(result.correct_count) + '/' + toBnDigits(total);
-    document.getElementById('result-exam-title').textContent = CURRENT_EXAM.title;
-    document.getElementById('stat-correct').textContent = toBnDigits(result.correct_count);
-    document.getElementById('stat-wrong').textContent = toBnDigits(result.wrong_count);
-    document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
-
-    try{
-      const merit = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
-      document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
-        <div class="merit-item ${m.id===result.id ? 'me' : ''}">
-          <div class="merit-rank">${toBnDigits(i+1)}</div>
-          <div class="merit-name">${m.participant_name}</div>
-          <div class="merit-score">${m.score}%</div>
-        </div>`).join('');
-    }catch(e){
-      document.getElementById('merit-list').innerHTML = '';
-    }
-
-    document.getElementById('result-overlay').classList.add('active');
-  }
-
-  function closeResult(){
-    document.getElementById('result-overlay').classList.remove('active');
-    goScreen('history');
-  }
+if (TOKEN) showApp(); else showLogin();
 </script>
 </body>
 </html>
