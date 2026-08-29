@@ -92,6 +92,22 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(user_id);
 
+-- Question reports: students flag a question that looks wrong, so admins can review/fix it.
+CREATE TABLE IF NOT EXISTS question_reports (
+  id SERIAL PRIMARY KEY,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  reason TEXT,
+  status VARCHAR(15) NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved')),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_question_reports_status ON question_reports(status);
+
+-- Daily quiz: a small auto-generated model test, regenerated once per calendar day.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_daily BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS quiz_date DATE;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_exams_daily_date ON exams(quiz_date) WHERE is_daily = true;
+
 CREATE INDEX IF NOT EXISTS idx_questions_ministry ON questions(ministry_id);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_exam ON results(exam_id);
