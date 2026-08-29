@@ -74,4 +74,43 @@ router.post('/ministries', requireAdmin, async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
+// POST /api/questions/bulk — insert many already-structured questions at once
+// body: { questions: [{ ministry_id, grade, subject, question_text, option_a..d, correct_option, explanation }] }
+router.post('/bulk', requireAdmin, async (req, res) => {
+  const { questions } = req.body;
+  if (!Array.isArray(questions) || !questions.length) {
+    return res.status(400).json({ error: 'কোনো প্রশ্ন পাওয়া যায়নি' });
+  }
+
+  const client = await pool.connect();
+  let added = 0;
+  const errors = [];
+  try {
+    await client.query('BEGIN');
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.subject || !q.question_text || !q.option_a || !q.option_b || !q.option_c || !q.option_d ||
+          !['A', 'B', 'C', 'D'].includes(String(q.correct_option || '').toUpperCase())) {
+        errors.push(`প্রশ্ন ${i + 1}: তথ্য অসম্পূর্ণ বা ফরম্যাট ভুল`);
+        continue;
+      }
+      await client.query(
+        `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [q.ministry_id || null, q.grade || null, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+         q.correct_option.toUpperCase(), q.explanation || null]
+      );
+      added++;
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+
+  res.json({ added, failed: errors.length, errors });
+});
+
 module.exports = router;
