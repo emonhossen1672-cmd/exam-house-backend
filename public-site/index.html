@@ -503,6 +503,12 @@
       </div>
     </div>
 
+    <div id="home-perf-widget" style="display:none;">
+      <div class="sec-head" style="margin:22px 0 12px;"><h2>আপনার পারফরম্যান্স</h2><a onclick="goScreen('history')">বিস্তারিত →</a></div>
+      <div id="home-perf-empty" class="empty-note" style="display:none;">একটি পরীক্ষা দিলে এখানে আপনার বিষয়ভিত্তিক ফলাফল দেখাবে।</div>
+      <div id="home-perf-list"></div>
+    </div>
+
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
     <div id="home-live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
@@ -742,9 +748,10 @@
 
   function doUserLogout(){
     localStorage.removeItem('eh_user_token');
-    USER_TOKEN = null; USER_INFO = null;
+    USER_TOKEN = null; USER_INFO = null; SUBJ_STATS_CACHE = null;
     document.getElementById('auth-guest').style.display = 'block';
     document.getElementById('auth-profile').style.display = 'none';
+    document.getElementById('home-perf-widget').style.display = 'none';
     showAuthForm('login');
   }
 
@@ -777,13 +784,32 @@
         }).join('');
       }
 
-      const subjStats = await apiGetAuth('/api/results/me/subject-stats');
-      const sEmpty = document.getElementById('subject-stats-empty');
-      const sList = document.getElementById('subject-stats-list');
-      if(!subjStats.length){ sEmpty.style.display='block'; sList.innerHTML=''; }
-      else{
+      await renderSubjectStats([
+        {listId:'subject-stats-list', emptyId:'subject-stats-empty'}
+      ]);
+
+      document.getElementById('home-perf-widget').style.display = 'block';
+      await renderSubjectStats([
+        {listId:'home-perf-list', emptyId:'home-perf-empty', limit:2}
+      ], true);
+    }catch(e){
+      // token expired/invalid — log out silently
+      doUserLogout();
+    }
+  }
+
+  let SUBJ_STATS_CACHE = null;
+  async function renderSubjectStats(targets, useCache){
+    try{
+      if(!useCache || !SUBJ_STATS_CACHE) SUBJ_STATS_CACHE = await apiGetAuth('/api/results/me/subject-stats');
+      const subjStats = SUBJ_STATS_CACHE;
+      targets.forEach(t=>{
+        const sEmpty = document.getElementById(t.emptyId);
+        const sList = document.getElementById(t.listId);
+        const rows = t.limit ? subjStats.slice(0, t.limit) : subjStats;
+        if(!rows.length){ sEmpty.style.display='block'; sList.innerHTML=''; return; }
         sEmpty.style.display='none';
-        sList.innerHTML = subjStats.map(s=>{
+        sList.innerHTML = rows.map(s=>{
           const answered = s.correct + s.wrong;
           const pct = answered ? Math.round((s.correct/answered)*100) : 0;
           const barColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
@@ -793,10 +819,9 @@
             <div class="subj-stat-meta">মোট ${toBnDigits(s.total)}টি প্রশ্ন · সঠিক ${toBnDigits(s.correct)} · ভুল ${toBnDigits(s.wrong)} · বাদ ${toBnDigits(s.skipped)}</div>
           </div>`;
         }).join('');
-      }
+      });
     }catch(e){
-      // token expired/invalid — log out silently
-      doUserLogout();
+      // silent — home widget just won't show if this fails
     }
   }
 
