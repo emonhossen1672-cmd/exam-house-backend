@@ -13,7 +13,7 @@ function genSerial(type) {
 // POST /api/exams — create an exam and attach questions
 // body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
 router.post('/', requireAdmin, async (req, res) => {
-  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids } = req.body;
+  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks } = req.body;
   if (!title || !type || !question_ids || !question_ids.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
   }
@@ -26,10 +26,10 @@ router.post('/', requireAdmin, async (req, res) => {
     await client.query('BEGIN');
     const serial = genSerial(type);
     const examResult = await client.query(
-      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
-       type === 'live' ? start_time : null, serial, 'scheduled']
+       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0]
     );
     const exam = examResult.rows[0];
 
@@ -63,7 +63,7 @@ router.get('/admin/list', requireAdmin, async (req, res) => {
 
 // PUT /api/exams/:id — update exam fields (title, ministry_id, post_name, subject, grade, duration_minutes, start_time)
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time } = req.body;
+  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks } = req.body;
   const { rows } = await pool.query(
     `UPDATE exams SET
       title = COALESCE($1, title),
@@ -72,10 +72,11 @@ router.put('/:id', requireAdmin, async (req, res) => {
       subject = $4,
       grade = $5,
       duration_minutes = COALESCE($6, duration_minutes),
-      start_time = $7
+      start_time = $7,
+      negative_marks = COALESCE($9, negative_marks)
      WHERE id=$8 RETURNING *`,
     [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
-     duration_minutes || null, start_time || null, req.params.id]
+     duration_minutes || null, start_time || null, req.params.id, negative_marks]
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -104,7 +105,7 @@ router.get('/public/list', async (req, res) => {
   let where = '';
   if (type) { params.push(type); where = 'WHERE e.type = $1'; }
   const { rows } = await pool.query(`
-    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial,
+    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
