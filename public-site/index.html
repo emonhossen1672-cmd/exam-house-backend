@@ -338,8 +338,9 @@
     max-width:430px; margin:0 auto;
   }
   .exam-overlay.active{display:flex;}
-#review-overlay.active{z-index:120;}
-  
+  #review-overlay.active{z-index:120;}
+  .rev-filter-btn{flex:1; padding:9px; border-radius:9px; border:none; background:var(--paper-deep); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .rev-filter-btn.active{background:var(--navy-deep); color:#fff;}
   .exam-top{
     padding:16px 18px 14px; display:flex; align-items:center; justify-content:space-between;
     border-bottom:1px solid rgba(255,255,255,0.1);
@@ -593,6 +594,7 @@
   <div class="name-overlay" id="name-overlay">
     <div class="name-sheet">
       <h3 id="name-sheet-title">পরীক্ষায় প্রবেশ</h3>
+      <p id="name-sheet-meta" style="font-weight:600; color:var(--ink);"></p>
       <p>ফলাফল ও মেধাতালিকায় দেখানোর জন্য আপনার নাম দিন</p>
       <label>আপনার নাম *</label>
       <input id="pname" placeholder="যেমনঃ রাকিব হাসান">
@@ -649,6 +651,10 @@
       <button class="exam-exit" onclick="closeReview()">✕</button>
       <div style="font-size:13px; font-weight:700; color:var(--ink);">উত্তরপত্র ও ব্যাখ্যা</div>
       <div style="width:20px;"></div>
+    </div>
+    <div class="review-filter" style="display:flex; gap:8px; padding:10px 18px 0;">
+      <button class="rev-filter-btn active" id="rev-filter-all" onclick="setReviewFilter('all')">সব প্রশ্ন</button>
+      <button class="rev-filter-btn" id="rev-filter-wrong" onclick="setReviewFilter('wrong')">শুধু ভুল</button>
     </div>
     <div class="exam-body" id="review-body" style="padding-bottom:40px;"></div>
   </div>
@@ -1075,6 +1081,7 @@
   // ---------- Name-entry sheet ----------
   let PENDING_EXAM_ID = null;
   function openNameSheet(examId){
+    const exam = ALL_EXAMS.find(e=>e.id===examId);
     if(USER_TOKEN && USER_INFO){
       // already logged in — skip the sheet, use their account name/phone directly
       startExam(examId, USER_INFO.name, USER_INFO.phone);
@@ -1084,6 +1091,8 @@
     document.getElementById('pname').value = '';
     document.getElementById('pphone').value = '';
     document.getElementById('name-err').style.display = 'none';
+    document.getElementById('name-sheet-meta').textContent = exam
+      ? `📝 ${toBnDigits(exam.question_count)} টি প্রশ্ন · ⏱ ${toBnDigits(exam.duration_minutes)} মিনিট` : '';
     document.getElementById('name-overlay').classList.add('active');
   }
   function closeNameSheet(){
@@ -1273,6 +1282,15 @@
   }
 
   let LAST_REVIEW = null;
+  let REVIEW_FILTER = 'all';
+
+  function setReviewFilter(mode){
+    REVIEW_FILTER = mode;
+    document.getElementById('rev-filter-all').classList.toggle('active', mode==='all');
+    document.getElementById('rev-filter-wrong').classList.toggle('active', mode==='wrong');
+    const filtered = mode==='wrong' ? LAST_REVIEW.filter(q=>q.status==='wrong') : LAST_REVIEW;
+    renderReviewBody(filtered);
+  }
 
   function renderReviewBody(review){
     const optKeys = ['a','b','c','d'];
@@ -1300,14 +1318,15 @@
 
   function openReview(){
     if(!LAST_REVIEW) return;
-    renderReviewBody(LAST_REVIEW);
+    setReviewFilter('all');
     document.getElementById('review-overlay').classList.add('active');
   }
 
   async function openReviewById(resultId){
     try{
       const data = await apiGetAuth('/api/results/'+resultId+'/review');
-      renderReviewBody(data.review);
+      LAST_REVIEW = data.review;
+      setReviewFilter('all');
       document.getElementById('review-overlay').classList.add('active');
     }catch(err){
       alert('উত্তরপত্র লোড করা যায়নি: ' + err.message);
