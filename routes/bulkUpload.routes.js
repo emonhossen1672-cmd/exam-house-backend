@@ -75,9 +75,9 @@ router.post('/', requireAdmin, upload.single('file'), async (req, res) => {
 
       const ministryId = await getMinistryId(r.ministry);
       await client.query(
-        `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [ministryId, r.grade || null, r.subject, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct]
+        `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [ministryId, r.grade || null, r.subject, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null]
       );
       added++;
     }
