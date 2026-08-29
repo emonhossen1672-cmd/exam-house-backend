@@ -203,6 +203,25 @@
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
   .loading-note{text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:13px;}
 
+  /* ---------- Model test drill-down (ministry / post) ---------- */
+  .model-back{background:none; border:none; color:var(--seal); font-size:12.5px; font-weight:700; cursor:pointer; padding:0 0 10px; font-family:'Noto Sans Bengali'; display:flex; align-items:center; gap:4px;}
+  .group-card{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px 15px; margin-bottom:10px; cursor:pointer; transition:transform .1s ease;
+  }
+  .group-card:active{transform:scale(0.98); background:var(--paper-deep);}
+  .group-card .gc-left{display:flex; align-items:center; gap:12px; min-width:0;}
+  .group-card .gc-ic{
+    width:40px; height:40px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .group-card .gc-ic.ministry{background:#EAF1F8; color:#2E6BA8;}
+  .group-card .gc-ic.post{background:var(--gold-soft); color:#7A5E12;}
+  .group-card .gc-name{font-size:14px; color:var(--ink); font-weight:600; line-height:1.4;}
+  .group-card .gc-meta{font-size:11.5px; color:var(--ink-faint); margin-top:3px;}
+  .group-card .gc-arrow{color:var(--ink-faint); font-size:18px; flex-shrink:0;}
+
   /* ---------- Auth (login/register) & Profile ---------- */
   .auth-label{font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin:14px 0 6px;}
   .auth-input{
@@ -464,8 +483,9 @@
 
   <!-- ============ MODEL TEST SCREEN ============ -->
   <div class="screen" id="screen-model">
-    <div class="sec-head" style="margin-top:4px;"><h2>মডেল টেস্ট</h2></div>
-    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">যেকোনো সময় নিজের গতিতে অনুশীলন করুন — ফলাফল সাথে সাথে দেখুন।</p>
+    <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
+    <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
     <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
@@ -710,9 +730,116 @@
     const navMap = {home:0, live:1, model:2, history:3};
     document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
     if(name === 'history') renderProfile();
+    if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
     window.scrollTo(0,0);
   }
   renderProfile();
+
+  // ---------- Model test drill-down: ministry -> post/grade -> exams ----------
+  let MODEL_NAV = {level:'ministries', ministry:null, post:null, grade:null};
+
+  function groupBy(arr, keyFn){
+    const map = new Map();
+    arr.forEach(item=>{
+      const k = keyFn(item);
+      if(!map.has(k)) map.set(k, []);
+      map.get(k).push(item);
+    });
+    return map;
+  }
+
+  function renderModelScreen(){
+    const model = ALL_EXAMS.filter(e=>e.type==='model');
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+
+    if(!model.length){
+      backBtn.style.display='none';
+      heading.textContent = 'মডেল টেস্ট';
+      subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো মডেল টেস্ট যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    if(MODEL_NAV.level === 'ministries'){
+      backBtn.style.display='none';
+      heading.textContent = 'মডেল টেস্ট';
+      subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
+      const groups = groupBy(model, e=>e.ministry_name || 'অন্যান্য');
+      listEl.innerHTML = [...groups.entries()].map(([name, exams])=>{
+        const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
+        return `
+          <div class="group-card" onclick="modelPickMinistry(${JSON.stringify(name)})">
+            <div class="gc-left">
+              <div class="gc-ic ministry">🏛️</div>
+              <div>
+                <div class="gc-name">${name}</div>
+                <div class="gc-meta">${toBnDigits(posts.size)}টি পদ · ${toBnDigits(exams.length)}টি টেস্ট</div>
+              </div>
+            </div>
+            <div class="gc-arrow">›</div>
+          </div>`;
+      }).join('');
+      return;
+    }
+
+    if(MODEL_NAV.level === 'posts'){
+      backBtn.style.display='flex';
+      heading.textContent = MODEL_NAV.ministry;
+      subtext.textContent = 'পদ বেছে নিন';
+      const inMinistry = model.filter(e=>(e.ministry_name||'অন্যান্য')===MODEL_NAV.ministry);
+      const groups = groupBy(inMinistry, e=>(e.post_name||'সাধারণ')+'|'+(e.grade||''));
+      listEl.innerHTML = [...groups.entries()].map(([key, exams])=>{
+        const [postName, grade] = key.split('|');
+        return `
+          <div class="group-card" onclick="modelPickPost(${JSON.stringify(postName)},${JSON.stringify(grade)})">
+            <div class="gc-left">
+              <div class="gc-ic post">📋</div>
+              <div>
+                <div class="gc-name">${postName}${grade ? ` · গ্রেড ${toBnDigits(grade)}` : ''}</div>
+                <div class="gc-meta">${toBnDigits(exams.length)}টি মডেল টেস্ট</div>
+              </div>
+            </div>
+            <div class="gc-arrow">›</div>
+          </div>`;
+      }).join('');
+      return;
+    }
+
+    if(MODEL_NAV.level === 'exams'){
+      backBtn.style.display='flex';
+      heading.textContent = MODEL_NAV.post;
+      subtext.textContent = MODEL_NAV.ministry + (MODEL_NAV.grade ? ' · গ্রেড '+toBnDigits(MODEL_NAV.grade) : '');
+      const exams = model.filter(e=>
+        (e.ministry_name||'অন্যান্য')===MODEL_NAV.ministry &&
+        (e.post_name||'সাধারণ')===MODEL_NAV.post &&
+        String(e.grade||'')===String(MODEL_NAV.grade||'')
+      );
+      renderList('model-list', exams, 'এই পদের জন্য কোনো মডেল টেস্ট নেই।');
+      return;
+    }
+  }
+
+  function modelPickMinistry(name){
+    MODEL_NAV = {level:'posts', ministry:name};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+  function modelPickPost(postName, grade){
+    MODEL_NAV.level = 'exams';
+    MODEL_NAV.post = postName;
+    MODEL_NAV.grade = grade;
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+  function modelGoBack(){
+    if(MODEL_NAV.level === 'exams'){ MODEL_NAV.level='posts'; MODEL_NAV.post=null; MODEL_NAV.grade=null; }
+    else if(MODEL_NAV.level === 'posts'){ MODEL_NAV = {level:'ministries'}; }
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
 
   // ---------- Load exam lists from the real backend ----------
   let ALL_EXAMS = [];
@@ -785,7 +912,7 @@
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      renderList('model-list', model, 'এখনো কোনো মডেল টেস্ট যুক্ত হয়নি।');
+      renderModelScreen();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
@@ -798,7 +925,7 @@
       const model = ALL_EXAMS.filter(e=>e.type==='model');
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      renderList('model-list', model, 'এখনো কোনো মডেল টেস্ট যুক্ত হয়নি।');
+      renderModelScreen();
     }
   }, 15000);
 
