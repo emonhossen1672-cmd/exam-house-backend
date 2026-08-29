@@ -160,6 +160,7 @@
     <button class="tab-btn" data-tab="bulk">বাল্ক আপলোড</button>
     <button class="tab-btn" data-tab="list">প্রশ্ন তালিকা</button>
     <button class="tab-btn" data-tab="ministries">মন্ত্রণালয়</button>
+    <button class="tab-btn" data-tab="exams">পরীক্ষা তৈরি করুন</button>
   </div>
 
   <div class="panel-wrap">
@@ -242,6 +243,70 @@
       <div id="ministryList" style="margin-top:16px;"></div>
     </div>
 
+    <div class="panel" id="panel-exams">
+      <h2>নতুন পরীক্ষা তৈরি করুন</h2>
+      <div class="desc">টাইপ, তথ্য দিন এবং নিচ থেকে প্রশ্ন বাছাই করে "পরীক্ষা তৈরি করুন" চাপুন।</div>
+      <div class="err-box" id="examErr"></div>
+      <div class="ok-box" id="examOk"></div>
+      <form id="examForm">
+        <div class="grid-2">
+          <div class="field">
+            <label>পরীক্ষার টাইপ</label>
+            <select id="e_type" required>
+              <option value="model">মডেল টেস্ট</option>
+              <option value="live">লাইভ পরীক্ষা</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>টাইটেল</label>
+            <input type="text" id="e_title" placeholder="যেমন: শিক্ষা মন্ত্রণালয় মডেল টেস্ট - ১" required>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>মন্ত্রণালয় (ঐচ্ছিক)</label>
+            <select id="e_ministry"><option value="">— নির্বাচন করুন —</option></select>
+          </div>
+          <div class="field">
+            <label>পদের নাম (ঐচ্ছিক)</label>
+            <input type="text" id="e_post_name">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>গ্রেড (ঐচ্ছিক)</label>
+            <input type="number" id="e_grade">
+          </div>
+          <div class="field">
+            <label>সময়কাল (মিনিট)</label>
+            <input type="number" id="e_duration" value="60" required>
+          </div>
+        </div>
+        <div class="field" id="e_start_time_wrap">
+          <label>শুরুর সময় (শুধু লাইভ পরীক্ষার জন্য)</label>
+          <input type="datetime-local" id="e_start_time">
+        </div>
+
+        <div class="field">
+          <label>প্রশ্ন বাছাই করুন</label>
+          <div class="filters" style="margin-bottom:8px;">
+            <input type="text" id="e_q_subject" placeholder="বিষয় দিয়ে ফিল্টার">
+            <input type="number" id="e_q_grade" placeholder="গ্রেড দিয়ে ফিল্টার">
+            <button type="button" class="btn btn-ghost btn-small" id="e_q_filter_go">ফিল্টার করুন</button>
+          </div>
+          <div id="examQuestionPicker" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--paper);">
+            <div class="empty-state">লোড হচ্ছে...</div>
+          </div>
+          <div style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;">বাছাইকৃত প্রশ্ন: <span id="e_selected_count">0</span> টি</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="examBtn" style="width:auto; padding-left:26px; padding-right:26px; margin-top:10px;">পরীক্ষা তৈরি করুন</button>
+      </form>
+
+      <h2 style="margin-top:32px;">সব পরীক্ষা</h2>
+      <div id="examListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -321,8 +386,14 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'list') loadQuestions();
     if (btn.dataset.tab === 'ministries') loadMinistries();
+    if (btn.dataset.tab === 'exams') { loadExamMinistries(); loadExamQuestionPicker(); loadExamsList(); }
   });
 });
+
+document.getElementById('e_type').addEventListener('change', (e) => {
+  document.getElementById('e_start_time_wrap').style.display = e.target.value === 'live' ? 'block' : 'none';
+});
+document.getElementById('e_start_time_wrap').style.display = 'none';
 
 async function loadMinistries(){
   try{
@@ -351,6 +422,133 @@ document.getElementById('addMinistryBtn').addEventListener('click', async () => 
     loadMinistries();
   } catch(err){ alert(err.message); }
 });
+
+// ---- Exams ----
+let examSelectedQuestions = new Set();
+
+async function loadExamMinistries(){
+  try{
+    const list = await api('/api/questions/ministries/list');
+    const sel = document.getElementById('e_ministry');
+    sel.innerHTML = '<option value="">— নির্বাচন করুন —</option>' +
+      list.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  } catch(err){ /* silent */ }
+}
+
+async function loadExamQuestionPicker(){
+  const box = document.getElementById('examQuestionPicker');
+  box.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const params = new URLSearchParams();
+    const subject = document.getElementById('e_q_subject').value.trim();
+    const grade = document.getElementById('e_q_grade').value.trim();
+    if (subject) params.set('subject', subject);
+    if (grade) params.set('grade', grade);
+    const list = await api('/api/questions?' + params.toString());
+    if (!list.length){
+      box.innerHTML = '<div class="empty-state">কোনো প্রশ্ন পাওয়া যায়নি</div>';
+      return;
+    }
+    box.innerHTML = list.map(q => `
+      <label style="display:flex; gap:8px; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${q.id}" ${examSelectedQuestions.has(q.id) ? 'checked' : ''} onchange="toggleExamQuestion(${q.id}, this.checked)" style="margin-top:3px;">
+        <span>${escapeHtml(q.question_text)} <span class="pill">${escapeHtml(q.subject)}</span></span>
+      </label>
+    `).join('');
+  } catch(err){
+    box.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+document.getElementById('e_q_filter_go').addEventListener('click', loadExamQuestionPicker);
+
+function toggleExamQuestion(id, checked){
+  if (checked) examSelectedQuestions.add(id); else examSelectedQuestions.delete(id);
+  document.getElementById('e_selected_count').textContent = examSelectedQuestions.size;
+}
+
+document.getElementById('examForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('examErr');
+  const okBox = document.getElementById('examOk');
+  errBox.style.display = 'none'; okBox.style.display = 'none';
+  const btn = document.getElementById('examBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const type = document.getElementById('e_type').value;
+    const payload = {
+      title: document.getElementById('e_title').value.trim(),
+      type,
+      ministry_id: document.getElementById('e_ministry').value || null,
+      post_name: document.getElementById('e_post_name').value.trim() || null,
+      grade: document.getElementById('e_grade').value || null,
+      duration_minutes: document.getElementById('e_duration').value || 60,
+      start_time: type === 'live' ? document.getElementById('e_start_time').value : null,
+      question_ids: Array.from(examSelectedQuestions)
+    };
+    await api('/api/exams', { method: 'POST', body: JSON.stringify(payload) });
+    okBox.textContent = 'পরীক্ষা তৈরি হয়েছে ✓';
+    okBox.style.display = 'block';
+    document.getElementById('examForm').reset();
+    examSelectedQuestions.clear();
+    document.getElementById('e_selected_count').textContent = '0';
+    document.getElementById('e_start_time_wrap').style.display = 'none';
+    loadExamQuestionPicker();
+    loadExamsList();
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'পরীক্ষা তৈরি করুন';
+  }
+});
+
+async function loadExamsList(){
+  const wrap = document.getElementById('examListWrap');
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const list = await api('/api/exams/admin/list');
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state">এখনো কোনো পরীক্ষা তৈরি হয়নি</div>';
+      return;
+    }
+    wrap.innerHTML = `<table>
+      <tr><th>টাইটেল</th><th>টাইপ</th><th>প্রশ্ন</th><th>স্ট্যাটাস</th><th>সিরিয়াল</th><th></th></tr>
+      ${list.map(ex => `
+        <tr>
+          <td class="qtext">${escapeHtml(ex.title)}</td>
+          <td><span class="pill">${ex.type === 'live' ? 'লাইভ' : 'মডেল'}</span></td>
+          <td>${ex.question_count}</td>
+          <td>
+            <select onchange="updateExamStatus(${ex.id}, this.value)" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); font-size:12.5px;">
+              <option value="scheduled" ${ex.status === 'scheduled' ? 'selected' : ''}>নির্ধারিত</option>
+              <option value="active" ${ex.status === 'active' ? 'selected' : ''}>চলমান</option>
+              <option value="closed" ${ex.status === 'closed' ? 'selected' : ''}>বন্ধ</option>
+            </select>
+          </td>
+          <td class="mono" style="font-size:12px;">${ex.serial || '-'}</td>
+          <td class="row-actions"><button class="btn btn-ghost btn-small danger" onclick="deleteExam(${ex.id})">মুছুন</button></td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function updateExamStatus(id, status){
+  try{
+    await api('/api/exams/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status }) });
+    loadExamsList();
+  } catch(err){ alert(err.message); }
+}
+
+async function deleteExam(id){
+  if (!confirm('আপনি কি নিশ্চিত এই পরীক্ষাটি মুছে ফেলতে চান?')) return;
+  try{
+    await api('/api/exams/' + id, { method: 'DELETE' });
+    loadExamsList();
+  } catch(err){ alert(err.message); }
+}
 
 document.getElementById('addForm').addEventListener('submit', async (e) => {
   e.preventDefault();
