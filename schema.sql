@@ -78,6 +78,20 @@ ALTER TABLE questions ADD COLUMN IF NOT EXISTS explanation TEXT;
 CREATE INDEX IF NOT EXISTS idx_exams_ministry_post ON exams(ministry_id, post_name, grade);
 CREATE INDEX IF NOT EXISTS idx_exams_subject ON exams(subject);
 
+-- Negative marking: per-wrong-answer deduction for an exam (e.g. 0.25). 0 = no negative marking.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS negative_marks NUMERIC(4,2) NOT NULL DEFAULT 0;
+ALTER TABLE results ADD COLUMN IF NOT EXISTS raw_marks NUMERIC(8,2);
+
+-- Bookmarked questions, so logged-in users can save questions for later revision.
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, question_id)
+);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_questions_ministry ON questions(ministry_id);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_exam ON results(exam_id);
