@@ -142,6 +142,16 @@
   .hero-ticket .punch.left{left:-8px;}
   .hero-ticket .punch.right{right:-8px;}
 
+  .daily-quiz-card{
+    display:flex; align-items:center; gap:12px; margin-top:16px;
+    background:var(--gold); color:#fff; border-radius:14px; padding:14px 16px; cursor:pointer;
+  }
+  .dq-icon{font-size:22px;}
+  .dq-text{flex:1;}
+  .dq-title{font-weight:700; font-size:14px;}
+  .dq-sub{font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px;}
+  .dq-arrow{font-size:18px;}
+
   /* ---------- Section headers ---------- */
   .sec-head{display:flex; align-items:baseline; justify-content:space-between; margin:26px 0 12px;}
   .sec-head h2{font-family:'Noto Serif Bengali', serif; font-size:18px; color:var(--ink);}
@@ -527,6 +537,15 @@
         <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
         <button class="hero-cta" onclick="goScreen('live')">লাইভ পরীক্ষা দেখুন</button>
       </div>
+    </div>
+
+    <div class="daily-quiz-card" onclick="startDailyQuiz()">
+      <div class="dq-icon">🎯</div>
+      <div class="dq-text">
+        <div class="dq-title">আজকের কুইজ</div>
+        <div class="dq-sub">১০টি প্রশ্ন · ১৫ মিনিট · প্রতিদিন নতুন</div>
+      </div>
+      <div class="dq-arrow">→</div>
     </div>
 
     <div id="home-perf-widget" style="display:none;">
@@ -935,6 +954,16 @@
       if(el){ el.classList.toggle('on', nowOn); el.textContent = nowOn ? '★' : '☆'; }
       refreshBookmarkTrigger();
     }catch(e){ alert('বুকমার্ক করা যায়নি: ' + e.message); }
+  }
+
+  async function reportQuestion(qid, ev){
+    if(ev) ev.stopPropagation();
+    const reason = prompt('প্রশ্নে কী সমস্যা মনে হচ্ছে? (যেমন: ভুল উত্তর, অস্পষ্ট প্রশ্ন) — ফাঁকা রেখে OK দিলেও চলবে');
+    if(reason === null) return; // cancelled
+    try{
+      await apiPost('/api/reports', {question_id: qid, reason}, true);
+      alert('ধন্যবাদ! রিপোর্টটি পাঠানো হয়েছে, আমরা দেখে নেব।');
+    }catch(e){ alert('রিপোর্ট পাঠানো যায়নি: ' + e.message); }
   }
 
   function openBookmarks(){
@@ -1358,6 +1387,17 @@
 
   // ---------- Name-entry sheet ----------
   let PENDING_EXAM_ID = null;
+  async function startDailyQuiz(){
+    try{
+      const exam = await apiGet('/api/exams/public/daily-quiz');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      alert(err.message || 'আজকের কুইজ লোড করা যায়নি');
+    }
+  }
+
   function openNameSheet(examId){
     const exam = ALL_EXAMS.find(e=>e.id===examId);
     if(USER_TOKEN && USER_INFO){
@@ -1472,6 +1512,7 @@
         <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
           <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span>
             <button class="bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)" title="বুকমার্ক">${bmOn ? '★' : '☆'}</button>
+            <button class="bm-star" onclick="reportQuestion(${q.id}, event)" title="প্রশ্নে সমস্যা রিপোর্ট করুন" style="font-size:14px;">⚠</button>
           </div>
           <div class="q-text">${q.question_text}</div>
           <div>${optsHtml}</div>
