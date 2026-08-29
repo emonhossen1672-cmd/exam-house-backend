@@ -390,6 +390,11 @@
     display:flex; align-items:center; gap:9px;
     font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:1px; margin-bottom:12px;
   }
+  .bm-star{
+    margin-left:auto; background:none; border:none; cursor:pointer; font-size:17px; line-height:1;
+    color:rgba(255,255,255,0.35); padding:2px 4px;
+  }
+  .bm-star.on{color:var(--gold);}
   .qnum{
     width:23px; height:23px; border-radius:50%; flex-shrink:0;
     background:rgba(255,255,255,0.1); color:#C7CEE0;
@@ -606,6 +611,14 @@
         🎯 <span id="revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
       </button>
 
+      <button class="revision-trigger" id="bookmark-trigger-btn" style="display:none; background:var(--gold);" onclick="openBookmarks()">
+        ⭐ <span id="bookmark-trigger-label">আমার বুকমার্ক</span>
+      </button>
+
+      <button class="revision-trigger" id="leaderboard-trigger-btn" style="background:var(--ink);" onclick="openLeaderboard()">
+        🏆 <span>সার্বিক র‍্যাংকিং দেখুন</span>
+      </button>
+
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
       <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
       <div id="subject-stats-list"></div>
@@ -711,6 +724,26 @@
     <div class="exam-body" id="revision-body" style="padding-bottom:40px;"></div>
   </div>
 
+  <!-- ============ OVERALL LEADERBOARD OVERLAY ============ -->
+  <div class="exam-overlay" id="leaderboard-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeLeaderboard()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">সার্বিক র‍্যাংকিং</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="leaderboard-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ MY BOOKMARKS OVERLAY ============ -->
+  <div class="exam-overlay" id="bookmark-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeBookmarks()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">আমার বুকমার্ক করা প্রশ্ন</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="bookmark-body" style="padding-bottom:40px;"></div>
+  </div>
+
   <!-- ============ ARCHIVE OVERLAY ============ -->
   <div class="archive-overlay" id="archive-overlay">
     <div class="archive-top">
@@ -746,6 +779,15 @@
   }
   async function apiGetAuth(path){
     const r = await fetch(API_BASE + path, {headers: USER_TOKEN ? {'Authorization':'Bearer '+USER_TOKEN} : {}});
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+    return data;
+  }
+  // generic authenticated request (POST/DELETE/etc) — used for bookmark toggling
+  async function apiAuth(path, method, body){
+    const headers = {'Content-Type':'application/json'};
+    if(USER_TOKEN) headers['Authorization'] = 'Bearer ' + USER_TOKEN;
+    const r = await fetch(API_BASE + path, {method, headers, body: body ? JSON.stringify(body) : undefined});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
     return data;
@@ -795,6 +837,8 @@
   function doUserLogout(){
     localStorage.removeItem('eh_user_token');
     USER_TOKEN = null; USER_INFO = null; SUBJ_STATS_CACHE = null; WRONG_QUESTIONS_CACHE = null;
+    BOOKMARK_IDS = new Set();
+    document.getElementById('bookmark-trigger-btn').style.display = 'none';
     document.getElementById('auth-guest').style.display = 'block';
     document.getElementById('auth-profile').style.display = 'none';
     document.getElementById('home-perf-widget').style.display = 'none';
@@ -844,10 +888,134 @@
       ], true);
 
       refreshRevisionTrigger();
+      refreshBookmarkTrigger();
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
     }
+  }
+
+  // ---------- Bookmarks (save a question for later revision) ----------
+  let BOOKMARK_IDS = new Set();
+
+  async function loadBookmarkIds(){
+    if(!USER_TOKEN){ BOOKMARK_IDS = new Set(); return; }
+    try{
+      const ids = await apiGetAuth('/api/bookmarks/ids');
+      BOOKMARK_IDS = new Set(ids);
+    }catch(e){ BOOKMARK_IDS = new Set(); }
+  }
+
+  async function refreshBookmarkTrigger(){
+    const btn = document.getElementById('bookmark-trigger-btn');
+    if(!USER_TOKEN){ btn.style.display = 'none'; return; }
+    await loadBookmarkIds();
+    const count = BOOKMARK_IDS.size;
+    if(count){
+      btn.style.display = 'flex';
+      document.getElementById('bookmark-trigger-label').textContent = `আমার বুকমার্ক (${toBnDigits(count)}টি)`;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  async function toggleBookmark(qid, ev){
+    if(ev) ev.stopPropagation();
+    if(!USER_TOKEN){ alert('প্রশ্ন বুকমার্ক করতে আগে লগইন করুন'); return; }
+    const el = document.getElementById('bm-'+qid);
+    const nowOn = !BOOKMARK_IDS.has(qid);
+    try{
+      if(nowOn){
+        await apiAuth('/api/bookmarks', 'POST', {question_id: qid});
+        BOOKMARK_IDS.add(qid);
+      } else {
+        await apiAuth('/api/bookmarks/'+qid, 'DELETE');
+        BOOKMARK_IDS.delete(qid);
+      }
+      if(el){ el.classList.toggle('on', nowOn); el.textContent = nowOn ? '★' : '☆'; }
+      refreshBookmarkTrigger();
+    }catch(e){ alert('বুকমার্ক করা যায়নি: ' + e.message); }
+  }
+
+  function openBookmarks(){
+    document.getElementById('bookmark-overlay').classList.add('active');
+    loadBookmarksList();
+  }
+
+  async function loadBookmarksList(){
+    const body = document.getElementById('bookmark-body');
+    body.innerHTML = '<p style="padding:20px 18px; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const list = await apiGetAuth('/api/bookmarks');
+      if(!list.length){
+        body.innerHTML = '<p style="padding:20px 18px; color:var(--ink-faint,#888);">এখনো কোনো প্রশ্ন বুকমার্ক করা হয়নি। পরীক্ষা দেওয়ার সময় ⭐ আইকনে চেপে প্রশ্ন বুকমার্ক করতে পারবেন।</p>';
+        return;
+      }
+      const optKeys = ['a','b','c','d'];
+      body.innerHTML = list.map((q,i)=>{
+        const opts = optKeys.map(k=>{
+          const letter = k.toUpperCase();
+          const cls = letter === q.correct_option ? 'is-correct' : '';
+          return `<div class="rev-opt ${cls}">${letter}. ${q['option_'+k]}</div>`;
+        }).join('');
+        const explain = q.explanation ? `<div class="rev-explain">💡 ${q.explanation}</div>` : '';
+        return `<div class="rev-q">
+          <div class="rev-q-top">
+            <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
+            <button class="bm-star on" onclick="removeBookmarkFromList(${q.id})" title="বুকমার্ক সরান">★</button>
+          </div>
+          <div class="rev-q-text">${q.question_text}</div>
+          ${opts}
+          ${explain}
+        </div>`;
+      }).join('');
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 18px; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
+  async function removeBookmarkFromList(qid){
+    try{
+      await apiAuth('/api/bookmarks/'+qid, 'DELETE');
+      BOOKMARK_IDS.delete(qid);
+      loadBookmarksList();
+      refreshBookmarkTrigger();
+    }catch(e){ alert('সরানো যায়নি: ' + e.message); }
+  }
+
+  function closeBookmarks(){
+    document.getElementById('bookmark-overlay').classList.remove('active');
+  }
+
+  // ---------- Overall (site-wide) leaderboard ----------
+  function openLeaderboard(){
+    document.getElementById('leaderboard-overlay').classList.add('active');
+    loadOverallLeaderboard();
+  }
+
+  async function loadOverallLeaderboard(){
+    const body = document.getElementById('leaderboard-body');
+    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const rows = await apiGet('/api/results/leaderboard/overall');
+      if(!rows.length){
+        body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">এখনো কোনো র‍্যাংকিং তৈরি হয়নি — লগইন করে পরীক্ষা দিলে এখানে দেখাবে।</p>';
+        return;
+      }
+      const myId = USER_INFO ? USER_INFO.id : null;
+      body.innerHTML = rows.map(r=>`
+        <div class="merit-item ${myId && r.user_id===myId ? 'me' : ''}">
+          <div class="merit-rank">${toBnDigits(r.rank)}</div>
+          <div class="merit-name">${r.name}<br><span style="font-size:10.5px; color:var(--ink-faint,#888);">${toBnDigits(r.exams_taken)}টি পরীক্ষা · গড় ${r.avg_score}%</span></div>
+          <div class="merit-score">${r.total_score}</div>
+        </div>`).join('');
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
+  function closeLeaderboard(){
+    document.getElementById('leaderboard-overlay').classList.remove('active');
   }
 
   let WRONG_QUESTIONS_CACHE = null;
@@ -1270,6 +1438,7 @@
       }
 
       document.getElementById('exam-overlay').classList.add('active');
+      if(USER_TOKEN) await loadBookmarkIds();
       renderAllQuestions();
       clearInterval(timerHandle);
       timerHandle = setInterval(tick, 1000);
@@ -1298,9 +1467,12 @@
         <div class="opt${answers[q.id]===L ? ' selected' : ''}" onclick="selectAnswer(${q.id},'${L}')">
           <span class="bullet">${bnLetters[i]}</span><span>${optTexts[i]}</span>
         </div>`).join('');
+      const bmOn = BOOKMARK_IDS.has(q.id);
       return `
         <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
-          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span></div>
+          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span>
+            <button class="bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)" title="বুকমার্ক">${bmOn ? '★' : '☆'}</button>
+          </div>
           <div class="q-text">${q.question_text}</div>
           <div>${optsHtml}</div>
         </div>`;
