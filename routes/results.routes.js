@@ -121,6 +121,25 @@ router.get('/me/subject-stats', requireUser, async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/results/me/wrong-questions — every question this user has ever
+// answered incorrectly (deduped, most recent attempt wins), for a revision quiz.
+router.get('/me/wrong-questions', requireUser, async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT DISTINCT ON (q.id)
+      q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+      q.correct_option, q.explanation, r.submitted_at
+    FROM results r
+    JOIN exam_questions eq ON eq.exam_id = r.exam_id
+    JOIN questions q ON q.id = eq.question_id
+    WHERE r.user_id = $1
+      AND r.answers->>(eq.question_id::text) IS NOT NULL
+      AND UPPER(r.answers->>(eq.question_id::text)) != q.correct_option
+    ORDER BY q.id, r.submitted_at DESC
+    LIMIT 100
+  `, [req.user.id]);
+  res.json(rows);
+});
+
 // GET /api/results/:id/review — per-question breakdown (with explanations) for
 // a specific past result, so the student can review it again later.
 router.get('/:id/review', requireUser, async (req, res) => {
