@@ -205,6 +205,9 @@
 
   /* ---------- Model test drill-down (ministry / post) ---------- */
   .model-back{background:none; border:none; color:var(--seal); font-size:12.5px; font-weight:700; cursor:pointer; padding:0 0 10px; font-family:'Noto Sans Bengali'; display:flex; align-items:center; gap:4px;}
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .mode-btn{ flex:1; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:9px 8px; font-size:12.5px; font-weight:600; color:var(--ink-soft); font-family:'Noto Sans Bengali'; cursor:pointer; }
+  .mode-btn.active{ background:var(--seal); border-color:var(--seal); color:#fff; }
   .group-card{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     background:var(--card); border:1px solid var(--line); border-radius:14px;
@@ -484,6 +487,10 @@
   <!-- ============ MODEL TEST SCREEN ============ -->
   <div class="screen" id="screen-model">
     <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
+    <div class="mode-toggle" id="model-mode-toggle">
+      <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')">মন্ত্রণালয় অনুযায়ী</button>
+      <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')">বিষয়ভিত্তিক মডেল টেস্ট</button>
+    </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
     <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
     <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
@@ -748,7 +755,20 @@
     return map;
   }
 
+  let MODEL_MODE = 'ministry';
+
+  function setModelMode(mode){
+    MODEL_MODE = mode;
+    document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
+    document.getElementById('mode-btn-subject').classList.toggle('active', mode==='subject');
+    if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
+    else{ SUBJECT_NAV = {level:'subjects'}; }
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
   function renderModelScreen(){
+    if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
     const model = ALL_EXAMS.filter(e=>e.type==='model');
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -835,8 +855,66 @@
     window.scrollTo(0,0);
   }
   function modelGoBack(){
+    if(MODEL_MODE === 'subject'){
+      if(SUBJECT_NAV.level === 'exams'){ SUBJECT_NAV = {level:'subjects'}; }
+      renderModelScreen();
+      window.scrollTo(0,0);
+      return;
+    }
     if(MODEL_NAV.level === 'exams'){ MODEL_NAV.level='posts'; MODEL_NAV.post=null; MODEL_NAV.grade=null; }
     else if(MODEL_NAV.level === 'posts'){ MODEL_NAV = {level:'ministries'}; }
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  let SUBJECT_NAV = {level:'subjects'};
+
+  function renderSubjectModelScreen(){
+    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject);
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+
+    if(!model.length){
+      backBtn.style.display='none';
+      heading.textContent = 'বিষয়ভিত্তিক মডেল টেস্ট';
+      subtext.textContent = 'বিষয় বেছে নিন';
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো বিষয়ভিত্তিক মডেল টেস্ট যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    if(SUBJECT_NAV.level === 'subjects'){
+      backBtn.style.display='none';
+      heading.textContent = 'বিষয়ভিত্তিক মডেল টেস্ট';
+      subtext.textContent = 'বিষয় বেছে নিন';
+      const groups = groupBy(model, e=>e.subject);
+      listEl.innerHTML = [...groups.entries()].map(([subject, exams])=>`
+        <div class="group-card" onclick='subjectPick(${JSON.stringify(subject)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">📘</div>
+            <div>
+              <div class="gc-name">${subject}</div>
+              <div class="gc-meta">${toBnDigits(exams.length)}টি মডেল টেস্ট</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`).join('');
+      return;
+    }
+
+    if(SUBJECT_NAV.level === 'exams'){
+      backBtn.style.display='flex';
+      heading.textContent = SUBJECT_NAV.subject;
+      subtext.textContent = 'বিষয়ভিত্তিক মডেল টেস্ট';
+      const exams = model.filter(e=>e.subject===SUBJECT_NAV.subject);
+      renderList('model-list', exams, 'এই বিষয়ে কোনো মডেল টেস্ট নেই।');
+      return;
+    }
+  }
+
+  function subjectPick(subject){
+    SUBJECT_NAV = {level:'exams', subject};
     renderModelScreen();
     window.scrollTo(0,0);
   }
