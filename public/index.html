@@ -272,6 +272,10 @@
             <input type="text" id="e_post_name">
           </div>
         </div>
+        <div class="field" id="e_subject_wrap">
+          <label>বিষয়ভিত্তিক মডেল টেস্ট (ঐচ্ছিক)</label>
+          <input type="text" id="e_subject" placeholder="যেমন: বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান — পূরণ করলে এটি বিষয়ভিত্তিক মডেল টেস্ট হিসেবে দেখাবে">
+        </div>
         <div class="grid-2">
           <div class="field">
             <label>গ্রেড (ঐচ্ছিক)</label>
@@ -392,6 +396,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 document.getElementById('e_type').addEventListener('change', (e) => {
   document.getElementById('e_start_time_wrap').style.display = e.target.value === 'live' ? 'block' : 'none';
+  document.getElementById('e_subject_wrap').style.display = e.target.value === 'model' ? 'block' : 'none';
 });
 document.getElementById('e_start_time_wrap').style.display = 'none';
 
@@ -480,6 +485,7 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
       type,
       ministry_id: document.getElementById('e_ministry').value || null,
       post_name: document.getElementById('e_post_name').value.trim() || null,
+      subject: document.getElementById('e_subject').value.trim() || null,
       grade: document.getElementById('e_grade').value || null,
       duration_minutes: document.getElementById('e_duration').value || 60,
       start_time: type === 'live' ? document.getElementById('e_start_time').value : null,
@@ -492,6 +498,7 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
     examSelectedQuestions.clear();
     document.getElementById('e_selected_count').textContent = '0';
     document.getElementById('e_start_time_wrap').style.display = 'none';
+    document.getElementById('e_subject_wrap').style.display = 'block';
     loadExamQuestionPicker();
     loadExamsList();
   } catch(err){
@@ -512,11 +519,12 @@ async function loadExamsList(){
       return;
     }
     wrap.innerHTML = `<table>
-      <tr><th>টাইটেল</th><th>টাইপ</th><th>প্রশ্ন</th><th>স্ট্যাটাস</th><th>সিরিয়াল</th><th></th></tr>
+      <tr><th>টাইটেল</th><th>টাইপ</th><th>বিষয়</th><th>প্রশ্ন</th><th>স্ট্যাটাস</th><th>সিরিয়াল</th><th></th></tr>
       ${list.map(ex => `
         <tr>
           <td class="qtext">${escapeHtml(ex.title)}</td>
           <td><span class="pill">${ex.type === 'live' ? 'লাইভ' : 'মডেল'}</span></td>
+          <td>${ex.subject ? escapeHtml(ex.subject) : '-'}</td>
           <td>${ex.question_count}</td>
           <td>
             <select onchange="updateExamStatus(${ex.id}, this.value)" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); font-size:12.5px;">
