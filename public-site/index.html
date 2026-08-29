@@ -771,7 +771,7 @@
       listEl.innerHTML = [...groups.entries()].map(([name, exams])=>{
         const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
         return `
-          <div class="group-card" onclick="modelPickMinistry(${JSON.stringify(name)})">
+          <div class="group-card" onclick='modelPickMinistry(${JSON.stringify(name)})'>
             <div class="gc-left">
               <div class="gc-ic ministry">🏛️</div>
               <div>
@@ -794,7 +794,7 @@
       listEl.innerHTML = [...groups.entries()].map(([key, exams])=>{
         const [postName, grade] = key.split('|');
         return `
-          <div class="group-card" onclick="modelPickPost(${JSON.stringify(postName)},${JSON.stringify(grade)})">
+          <div class="group-card" onclick='modelPickPost(${JSON.stringify(postName)},${JSON.stringify(grade)})'>
             <div class="gc-left">
               <div class="gc-ic post">📋</div>
               <div>
