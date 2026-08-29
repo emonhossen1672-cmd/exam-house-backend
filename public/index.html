@@ -189,6 +189,10 @@
           <label>প্রশ্ন</label>
           <textarea id="q_text" rows="3" required></textarea>
         </div>
+        <div class="field">
+          <label>ব্যাখ্যা (ঐচ্ছিক)</label>
+          <textarea id="q_explanation" rows="2" placeholder="উত্তর কেন সঠিক তার সংক্ষিপ্ত ব্যাখ্যা — পরীক্ষা শেষে শিক্ষার্থীকে দেখানো হবে"></textarea>
+        </div>
         <div class="grid-2">
           <div class="field"><label>অপশন A</label><input type="text" id="q_a" required></div>
           <div class="field"><label>অপশন B</label><input type="text" id="q_b" required></div>
@@ -211,7 +215,7 @@
 
     <div class="panel" id="panel-bulk">
       <h2>CSV / Excel থেকে বাল্ক আপলোড</h2>
-      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D)</div>
+      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক)</div>
       <div class="err-box" id="bulkErr"></div>
       <div class="drop-zone">
         <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls">
@@ -571,6 +575,7 @@ document.getElementById('addForm').addEventListener('submit', async (e) => {
       grade: document.getElementById('q_grade').value || null,
       subject: document.getElementById('q_subject').value.trim(),
       question_text: document.getElementById('q_text').value.trim(),
+      explanation: document.getElementById('q_explanation').value.trim() || null,
       option_a: document.getElementById('q_a').value.trim(),
       option_b: document.getElementById('q_b').value.trim(),
       option_c: document.getElementById('q_c').value.trim(),
