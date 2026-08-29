@@ -26,26 +26,26 @@ router.get('/', requireAdmin, async (req, res) => {
 
 // POST /api/questions  — add a single question
 router.post('/', requireAdmin, async (req, res) => {
-  const { ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option } = req.body;
+  const { ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
   if (!subject || !question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
     return res.status(400).json({ error: 'সব ঘর পূরণ করুন' });
   }
   const { rows } = await pool.query(
-    `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-    [ministry_id || null, grade || null, subject, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase()]
+    `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [ministry_id || null, grade || null, subject, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
   );
   res.status(201).json(rows[0]);
 });
 
 // PUT /api/questions/:id — edit a question
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option } = req.body;
+  const { ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
   const { rows } = await pool.query(
     `UPDATE questions SET ministry_id=$1, grade=$2, subject=$3, question_text=$4,
-     option_a=$5, option_b=$6, option_c=$7, option_d=$8, correct_option=$9
-     WHERE id=$10 RETURNING *`,
-    [ministry_id || null, grade || null, subject, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), req.params.id]
+     option_a=$5, option_b=$6, option_c=$7, option_d=$8, correct_option=$9, explanation=$10
+     WHERE id=$11 RETURNING *`,
+    [ministry_id || null, grade || null, subject, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
   res.json(rows[0]);
