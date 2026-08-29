@@ -203,6 +203,43 @@
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
   .loading-note{text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:13px;}
 
+  /* ---------- Auth (login/register) & Profile ---------- */
+  .auth-label{font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin:14px 0 6px;}
+  .auth-input{
+    width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:11px;
+    font-family:inherit; font-size:14px; background:var(--card);
+  }
+  .auth-err{color:var(--seal); font-size:12px; margin-top:8px; min-height:14px;}
+  .auth-btn{
+    width:100%; background:var(--seal); color:#fff; border:none; padding:13px;
+    border-radius:11px; font-weight:600; font-size:14.5px; cursor:pointer; margin-top:16px; font-family:'Noto Sans Bengali';
+  }
+  .auth-switch{text-align:center; font-size:12.5px; color:var(--ink-faint); margin-top:16px;}
+  .auth-switch a{color:var(--seal); font-weight:600; cursor:pointer;}
+  .profile-card{
+    display:flex; align-items:center; gap:14px;
+    background:var(--navy-deep); border-radius:18px; padding:18px 16px; color:#fff;
+  }
+  .profile-avatar{
+    width:48px; height:48px; border-radius:50%; background:var(--seal);
+    display:flex; align-items:center; justify-content:center; font-family:'Noto Serif Bengali',serif;
+    font-size:20px; flex-shrink:0;
+  }
+  .profile-name{font-family:'Noto Serif Bengali',serif; font-size:16px;}
+  .profile-phone{font-family:'Space Mono',monospace; font-size:11.5px; color:#9AA4BE; margin-top:2px;}
+  .profile-logout{
+    margin-left:auto; background:rgba(255,255,255,0.1); color:#fff; border:none;
+    padding:8px 12px; border-radius:9px; font-size:11.5px; cursor:pointer; flex-shrink:0; font-family:'Noto Sans Bengali';
+  }
+  .ph-item{
+    background:var(--card); border:1px solid var(--line); border-radius:13px;
+    padding:13px 14px; margin-bottom:9px;
+  }
+  .ph-item .top{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
+  .ph-item .title{font-size:13.5px; color:var(--ink); font-weight:600;}
+  .ph-item .score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700; flex-shrink:0;}
+  .ph-item .meta{font-size:11px; color:var(--ink-faint); margin-top:5px;}
+
   /* ---------- Bottom nav ---------- */
   .bottom-nav{
     position:fixed; bottom:0; left:50%; transform:translateX(-50%);
@@ -413,12 +450,49 @@
     <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
-  <!-- ============ RESULT (history) SCREEN ============ -->
+  <!-- ============ PROFILE / LOGIN SCREEN ============ -->
   <div class="screen" id="screen-history">
-    <div class="sec-head" style="margin-top:4px;"><h2>আমার ফলাফল</h2></div>
-    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">এই সেশনে যে পরীক্ষা দিয়েছেন তার ফলাফল এখানে দেখাবে।</p>
-    <div id="history-empty" class="empty-note">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
-    <div id="history-list"></div>
+    <div id="auth-guest">
+      <div class="sec-head" style="margin-top:4px;"><h2 id="auth-heading">লগইন করুন</h2></div>
+      <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">লগইন করলে আপনার সব পরীক্ষার ফলাফল প্রোফাইলে স্থায়ীভাবে জমা থাকবে।</p>
+
+      <div id="login-form">
+        <label class="auth-label">মোবাইল নম্বর</label>
+        <input class="auth-input" id="li-phone" placeholder="01XXXXXXXXX">
+        <label class="auth-label">পাসওয়ার্ড</label>
+        <input class="auth-input" id="li-pass" type="password" placeholder="পাসওয়ার্ড">
+        <div class="auth-err" id="login-err"></div>
+        <button class="auth-btn" onclick="doUserLogin()">লগইন করুন</button>
+        <p class="auth-switch">অ্যাকাউন্ট নেই? <a onclick="showAuthForm('register')">রেজিস্ট্রেশন করুন</a></p>
+      </div>
+
+      <div id="register-form" style="display:none;">
+        <label class="auth-label">আপনার নাম</label>
+        <input class="auth-input" id="rg-name" placeholder="যেমনঃ রাকিব হাসান">
+        <label class="auth-label">মোবাইল নম্বর</label>
+        <input class="auth-input" id="rg-phone" placeholder="01XXXXXXXXX">
+        <label class="auth-label">পাসওয়ার্ড</label>
+        <input class="auth-input" id="rg-pass" type="password" placeholder="কমপক্ষে ৬ অক্ষর">
+        <div class="auth-err" id="register-err"></div>
+        <button class="auth-btn" onclick="doRegister()">রেজিস্ট্রেশন করুন</button>
+        <p class="auth-switch">আগে থেকেই অ্যাকাউন্ট আছে? <a onclick="showAuthForm('login')">লগইন করুন</a></p>
+      </div>
+    </div>
+
+    <div id="auth-profile" style="display:none;">
+      <div class="profile-card">
+        <div class="profile-avatar" id="profile-initial">এ</div>
+        <div>
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-phone" id="profile-phone">—</div>
+        </div>
+        <button class="profile-logout" onclick="doUserLogout()">লগআউট</button>
+      </div>
+
+      <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার ফলাফল</h2></div>
+      <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
+      <div id="profile-history-list"></div>
+    </div>
   </div>
 
   <!-- ============ BOTTOM NAV ============ -->
@@ -433,7 +507,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>মডেল টেস্ট</span>
     </button>
     <button class="nav-item" data-nav="history" onclick="goScreen('history')">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg><span>ফলাফল</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="8" r="4"/></svg><span id="nav-profile-label">প্রোফাইল</span>
     </button>
   </div>
 
@@ -516,11 +590,100 @@
     if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
     return data;
   }
-  async function apiPost(path, body){
-    const r = await fetch(API_BASE + path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  async function apiPost(path, body, useAuth){
+    const headers = {'Content-Type':'application/json'};
+    if(useAuth && USER_TOKEN) headers['Authorization'] = 'Bearer ' + USER_TOKEN;
+    const r = await fetch(API_BASE + path, {method:'POST', headers, body: JSON.stringify(body)});
     const data = await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
     return data;
+  }
+  async function apiGetAuth(path){
+    const r = await fetch(API_BASE + path, {headers: USER_TOKEN ? {'Authorization':'Bearer '+USER_TOKEN} : {}});
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+    return data;
+  }
+
+  // ---------- User auth state ----------
+  let USER_TOKEN = localStorage.getItem('eh_user_token') || null;
+  let USER_INFO = null;
+
+  function showAuthForm(which){
+    document.getElementById('login-form').style.display = which==='login' ? 'block' : 'none';
+    document.getElementById('register-form').style.display = which==='register' ? 'block' : 'none';
+    document.getElementById('auth-heading').textContent = which==='login' ? 'লগইন করুন' : 'রেজিস্ট্রেশন করুন';
+    document.getElementById('login-err').textContent = '';
+    document.getElementById('register-err').textContent = '';
+  }
+
+  async function doUserLogin(){
+    const err = document.getElementById('login-err');
+    err.textContent = '';
+    try{
+      const data = await apiPost('/api/auth/login', {
+        phone: document.getElementById('li-phone').value.trim(),
+        password: document.getElementById('li-pass').value
+      });
+      USER_TOKEN = data.token; USER_INFO = data.user;
+      localStorage.setItem('eh_user_token', USER_TOKEN);
+      renderProfile();
+    }catch(e){ err.textContent = e.message; }
+  }
+
+  async function doRegister(){
+    const err = document.getElementById('register-err');
+    err.textContent = '';
+    try{
+      const data = await apiPost('/api/auth/register', {
+        name: document.getElementById('rg-name').value.trim(),
+        phone: document.getElementById('rg-phone').value.trim(),
+        password: document.getElementById('rg-pass').value
+      });
+      USER_TOKEN = data.token; USER_INFO = data.user;
+      localStorage.setItem('eh_user_token', USER_TOKEN);
+      renderProfile();
+    }catch(e){ err.textContent = e.message; }
+  }
+
+  function doUserLogout(){
+    localStorage.removeItem('eh_user_token');
+    USER_TOKEN = null; USER_INFO = null;
+    document.getElementById('auth-guest').style.display = 'block';
+    document.getElementById('auth-profile').style.display = 'none';
+    showAuthForm('login');
+  }
+
+  async function renderProfile(){
+    if(!USER_TOKEN){
+      document.getElementById('auth-guest').style.display = 'block';
+      document.getElementById('auth-profile').style.display = 'none';
+      return;
+    }
+    try{
+      if(!USER_INFO) USER_INFO = await apiGetAuth('/api/auth/me');
+      document.getElementById('auth-guest').style.display = 'none';
+      document.getElementById('auth-profile').style.display = 'block';
+      document.getElementById('profile-name').textContent = USER_INFO.name;
+      document.getElementById('profile-phone').textContent = USER_INFO.phone;
+      document.getElementById('profile-initial').textContent = USER_INFO.name.trim()[0] || 'এ';
+
+      const history = await apiGetAuth('/api/results/me');
+      const empty = document.getElementById('profile-history-empty');
+      const list = document.getElementById('profile-history-list');
+      if(!history.length){ empty.style.display='block'; list.innerHTML=''; return; }
+      empty.style.display='none';
+      list.innerHTML = history.map(h=>{
+        const total = h.correct_count + h.wrong_count + h.skipped_count;
+        return `<div class="ph-item">
+          <div class="top"><span class="title">${h.exam_title}</span><span class="score">${h.score}%</span></div>
+          <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')}</div>
+        </div>`;
+      }).join('');
+    }catch(e){
+      // token expired/invalid — log out silently
+      doUserLogout();
+    }
   }
 
   // ---------- Navigation ----------
@@ -530,8 +693,10 @@
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const navMap = {home:0, live:1, model:2, history:3};
     document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
+    if(name === 'history') renderProfile();
     window.scrollTo(0,0);
   }
+  renderProfile();
 
   // ---------- Load exam lists from the real backend ----------
   let ALL_EXAMS = [];
@@ -624,6 +789,11 @@
   // ---------- Name-entry sheet ----------
   let PENDING_EXAM_ID = null;
   function openNameSheet(examId){
+    if(USER_TOKEN && USER_INFO){
+      // already logged in — skip the sheet, use their account name/phone directly
+      startExam(examId, USER_INFO.name, USER_INFO.phone);
+      return;
+    }
     PENDING_EXAM_ID = examId;
     document.getElementById('pname').value = '';
     document.getElementById('pphone').value = '';
@@ -765,9 +935,8 @@
         participant_name: participant.name,
         participant_phone: participant.phone || null,
         answers
-      });
+      }, true);
       showResult(result);
-      addHistory(CURRENT_EXAM.title, result);
     }catch(err){
       alert('জমা দেওয়া যায়নি: ' + err.message);
     }
@@ -800,26 +969,6 @@
   function closeResult(){
     document.getElementById('result-overlay').classList.remove('active');
     goScreen('history');
-  }
-
-  // ---------- Session history (in-memory) ----------
-  let historyItems = [];
-  function addHistory(title, result){
-    historyItems.unshift({title, result});
-    renderHistory();
-  }
-  function renderHistory(){
-    const list = document.getElementById('history-list');
-    const empty = document.getElementById('history-empty');
-    if(historyItems.length===0){ empty.style.display='block'; list.innerHTML=''; return; }
-    empty.style.display='none';
-    list.innerHTML = historyItems.map(h=>{
-      const total = h.result.correct_count + h.result.wrong_count + h.result.skipped_count;
-      return `<div class="ticket"><div class="ticket-top" style="width:100%;">
-        <div><div class="ticket-name">${h.title}</div>
-        <div class="ticket-meta">স্কোর: ${toBnDigits(h.result.correct_count)}/${toBnDigits(total)} (${h.result.score}%)</div></div>
-        </div></div>`;
-    }).join('');
   }
 </script>
 </body>
