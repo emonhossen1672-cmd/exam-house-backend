@@ -253,6 +253,19 @@
     margin-left:auto; background:rgba(255,255,255,0.1); color:#fff; border:none;
     padding:8px 12px; border-radius:9px; font-size:11.5px; cursor:pointer; flex-shrink:0; font-family:'Noto Sans Bengali';
   }
+  .streak-card{
+    display:flex; align-items:center; gap:12px;
+    background:linear-gradient(135deg,#FFF4E0 0%,var(--paper-deep) 100%);
+    border:1px solid var(--gold, #C9973B); border-radius:16px; padding:14px 16px; margin-top:12px;
+  }
+  .streak-flame{font-size:26px; line-height:1;}
+  .streak-num{font-size:14px; font-weight:700; color:var(--ink);}
+  .streak-num b{font-family:'Space Mono',monospace; font-size:16px;}
+  .streak-best{font-size:11px; color:var(--ink-faint); margin-top:2px;}
+  .home-streak-pill{
+    display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12);
+    color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-top:10px;
+  }
   .ph-item{
     background:var(--card); border:1px solid var(--line); border-radius:13px;
     padding:13px 14px; margin-bottom:9px;
@@ -496,6 +509,7 @@
       <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
       <div class="hero-title">যে প্রশ্ন একবার এসেছে,<br>সে বারবার ফিরে আসে</div>
       <div class="hero-sub">বিভিন্ন মন্ত্রণালয় ও অধিদপ্তরে ইতিপূর্বে আসা গ্রেড ১১–২০ নিয়োগ পরীক্ষার প্রশ্নের ভিত্তিতে লাইভ পরীক্ষা ও মডেল টেস্ট দিন।</div>
+      <div class="home-streak-pill" id="home-streak-pill" style="display:none;">🔥 <span id="home-streak-num">০</span> দিনের স্ট্রিক</div>
       <div class="hero-stub">
         <div class="hero-stat"><b id="stat-total">—</b><span>মোট পরীক্ষা</span></div>
         <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
@@ -568,6 +582,14 @@
           <div class="profile-phone" id="profile-phone">—</div>
         </div>
         <button class="profile-logout" onclick="doUserLogout()">লগআউট</button>
+      </div>
+
+      <div class="streak-card" id="profile-streak-card" style="display:none;">
+        <div class="streak-flame">🔥</div>
+        <div>
+          <div class="streak-num"><b id="profile-streak-num">০</b> দিনের স্ট্রিক</div>
+          <div class="streak-best">সর্বোচ্চ: <span id="profile-streak-best">০</span> দিন</div>
+        </div>
       </div>
 
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
@@ -752,6 +774,7 @@
     document.getElementById('auth-guest').style.display = 'block';
     document.getElementById('auth-profile').style.display = 'none';
     document.getElementById('home-perf-widget').style.display = 'none';
+    document.getElementById('home-streak-pill').style.display = 'none';
     showAuthForm('login');
   }
 
@@ -768,6 +791,7 @@
       document.getElementById('profile-name').textContent = USER_INFO.name;
       document.getElementById('profile-phone').textContent = USER_INFO.phone;
       document.getElementById('profile-initial').textContent = USER_INFO.name.trim()[0] || 'এ';
+      applyStreakDisplay(USER_INFO.current_streak || 0, USER_INFO.longest_streak || 0);
 
       const history = await apiGetAuth('/api/results/me');
       const empty = document.getElementById('profile-history-empty');
@@ -795,6 +819,24 @@
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
+    }
+  }
+
+  function applyStreakDisplay(current, longest){
+    const card = document.getElementById('profile-streak-card');
+    if(current > 0){
+      card.style.display = 'flex';
+      document.getElementById('profile-streak-num').textContent = toBnDigits(current);
+      document.getElementById('profile-streak-best').textContent = toBnDigits(longest);
+    } else {
+      card.style.display = 'none';
+    }
+    const pill = document.getElementById('home-streak-pill');
+    if(current > 0){
+      pill.style.display = 'inline-flex';
+      document.getElementById('home-streak-num').textContent = toBnDigits(current);
+    } else {
+      pill.style.display = 'none';
     }
   }
 
@@ -1297,6 +1339,12 @@
     }catch(e){
       document.getElementById('merit-list').innerHTML = '';
     }
+
+    if(result.streak){
+      if(USER_INFO){ USER_INFO.current_streak = result.streak.current_streak; USER_INFO.longest_streak = result.streak.longest_streak; }
+      applyStreakDisplay(result.streak.current_streak, result.streak.longest_streak);
+    }
+    SUBJ_STATS_CACHE = null; // stale after a new submission — refetch next time profile/home is viewed
 
     document.getElementById('result-overlay').classList.add('active');
   }
