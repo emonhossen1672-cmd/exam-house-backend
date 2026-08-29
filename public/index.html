@@ -284,7 +284,8 @@
 
   /* ---------- Exam overlay ---------- */
   .exam-overlay{
-    position:fixed; inset:0; z-index:100; background:var(--navy-deep);
+    position:fixed; inset:0; z-index:100;
+    background:linear-gradient(180deg,var(--navy-deep) 0%,#1B2540 100%);
     display:none; flex-direction:column;
     max-width:430px; margin:0 auto;
   }
@@ -299,38 +300,56 @@
     background:rgba(255,255,255,0.08); padding:6px 12px; border-radius:20px;
     display:flex; align-items:center; gap:6px;
   }
-  .exam-timer.warn{color:#FF9B8A; background:rgba(166,51,43,0.35);}
-  .exam-progress{padding:14px 18px 0; display:flex; gap:5px;}
-  .dot{flex:1; height:4px; border-radius:3px; background:rgba(255,255,255,0.14);}
-  .dot.done{background:var(--gold);}
-  .dot.now{background:#fff;}
+  .exam-timer.warn{color:#FF9B8A; background:rgba(166,51,43,0.35); animation:examPulse 1s infinite;}
+  @keyframes examPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 
-  .exam-body{flex:1; overflow-y:auto; padding:24px 20px 20px;}
-  .q-label{font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:1px; margin-bottom:10px;}
-  .q-text{font-family:'Noto Serif Bengali', serif; font-size:19px; color:#fff; line-height:1.55; margin-bottom:22px;}
+  .exam-progress-wrap{padding:12px 18px 0;}
+  .exam-progress-bar{height:7px; border-radius:5px; background:rgba(255,255,255,0.12); overflow:hidden;}
+  .exam-progress-fill{height:100%; border-radius:5px; width:0%; transition:width .25s ease;
+    background:linear-gradient(90deg,var(--seal) 0%, var(--gold) 55%, var(--success) 100%);}
+  .exam-progress-count{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--gold-soft); margin-top:7px; letter-spacing:0.4px;}
+
+  .exam-body{flex:1; overflow-y:auto; padding:16px 16px 110px;}
+  .qcard{
+    background:rgba(255,255,255,0.045); border:1.5px solid rgba(255,255,255,0.09);
+    border-radius:16px; padding:18px 16px; margin-bottom:14px; transition:border-color .2s ease, background .2s ease;
+  }
+  .qcard.answered{border-color:rgba(184,144,46,0.5); background:rgba(184,144,46,0.05);}
+  .q-label{
+    display:flex; align-items:center; gap:9px;
+    font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:1px; margin-bottom:12px;
+  }
+  .qnum{
+    width:23px; height:23px; border-radius:50%; flex-shrink:0;
+    background:rgba(255,255,255,0.1); color:#C7CEE0;
+    display:flex; align-items:center; justify-content:center; font-size:11px;
+    transition:all .2s ease;
+  }
+  .qcard.answered .qnum{background:var(--gold); color:var(--navy-deep);}
+  .q-text{font-family:'Noto Serif Bengali', serif; font-size:18px; color:#fff; line-height:1.55; margin-bottom:16px;}
   .opt{
     display:flex; align-items:center; gap:12px;
     background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12);
-    border-radius:12px; padding:13px 14px; margin-bottom:10px; cursor:pointer;
+    border-radius:12px; padding:13px 14px; margin-bottom:9px; cursor:pointer;
     color:#E4E8F2; font-size:14.5px; transition:all .15s ease;
   }
+  .opt:active{transform:scale(0.98);}
   .opt .bullet{
     width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.35);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
     font-family:'Space Mono',monospace; font-size:11px; color:#C7CEE0;
   }
-  .opt.selected{background:rgba(184,144,46,0.18); border-color:var(--gold);}
+  .opt.selected{background:rgba(184,144,46,0.2); border-color:var(--gold); box-shadow:0 0 0 1px rgba(184,144,46,0.35);}
   .opt.selected .bullet{background:var(--gold); border-color:var(--gold); color:var(--navy-deep);}
 
   .exam-bottom{
+    position:sticky; bottom:0;
     padding:14px 18px calc(14px + env(safe-area-inset-bottom));
-    border-top:1px solid rgba(255,255,255,0.1);
+    background:linear-gradient(0deg, var(--navy-deep) 55%, rgba(16,24,44,0));
     display:flex; gap:10px;
   }
-  .ebtn{flex:1; padding:13px; border-radius:11px; border:none; font-weight:600; font-size:14px; font-family:'Noto Sans Bengali'; cursor:pointer;}
-  .ebtn.ghost{background:rgba(255,255,255,0.08); color:#C7CEE0;}
-  .ebtn.primary{background:var(--seal); color:#fff;}
-  .ebtn.submit{background:var(--success); color:#fff;}
+  .ebtn{flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:14.5px; font-family:'Noto Sans Bengali'; cursor:pointer;}
+  .ebtn.submit{background:linear-gradient(135deg,var(--success) 0%,#3FA06A 100%); color:#fff; box-shadow:0 4px 14px rgba(47,122,79,0.4);}
   .ebtn:disabled{opacity:0.35;}
 
   /* ---------- Result overlay ---------- */
@@ -535,16 +554,13 @@
       <div class="exam-timer" id="exam-timer">⏱ --:--</div>
       <div style="width:20px;"></div>
     </div>
-    <div class="exam-progress" id="exam-progress"></div>
-    <div class="exam-body">
-      <div class="q-label" id="q-label">লোড হচ্ছে...</div>
-      <div class="q-text" id="q-text"></div>
-      <div id="q-options"></div>
+    <div class="exam-progress-wrap">
+      <div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill"></div></div>
+      <div class="exam-progress-count" id="exam-progress-count">০ / ০ উত্তর দেওয়া হয়েছে</div>
     </div>
+    <div class="exam-body" id="exam-body"></div>
     <div class="exam-bottom">
-      <button class="ebtn ghost" id="btn-prev" onclick="prevQ()">পূর্বের</button>
-      <button class="ebtn primary" id="btn-next" onclick="nextQ()">পরবর্তী</button>
-      <button class="ebtn submit" id="btn-submit" style="display:none;" onclick="submitExam()">জমা দিন</button>
+      <button class="ebtn submit" id="btn-submit" onclick="submitExam()">জমা দিন</button>
     </div>
   </div>
 
@@ -863,8 +879,7 @@
       }
 
       document.getElementById('exam-overlay').classList.add('active');
-      buildProgress();
-      renderQuestion();
+      renderAllQuestions();
       clearInterval(timerHandle);
       timerHandle = setInterval(tick, 1000);
     }catch(err){
@@ -882,43 +897,44 @@
     if(timeLeft <= 0){ clearInterval(timerHandle); submitExam(); }
   }
 
-  function buildProgress(){
-    const wrap = document.getElementById('exam-progress');
-    wrap.innerHTML = CURRENT_QUESTIONS.map(()=>'<div class="dot"></div>').join('');
-    updateProgress();
-  }
-  function updateProgress(){
-    const dots = document.querySelectorAll('#exam-progress .dot');
-    dots.forEach((d,i)=>{
-      const q = CURRENT_QUESTIONS[i];
-      d.className = 'dot' + (answers[q.id]!==undefined ? ' done' : '') + (i===curQ ? ' now' : '');
-    });
-  }
-
-  function renderQuestion(){
-    const q = CURRENT_QUESTIONS[curQ];
-    document.getElementById('q-label').textContent = 'প্রশ্ন ' + toBnDigits(curQ+1) + ' / ' + toBnDigits(CURRENT_QUESTIONS.length) + ' · ' + q.subject;
-    document.getElementById('q-text').textContent = q.question_text;
+  function renderAllQuestions(){
     const letters = ['A','B','C','D'];
-    const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d];
-    const optWrap = document.getElementById('q-options');
-    optWrap.innerHTML = '';
-    letters.forEach((L,i)=>{
-      const div = document.createElement('div');
-      div.className = 'opt' + (answers[q.id]===L ? ' selected' : '');
-      div.innerHTML = `<span class="bullet">${['ক','খ','গ','ঘ'][i]}</span><span>${optTexts[i]}</span>`;
-      div.onclick = ()=>{ answers[q.id]=L; renderQuestion(); };
-      optWrap.appendChild(div);
-    });
-    document.getElementById('btn-prev').disabled = curQ===0;
-    const isLast = curQ === CURRENT_QUESTIONS.length-1;
-    document.getElementById('btn-next').style.display = isLast ? 'none' : 'block';
-    document.getElementById('btn-submit').style.display = isLast ? 'block' : 'none';
+    const bnLetters = ['ক','খ','গ','ঘ'];
+    const body = document.getElementById('exam-body');
+    body.innerHTML = CURRENT_QUESTIONS.map((q, qi)=>{
+      const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const optsHtml = letters.map((L,i)=>`
+        <div class="opt${answers[q.id]===L ? ' selected' : ''}" onclick="selectAnswer(${q.id},'${L}')">
+          <span class="bullet">${bnLetters[i]}</span><span>${optTexts[i]}</span>
+        </div>`).join('');
+      return `
+        <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
+          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span></div>
+          <div class="q-text">${q.question_text}</div>
+          <div>${optsHtml}</div>
+        </div>`;
+    }).join('');
     updateProgress();
   }
 
-  function nextQ(){ if(curQ < CURRENT_QUESTIONS.length-1){ curQ++; renderQuestion(); } }
-  function prevQ(){ if(curQ > 0){ curQ--; renderQuestion(); } }
+  function selectAnswer(qid, L){
+    answers[qid] = L;
+    const card = document.getElementById('qcard-'+qid);
+    card.classList.add('answered');
+    const letters = ['A','B','C','D'];
+    card.querySelectorAll('.opt').forEach((el,i)=>{
+      el.classList.toggle('selected', letters[i]===L);
+    });
+    updateProgress();
+  }
+
+  function updateProgress(){
+    const total = CURRENT_QUESTIONS.length;
+    const done = Object.keys(answers).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    document.getElementById('exam-progress-fill').style.width = pct + '%';
+    document.getElementById('exam-progress-count').textContent = toBnDigits(done) + ' / ' + toBnDigits(total) + ' উত্তর দেওয়া হয়েছে';
+  }
 
   function exitExam(){
     if(!confirm('পরীক্ষা থেকে বের হয়ে যেতে চান? অগ্রগতি সংরক্ষিত হবে না।')) return;
@@ -927,6 +943,12 @@
   }
 
   async function submitExam(){
+    const total = CURRENT_QUESTIONS.length;
+    const done = Object.keys(answers).length;
+    if(done < total){
+      const left = total - done;
+      if(!confirm(toBnDigits(left) + 'টি প্রশ্নের উত্তর এখনো দেওয়া হয়নি। তারপরও জমা দিতে চান?')) return;
+    }
     clearInterval(timerHandle);
     document.getElementById('exam-overlay').classList.remove('active');
     try{
