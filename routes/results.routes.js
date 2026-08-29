@@ -47,8 +47,48 @@ router.post('/', optionalUser, async (req, res) => {
     [exam_id, userId, name, phone, JSON.stringify(answers), correct, wrong, skipped, score]
   );
 
-  res.status(201).json({ ...rows[0], review });
+  let streak = null;
+  if (userId) {
+    streak = await updateStreak(userId);
+  }
+
+  res.status(201).json({ ...rows[0], review, streak });
 });
+
+// Updates a logged-in user's daily streak after they submit a result.
+// Same day again -> unchanged. Consecutive day -> +1. Gap -> resets to 1.
+async function updateStreak(userId) {
+  const { rows } = await pool.query(
+    'SELECT current_streak, longest_streak, last_activity_date FROM users WHERE id=$1',
+    [userId]
+  );
+  if (!rows.length) return null;
+  const u = rows[0];
+
+  const todayRes = await pool.query("SELECT CURRENT_DATE AS today");
+  const today = todayRes.rows[0].today;
+  const todayStr = new Date(today).toDateString();
+  const lastStr = u.last_activity_date ? new Date(u.last_activity_date).toDateString() : null;
+
+  let newStreak = u.current_streak;
+  if (lastStr === todayStr) {
+    // already counted today — no change
+  } else {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (lastStr === yesterday.toDateString()) {
+      newStreak = u.current_streak + 1;
+    } else {
+      newStreak = 1;
+    }
+    const newLongest = Math.max(u.longest_streak, newStreak);
+    await pool.query(
+      'UPDATE users SET current_streak=$1, longest_streak=$2, last_activity_date=CURRENT_DATE WHERE id=$3',
+      [newStreak, newLongest, userId]
+    );
+  }
+  return { current_streak: newStreak, longest_streak: Math.max(u.longest_streak, newStreak) };
+}
 
 // GET /api/results/me — logged-in student's own exam history, across all exams
 router.get('/me', requireUser, async (req, res) => {
