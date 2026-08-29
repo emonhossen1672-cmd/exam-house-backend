@@ -262,6 +262,32 @@
   .ph-item .score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700; flex-shrink:0;}
   .ph-item .meta{font-size:11px; color:var(--ink-faint); margin-top:5px;}
 
+  .subj-stat{
+    background:var(--card); border:1px solid var(--line); border-radius:13px;
+    padding:13px 14px; margin-bottom:9px;
+  }
+  .subj-stat-top{display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:var(--ink); margin-bottom:8px;}
+  .subj-stat-bar{height:7px; background:var(--paper-deep); border-radius:20px; overflow:hidden;}
+  .subj-stat-fill{height:100%; border-radius:20px;}
+  .subj-stat-meta{font-size:10.5px; color:var(--ink-faint); margin-top:7px;}
+
+  .result-review-btn{
+    width:100%; background:var(--navy-deep, #10182C); color:#fff; border:none; border-radius:12px;
+    padding:12px; font-size:13.5px; font-weight:700; font-family:'Noto Sans Bengali'; cursor:pointer;
+  }
+  .rev-q{ background:var(--card); border:1px solid var(--line); border-radius:13px; padding:14px; margin-bottom:12px; }
+  .rev-q-top{ display:flex; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .rev-q-num{ font-size:11px; color:var(--ink-faint); font-weight:700; }
+  .rev-q-status{ font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:20px; }
+  .rev-q-status.correct{ background:var(--success-bg); color:var(--success); }
+  .rev-q-status.wrong{ background:var(--wrong-bg); color:var(--wrong); }
+  .rev-q-status.skipped{ background:var(--paper-deep); color:var(--ink-faint); }
+  .rev-q-text{ font-size:13.5px; color:var(--ink); margin-bottom:10px; line-height:1.5; }
+  .rev-opt{ font-size:12.5px; padding:8px 10px; border-radius:9px; border:1px solid var(--line); margin-bottom:6px; background:var(--paper); }
+  .rev-opt.is-correct{ background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700; }
+  .rev-opt.is-wrong{ background:var(--wrong-bg); border-color:var(--wrong); color:var(--wrong); font-weight:700; }
+  .rev-explain{ margin-top:10px; background:var(--paper); border-left:3px solid var(--gold); padding:9px 11px; font-size:12px; color:var(--ink-soft); border-radius:0 8px 8px 0; }
+
   /* ---------- Bottom nav ---------- */
   .bottom-nav{
     position:fixed; bottom:0; left:50%; transform:translateX(-50%);
@@ -535,6 +561,10 @@
         <button class="profile-logout" onclick="doUserLogout()">লগআউট</button>
       </div>
 
+      <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
+      <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
+      <div id="subject-stats-list"></div>
+
       <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার ফলাফল</h2></div>
       <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
       <div id="profile-history-list"></div>
@@ -603,9 +633,22 @@
       <div class="rstat wrong"><b id="stat-wrong">0</b><span>ভুল</span></div>
       <div class="rstat"><b id="stat-skip">0</b><span>উত্তর দেননি</span></div>
     </div>
+    <div style="padding:0 18px 6px;">
+      <button class="result-review-btn" id="result-review-btn" onclick="openReview()" style="display:none;">📖 উত্তরপত্র ও ব্যাখ্যা দেখুন</button>
+    </div>
     <div class="sec-head" style="margin:6px 18px 4px;"><h2>মেধা তালিকা</h2></div>
     <div class="review-list" id="merit-list"></div>
     <button class="result-close" onclick="closeResult()">ফিরে যান</button>
+  </div>
+
+  <!-- ============ ANSWER REVIEW OVERLAY ============ -->
+  <div class="exam-overlay" id="review-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeReview()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">উত্তরপত্র ও ব্যাখ্যা</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="review-body" style="padding-bottom:40px;"></div>
   </div>
 
   <!-- ============ ARCHIVE OVERLAY ============ -->
@@ -714,15 +757,35 @@
       const history = await apiGetAuth('/api/results/me');
       const empty = document.getElementById('profile-history-empty');
       const list = document.getElementById('profile-history-list');
-      if(!history.length){ empty.style.display='block'; list.innerHTML=''; return; }
-      empty.style.display='none';
-      list.innerHTML = history.map(h=>{
-        const total = h.correct_count + h.wrong_count + h.skipped_count;
-        return `<div class="ph-item">
-          <div class="top"><span class="title">${h.exam_title}</span><span class="score">${h.score}%</span></div>
-          <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')}</div>
-        </div>`;
-      }).join('');
+      if(!history.length){ empty.style.display='block'; list.innerHTML=''; }
+      else{
+        empty.style.display='none';
+        list.innerHTML = history.map(h=>{
+          const total = h.correct_count + h.wrong_count + h.skipped_count;
+          return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
+            <div class="top"><span class="title">${h.exam_title}</span><span class="score">${h.score}%</span></div>
+            <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')} · উত্তরপত্র দেখতে চাপুন</div>
+          </div>`;
+        }).join('');
+      }
+
+      const subjStats = await apiGetAuth('/api/results/me/subject-stats');
+      const sEmpty = document.getElementById('subject-stats-empty');
+      const sList = document.getElementById('subject-stats-list');
+      if(!subjStats.length){ sEmpty.style.display='block'; sList.innerHTML=''; }
+      else{
+        sEmpty.style.display='none';
+        sList.innerHTML = subjStats.map(s=>{
+          const answered = s.correct + s.wrong;
+          const pct = answered ? Math.round((s.correct/answered)*100) : 0;
+          const barColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
+          return `<div class="subj-stat">
+            <div class="subj-stat-top"><span>${s.subject}</span><span>${toBnDigits(pct)}% সঠিক</span></div>
+            <div class="subj-stat-bar"><div class="subj-stat-fill" style="width:${pct}%; background:${barColor};"></div></div>
+            <div class="subj-stat-meta">মোট ${toBnDigits(s.total)}টি প্রশ্ন · সঠিক ${toBnDigits(s.correct)} · ভুল ${toBnDigits(s.wrong)} · বাদ ${toBnDigits(s.skipped)}</div>
+          </div>`;
+        }).join('');
+      }
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
@@ -1178,6 +1241,15 @@
     document.getElementById('stat-wrong').textContent = toBnDigits(result.wrong_count);
     document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
 
+    const reviewBtn = document.getElementById('result-review-btn');
+    if(result.review && result.review.length){
+      LAST_REVIEW = result.review;
+      reviewBtn.style.display = 'block';
+    } else {
+      LAST_REVIEW = null;
+      reviewBtn.style.display = 'none';
+    }
+
     try{
       const merit = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
       document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
@@ -1196,6 +1268,52 @@
   function closeResult(){
     document.getElementById('result-overlay').classList.remove('active');
     goScreen('history');
+  }
+
+  let LAST_REVIEW = null;
+
+  function renderReviewBody(review){
+    const optKeys = ['a','b','c','d'];
+    document.getElementById('review-body').innerHTML = review.map((q,i)=>{
+      const statusLabel = q.status==='correct' ? 'সঠিক' : (q.status==='wrong' ? 'ভুল' : 'উত্তর দেননি');
+      const opts = optKeys.map(k=>{
+        const letter = k.toUpperCase();
+        let cls = '';
+        if(letter === q.correct_option) cls = 'is-correct';
+        else if(letter === q.given) cls = 'is-wrong';
+        return `<div class="rev-opt ${cls}">${letter}. ${q['option_'+k]}</div>`;
+      }).join('');
+      const explain = q.explanation ? `<div class="rev-explain">💡 ${q.explanation}</div>` : '';
+      return `<div class="rev-q">
+        <div class="rev-q-top">
+          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
+          <span class="rev-q-status ${q.status}">${statusLabel}</span>
+        </div>
+        <div class="rev-q-text">${q.question_text}</div>
+        ${opts}
+        ${explain}
+      </div>`;
+    }).join('');
+  }
+
+  function openReview(){
+    if(!LAST_REVIEW) return;
+    renderReviewBody(LAST_REVIEW);
+    document.getElementById('review-overlay').classList.add('active');
+  }
+
+  async function openReviewById(resultId){
+    try{
+      const data = await apiGetAuth('/api/results/'+resultId+'/review');
+      renderReviewBody(data.review);
+      document.getElementById('review-overlay').classList.add('active');
+    }catch(err){
+      alert('উত্তরপত্র লোড করা যায়নি: ' + err.message);
+    }
+  }
+
+  function closeReview(){
+    document.getElementById('review-overlay').classList.remove('active');
   }
 </script>
 </body>
