@@ -153,3 +153,10 @@ CREATE TABLE IF NOT EXISTS exam_reminders (
   UNIQUE (user_id, exam_id)
 );
 CREATE INDEX IF NOT EXISTS idx_exam_reminders_pending ON exam_reminders(exam_id) WHERE sent_at IS NULL;
+
+-- ===== Feature: সার্কুলার ক্যালেন্ডার =====
+-- আবেদনের শেষ তারিখ + পরীক্ষার সম্ভাব্য তারিখ, প্রতিটা exam/post-এর সাথে।
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT; -- মূল সার্কুলার PDF/নোটিশের লিংক (ঐচ্ছিক)
+CREATE INDEX IF NOT EXISTS idx_exams_deadline ON exams(application_deadline);
