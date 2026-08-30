@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
+const { submitLimiter } = require('../middleware/rateLimit');
 
 // POST /api/results — submitted when a participant finishes an exam.
 // Works for guests (participant_name/phone in body) AND logged-in users
 // (Authorization header) — if logged in, the result is linked to their account.
-router.post('/', optionalUser, async (req, res) => {
+router.post('/', submitLimiter, optionalUser, async (req, res) => {
   const { exam_id, participant_name, participant_phone, answers } = req.body;
   const userId = req.user ? req.user.id : null;
   const name = req.user ? req.user.name : participant_name;
