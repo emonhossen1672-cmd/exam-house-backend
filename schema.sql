@@ -160,3 +160,9 @@ ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT; -- মূল সার্কুলার PDF/নোটিশের লিংক (ঐচ্ছিক)
 CREATE INDEX IF NOT EXISTS idx_exams_deadline ON exams(application_deadline);
+
+-- ===== Feature: বিষয়ভিত্তিক মডেল টেস্টে টপিক লেভেল =====
+-- বিষয়ভিত্তিক (subject) মডেল টেস্টের ভেতরে আরেকটি ধাপ: বিষয় -> টপিক -> টেস্ট।
+-- খালি থাকলে সেই টেস্টগুলো "সাধারণ" টপিকের নিচে দেখানো হয় (frontend-এ হ্যান্ডেল করা)।
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS topic VARCHAR(150);
+CREATE INDEX IF NOT EXISTS idx_exams_subject_topic ON exams(subject, topic);
