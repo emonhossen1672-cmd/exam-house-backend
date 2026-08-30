@@ -345,6 +345,21 @@
           <input type="datetime-local" id="e_start_time">
         </div>
 
+        <div class="grid-2">
+          <div class="field">
+            <label>আবেদনের শেষ তারিখ ও সময় (ঐচ্ছিক — সার্কুলার ক্যালেন্ডারে দেখাবে)</label>
+            <input type="datetime-local" id="e_application_deadline">
+          </div>
+          <div class="field">
+            <label>পরীক্ষার সম্ভাব্য তারিখ (ঐচ্ছিক)</label>
+            <input type="date" id="e_exam_probable_date">
+          </div>
+        </div>
+        <div class="field">
+          <label>মূল সার্কুলার লিংক (ঐচ্ছিক)</label>
+          <input type="url" id="e_circular_url" placeholder="https://...">
+        </div>
+
         <div class="field">
           <label>প্রশ্ন বাছাই করুন</label>
           <div class="filters" style="margin-bottom:8px;">
@@ -556,6 +571,9 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
       duration_minutes: document.getElementById('e_duration').value || 60,
       start_time: type === 'live' ? document.getElementById('e_start_time').value : null,
       negative_marks: document.getElementById('e_negative_marks').value || 0,
+      application_deadline: document.getElementById('e_application_deadline').value || null,
+      exam_probable_date: document.getElementById('e_exam_probable_date').value || null,
+      circular_url: document.getElementById('e_circular_url').value.trim() || null,
       question_ids: Array.from(examSelectedQuestions)
     };
     await api('/api/exams', { method: 'POST', body: JSON.stringify(payload) });
@@ -603,6 +621,7 @@ async function loadExamsList(){
           <td class="mono" style="font-size:12px;">${ex.serial || '-'}</td>
           <td class="row-actions">
             <button class="btn btn-ghost btn-small" onclick="editExamNegativeMarks(${ex.id}, ${ex.negative_marks})">এডিট</button>
+            <button class="btn btn-ghost btn-small" onclick="editExamCircular(${ex.id}, '${ex.application_deadline || ''}', '${ex.exam_probable_date || ''}', ${JSON.stringify(ex.circular_url || '')})">সার্কুলার তারিখ</button>
             <button class="btn btn-ghost btn-small danger" onclick="deleteExam(${ex.id})">মুছুন</button>
           </td>
         </tr>
@@ -645,6 +664,35 @@ async function editExamNegativeMarks(id, current){
   }
   try{
     await api('/api/exams/' + id, { method: 'PUT', body: JSON.stringify({ negative_marks: value }) });
+    loadExamsList();
+  } catch(err){ alert(err.message); }
+}
+
+// Quick-edit for the circular calendar fields (application deadline, exam's
+// probable date, circular link). Sequential prompts, same lightweight pattern
+// as editExamNegativeMarks — only sends fields the admin didn't cancel out of,
+// backend COALESCEs the rest so other exam fields are untouched.
+async function editExamCircular(id, currentDeadline, currentExamDate, currentUrl){
+  const deadlineInput = prompt(
+    'আবেদনের শেষ তারিখ ও সময় দিন (যেমন: 2026-09-15T23:59), খালি রাখলে আগেরটাই থাকবে',
+    currentDeadline ? currentDeadline.slice(0,16) : ''
+  );
+  if (deadlineInput === null) return; // cancelled
+  const examDateInput = prompt(
+    'পরীক্ষার সম্ভাব্য তারিখ দিন (যেমন: 2026-10-20), খালি রাখলে আগেরটাই থাকবে',
+    currentExamDate ? currentExamDate.slice(0,10) : ''
+  );
+  if (examDateInput === null) return;
+  const urlInput = prompt('মূল সার্কুলার লিংক দিন (ঐচ্ছিক), খালি রাখলে আগেরটাই থাকবে', currentUrl || '');
+  if (urlInput === null) return;
+
+  const payload = {};
+  if (deadlineInput.trim()) payload.application_deadline = deadlineInput.trim();
+  if (examDateInput.trim()) payload.exam_probable_date = examDateInput.trim();
+  if (urlInput.trim()) payload.circular_url = urlInput.trim();
+
+  try{
+    await api('/api/exams/' + id, { method: 'PUT', body: JSON.stringify(payload) });
     loadExamsList();
   } catch(err){ alert(err.message); }
 }
