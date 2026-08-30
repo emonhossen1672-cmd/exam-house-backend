@@ -858,6 +858,17 @@
     const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
     return String(str).replace(/[0-9]/g, d=>bn[d]);
   }
+  // Escapes text before it's inserted via innerHTML, so a user-entered name,
+  // question, or explanation can never be interpreted as HTML/script (XSS fix).
+  function escapeHtml(str){
+    if(str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
   async function apiGet(path){
     const r = await fetch(API_BASE + path);
     const data = await r.json().catch(()=>({}));
@@ -1044,7 +1055,7 @@
         list.innerHTML = history.map(h=>{
           const total = h.correct_count + h.wrong_count + h.skipped_count;
           return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
-            <div class="top"><span class="title">${h.exam_title}</span><span class="score">${h.score}%</span></div>
+            <div class="top"><span class="title">${escapeHtml(h.exam_title)}</span><span class="score">${h.score}%</span></div>
             <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')} · উত্তরপত্র দেখতে চাপুন</div>
           </div>`;
         }).join('');
@@ -1139,15 +1150,15 @@
         const opts = optKeys.map(k=>{
           const letter = k.toUpperCase();
           const cls = letter === q.correct_option ? 'is-correct' : '';
-          return `<div class="rev-opt ${cls}">${letter}. ${q['option_'+k]}</div>`;
+          return `<div class="rev-opt ${cls}">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
         }).join('');
-        const explain = q.explanation ? `<div class="rev-explain">💡 ${q.explanation}</div>` : '';
+        const explain = q.explanation ? `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>` : '';
         return `<div class="rev-q">
           <div class="rev-q-top">
-            <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
+            <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
             <button class="bm-star on" onclick="removeBookmarkFromList(${q.id})" title="বুকমার্ক সরান">★</button>
           </div>
-          <div class="rev-q-text">${q.question_text}</div>
+          <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
           ${opts}
           ${explain}
         </div>`;
@@ -1189,7 +1200,7 @@
       body.innerHTML = rows.map(r=>`
         <div class="merit-item ${myId && r.user_id===myId ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(r.rank)}</div>
-          <div class="merit-name">${r.name}<br><span style="font-size:10.5px; color:var(--ink-faint,#888);">${toBnDigits(r.exams_taken)}টি পরীক্ষা · গড় ${r.avg_score}%</span></div>
+          <div class="merit-name">${escapeHtml(r.name)}<br><span style="font-size:10.5px; color:var(--ink-faint,#888);">${toBnDigits(r.exams_taken)}টি পরীক্ষা · গড় ${r.avg_score}%</span></div>
           <div class="merit-score">${r.total_score}</div>
         </div>`).join('');
     }catch(e){
@@ -1802,13 +1813,13 @@
       const optKeys = ['option_a','option_b','option_c','option_d'];
       document.getElementById('archive-body').innerHTML = data.questions.map((q,i)=>`
         <div class="aq">
-          <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</div>
-          <div class="aq-text">${q.question_text}</div>
+          <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</div>
+          <div class="aq-text">${escapeHtml(q.question_text)}</div>
           ${letters.map((L,idx)=>`
             <div class="aq-opt ${q.correct_option===L?'correct':''}">
-              <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${q[optKeys[idx]]}</span>
+              <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${escapeHtml(q[optKeys[idx]])}</span>
             </div>`).join('')}
-          ${q.explanation ? `<div class="aq-explain">💡 ${q.explanation}</div>` : ''}
+          ${q.explanation ? `<div class="aq-explain">💡 ${escapeHtml(q.explanation)}</div>` : ''}
         </div>`).join('');
       document.getElementById('archive-overlay').classList.add('active');
     }catch(err){
@@ -1869,7 +1880,7 @@
     const bnLetters = ['ক','খ','গ','ঘ'];
     const body = document.getElementById('exam-body');
     body.innerHTML = CURRENT_QUESTIONS.map((q, qi)=>{
-      const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d].map(escapeHtml);
       const optsHtml = letters.map((L,i)=>`
         <div class="opt${answers[q.id]===L ? ' selected' : ''}" onclick="selectAnswer(${q.id},'${L}')">
           <span class="bullet">${bnLetters[i]}</span><span>${optTexts[i]}</span>
@@ -1877,11 +1888,11 @@
       const bmOn = BOOKMARK_IDS.has(q.id);
       return `
         <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
-          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span>
+          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${escapeHtml(q.subject)}</span>
             <button class="bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)" title="বুকমার্ক">${bmOn ? '★' : '☆'}</button>
             <button class="bm-star" onclick="reportQuestion(${q.id}, event)" title="প্রশ্নে সমস্যা রিপোর্ট করুন" style="font-size:14px;">⚠</button>
           </div>
-          <div class="q-text">${q.question_text}</div>
+          <div class="q-text">${escapeHtml(q.question_text)}</div>
           <div>${optsHtml}</div>
         </div>`;
     }).join('');
@@ -1967,7 +1978,7 @@
       document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
         <div class="merit-item ${m.id===result.id ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(i+1)}</div>
-          <div class="merit-name">${m.participant_name}</div>
+          <div class="merit-name">${escapeHtml(m.participant_name)}</div>
           <div class="merit-score">${m.score}%</div>
         </div>`).join('');
     }catch(e){
@@ -2009,15 +2020,15 @@
         let cls = '';
         if(letter === q.correct_option) cls = 'is-correct';
         else if(letter === q.given) cls = 'is-wrong';
-        return `<div class="rev-opt ${cls}">${letter}. ${q['option_'+k]}</div>`;
+        return `<div class="rev-opt ${cls}">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
       }).join('');
-      const explain = q.explanation ? `<div class="rev-explain">💡 ${q.explanation}</div>` : '';
+      const explain = q.explanation ? `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>` : '';
       return `<div class="rev-q">
         <div class="rev-q-top">
-          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
+          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
           <span class="rev-q-status ${q.status}">${statusLabel}</span>
         </div>
-        <div class="rev-q-text">${q.question_text}</div>
+        <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
         ${opts}
         ${explain}
       </div>`;
@@ -2052,14 +2063,14 @@
     document.getElementById('revision-body').innerHTML = WRONG_QUESTIONS_CACHE.map((q,i)=>{
       const opts = optKeys.map(k=>{
         const letter = k.toUpperCase();
-        return `<div class="rev-opt clickable" data-qid="${q.id}" data-letter="${letter}" data-correct="${q.correct_option}" onclick="answerRevisionOption(this)">${letter}. ${q['option_'+k]}</div>`;
+        return `<div class="rev-opt clickable" data-qid="${q.id}" data-letter="${letter}" data-correct="${q.correct_option}" onclick="answerRevisionOption(this)">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
       }).join('');
-      const explain = q.explanation ? `<div class="rev-explain" style="display:none;">💡 ${q.explanation}</div>` : '';
+      const explain = q.explanation ? `<div class="rev-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
       return `<div class="rev-q">
         <div class="rev-q-top">
-          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
+          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
         </div>
-        <div class="rev-q-text">${q.question_text}</div>
+        <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
         ${opts}
         ${explain}
       </div>`;
