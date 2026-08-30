@@ -319,14 +319,148 @@ router.get('/leaderboard/overall', asyncHandler(async (req, res) => {
   res.json(rows);
 }));
 
-// GET /api/results/exam/:examId — merit list / leaderboard, public
-router.get('/exam/:examId', asyncHandler(async (req, res) => {
+// GET /api/results/exam/:examId — merit list for ONE exam, public. Ties share
+// the same rank (RANK(), not ROW_NUMBER()) since two identical scores tying
+// for 2nd place in a live exam is a very real case. If the caller is a
+// logged-in user, also returns their own rank even when it falls outside the
+// returned page (computed separately, so it's always accurate).
+router.get('/exam/:examId', optionalUser, asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 100, 500);
   const { rows } = await pool.query(
-    `SELECT id, participant_name, correct_count, wrong_count, skipped_count, score, submitted_at
-     FROM results WHERE exam_id=$1 ORDER BY score DESC, submitted_at ASC`,
-    [req.params.examId]
+    `SELECT id, participant_name, correct_count, wrong_count, skipped_count, score, submitted_at,
+       RANK() OVER (ORDER BY score DESC, submitted_at ASC)::int AS rank,
+       COUNT(*) OVER ()::int AS total_participants
+     FROM results WHERE exam_id=$1
+     ORDER BY score DESC, submitted_at ASC
+     LIMIT $2`,
+    [req.params.examId, limit]
   );
-  res.json(rows);
+
+  let myResult = null;
+  if (req.user) {
+    const mine = await pool.query(
+      `SELECT id, score FROM results WHERE exam_id=$1 AND user_id=$2 ORDER BY submitted_at DESC LIMIT 1`,
+      [req.params.examId, req.user.id]
+    );
+    if (mine.rows.length) {
+      const full = await pool.query(
+        `SELECT COUNT(*) FILTER (WHERE score > $2)::int + 1 AS rank, COUNT(*)::int AS total_participants
+         FROM results WHERE exam_id=$1`,
+        [req.params.examId, mine.rows[0].score]
+      );
+      myResult = {
+        result_id: mine.rows[0].id,
+        score: mine.rows[0].score,
+        rank: full.rows[0].rank,
+        total_participants: full.rows[0].total_participants
+      };
+    }
+  }
+
+  res.json({ leaderboard: rows, my_result: myResult });
+}));
+
+// GET /api/results/:id/share-card — public JSON for a shareable result card
+// (name, score, rank, exam info). No auth required — this is meant to be
+// shared outside the site — and it exposes nothing beyond what's already on
+// the public merit list above (no phone number).
+router.get('/:id/share-card', asyncHandler(async (req, res) => {
+  const rRes = await pool.query(
+    `SELECT r.id, r.participant_name, r.correct_count, r.wrong_count, r.skipped_count,
+       r.score, r.submitted_at, e.title AS exam_title, e.type AS exam_type,
+       m.name AS ministry_name, e.grade
+     FROM results r
+     JOIN exams e ON e.id = r.exam_id
+     LEFT JOIN ministries m ON m.id = e.ministry_id
+     WHERE r.id=$1`,
+    [req.params.id]
+  );
+  if (!rRes.rows.length) return res.status(404).json({ error: 'ফলাফল পাওয়া যায়নি' });
+  const r = rRes.rows[0];
+
+  const rankRes = await pool.query(
+    `SELECT COUNT(*) FILTER (WHERE score > $2)::int + 1 AS rank, COUNT(*)::int AS total_participants
+     FROM results WHERE exam_id = (SELECT exam_id FROM results WHERE id=$1)`,
+    [req.params.id, r.score]
+  );
+  const { rank, total_participants } = rankRes.rows[0];
+  const percentile = total_participants > 1
+    ? Math.round(((total_participants - rank) / (total_participants - 1)) * 10000) / 100
+    : 100;
+
+  res.json({
+    result_id: r.id,
+    participant_name: r.participant_name,
+    exam_title: r.exam_title,
+    exam_type: r.exam_type,
+    ministry_name: r.ministry_name,
+    grade: r.grade,
+    correct_count: r.correct_count,
+    wrong_count: r.wrong_count,
+    skipped_count: r.skipped_count,
+    score: r.score,
+    rank, total_participants, percentile,
+    submitted_at: r.submitted_at,
+    share_image_url: `/api/results/${r.id}/share-card.svg`
+  });
+}));
+
+// GET /api/results/:id/share-card.svg — the same data rendered as a
+// downloadable/shareable image (1200x630 — the standard social-share size).
+// Pure string templating, no image library or native dependency: the SVG's
+// <text> elements get rasterized by whatever renders it (browser, image
+// tag, share sheet), which already has Bengali fonts available.
+router.get('/:id/share-card.svg', asyncHandler(async (req, res) => {
+  const rRes = await pool.query(
+    `SELECT r.id, r.participant_name, r.correct_count, r.wrong_count, r.skipped_count,
+       r.score, e.title AS exam_title, m.name AS ministry_name, e.grade
+     FROM results r
+     JOIN exams e ON e.id = r.exam_id
+     LEFT JOIN ministries m ON m.id = e.ministry_id
+     WHERE r.id=$1`,
+    [req.params.id]
+  );
+  if (!rRes.rows.length) return res.status(404).send('Not found');
+  const r = rRes.rows[0];
+
+  const rankRes = await pool.query(
+    `SELECT COUNT(*) FILTER (WHERE score > $2)::int + 1 AS rank, COUNT(*)::int AS total_participants
+     FROM results WHERE exam_id = (SELECT exam_id FROM results WHERE id=$1)`,
+    [req.params.id, r.score]
+  );
+  const { rank, total_participants } = rankRes.rows[0];
+
+  // Escape everything going into the SVG — participant_name and exam_title
+  // are user-supplied text, so this isn't optional.
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7f1d1d"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <text x="60" y="90" font-family="sans-serif" font-size="40" font-weight="bold" fill="#fbbf24">Exam House</text>
+  <text x="60" y="200" font-family="sans-serif" font-size="34" fill="#ffffff">${esc(r.exam_title)}</text>
+  <text x="60" y="245" font-family="sans-serif" font-size="24" fill="#fca5a5">${esc(r.ministry_name || '')}${r.grade ? ' • গ্রেড-' + esc(r.grade) : ''}</text>
+
+  <text x="60" y="340" font-family="sans-serif" font-size="30" fill="#ffffff">${esc(r.participant_name)}</text>
+
+  <text x="60" y="450" font-family="sans-serif" font-size="90" font-weight="bold" fill="#fbbf24">${esc(r.score)}%</text>
+  <text x="60" y="495" font-family="sans-serif" font-size="26" fill="#fed7aa">স্কোর</text>
+
+  <text x="450" y="450" font-family="sans-serif" font-size="90" font-weight="bold" fill="#4ade80">#${esc(rank)}</text>
+  <text x="450" y="495" font-family="sans-serif" font-size="26" fill="#fed7aa">মেধাক্রম (${esc(total_participants)} জনের মধ্যে)</text>
+
+  <text x="60" y="580" font-family="sans-serif" font-size="22" fill="#ffffff">সঠিক: ${esc(r.correct_count)}   ভুল: ${esc(r.wrong_count)}   বাদ: ${esc(r.skipped_count)}</text>
+</svg>`;
+
+  res.set('Content-Type', 'image/svg+xml');
+  res.set('Cache-Control', 'public, max-age=300');
+  res.send(svg);
 }));
 
 // GET /api/results/admin/exam/:examId — full detail including phone, for admin
