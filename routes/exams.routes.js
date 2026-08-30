@@ -62,22 +62,26 @@ router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
   res.json(rows);
 }));
 
-// PUT /api/exams/:id — update exam fields (title, ministry_id, post_name, subject, grade, duration_minutes, start_time)
+// PUT /api/exams/:id — update exam fields. Partial updates are safe: any
+// field left out of the request body keeps its current value (COALESCE),
+// so e.g. sending only { negative_marks } won't wipe ministry_id/post_name/
+// subject/grade/start_time like it used to.
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks } = req.body;
   const { rows } = await pool.query(
     `UPDATE exams SET
       title = COALESCE($1, title),
-      ministry_id = $2,
-      post_name = $3,
-      subject = $4,
-      grade = $5,
+      ministry_id = COALESCE($2, ministry_id),
+      post_name = COALESCE($3, post_name),
+      subject = COALESCE($4, subject),
+      grade = COALESCE($5, grade),
       duration_minutes = COALESCE($6, duration_minutes),
-      start_time = $7,
+      start_time = COALESCE($7, start_time),
       negative_marks = COALESCE($9, negative_marks)
      WHERE id=$8 RETURNING *`,
     [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
-     duration_minutes || null, start_time || null, req.params.id, negative_marks]
+     duration_minutes || null, start_time || null, req.params.id,
+     negative_marks === undefined ? null : negative_marks]
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -107,6 +111,7 @@ router.get('/public/list', asyncHandler(async (req, res) => {
   if (type) { params.push(type); where = 'WHERE e.type = $1'; }
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
+      e.is_daily, e.is_practice,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
