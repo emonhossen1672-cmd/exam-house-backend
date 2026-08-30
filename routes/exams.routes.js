@@ -14,7 +14,8 @@ function genSerial(type) {
 // POST /api/exams — create an exam and attach questions
 // body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks } = req.body;
+  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks,
+          application_deadline, exam_probable_date, circular_url } = req.body;
   if (!title || !type || !question_ids || !question_ids.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
   }
@@ -27,10 +28,12 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     await client.query('BEGIN');
     const serial = genSerial(type);
     const examResult = await client.query(
-      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks,
+         application_deadline, exam_probable_date, circular_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
       [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
-       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0]
+       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
+       application_deadline || null, exam_probable_date || null, circular_url || null]
     );
     const exam = examResult.rows[0];
 
@@ -67,7 +70,8 @@ router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
 // so e.g. sending only { negative_marks } won't wipe ministry_id/post_name/
 // subject/grade/start_time like it used to.
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks } = req.body;
+  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks,
+          application_deadline, exam_probable_date, circular_url } = req.body;
   const { rows } = await pool.query(
     `UPDATE exams SET
       title = COALESCE($1, title),
@@ -77,11 +81,15 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
       grade = COALESCE($5, grade),
       duration_minutes = COALESCE($6, duration_minutes),
       start_time = COALESCE($7, start_time),
-      negative_marks = COALESCE($9, negative_marks)
+      negative_marks = COALESCE($9, negative_marks),
+      application_deadline = COALESCE($10, application_deadline),
+      exam_probable_date = COALESCE($11, exam_probable_date),
+      circular_url = COALESCE($12, circular_url)
      WHERE id=$8 RETURNING *`,
     [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
      duration_minutes || null, start_time || null, req.params.id,
-     negative_marks === undefined ? null : negative_marks]
+     negative_marks === undefined ? null : negative_marks,
+     application_deadline || null, exam_probable_date || null, circular_url || null]
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -264,6 +272,27 @@ router.get('/public/archive/list', asyncHandler(async (req, res) => {
     WHERE e.type = 'live' AND e.start_time IS NOT NULL
       AND e.start_time + (e.duration_minutes || ' minutes')::interval < NOW()
     ORDER BY e.start_time DESC
+  `);
+  res.json(rows);
+}));
+
+// GET /api/exams/public/circulars — countdown calendar: application deadline
+// ও exam-এর সম্ভাব্য তারিখ থাকা exam/post-গুলো, deadline অনুযায়ী সাজানো।
+// ?include_expired=1 দিলে মেয়াদ শেষ হওয়া সার্কুলারও (রেফারেন্সের জন্য) দেখাবে।
+router.get('/public/circulars', asyncHandler(async (req, res) => {
+  const includeExpired = req.query.include_expired === '1';
+  const { rows } = await pool.query(`
+    SELECT e.id, e.title, e.post_name, e.grade, e.serial,
+      e.application_deadline, e.exam_probable_date, e.circular_url,
+      m.name AS ministry_name,
+      (e.application_deadline IS NOT NULL AND e.application_deadline < NOW()) AS deadline_passed,
+      CASE WHEN e.application_deadline IS NOT NULL
+        THEN CEIL(EXTRACT(EPOCH FROM (e.application_deadline - NOW())) / 86400)::int
+        ELSE NULL END AS days_left
+    FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
+    WHERE (e.application_deadline IS NOT NULL OR e.exam_probable_date IS NOT NULL)
+      ${includeExpired ? '' : 'AND (e.application_deadline IS NULL OR e.application_deadline >= NOW())'}
+    ORDER BY COALESCE(e.application_deadline, e.exam_probable_date::timestamp) ASC
   `);
   res.json(rows);
 }));
