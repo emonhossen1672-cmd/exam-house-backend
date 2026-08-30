@@ -573,6 +573,7 @@
     <div class="mode-toggle" id="model-mode-toggle">
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')">মন্ত্রণালয় অনুযায়ী</button>
       <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')">বিষয়ভিত্তিক মডেল টেস্ট</button>
+      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')">প্র্যাকটিস মোড</button>
     </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
     <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
@@ -1224,14 +1225,16 @@
     MODEL_MODE = mode;
     document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
     document.getElementById('mode-btn-subject').classList.toggle('active', mode==='subject');
+    document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
-    else{ SUBJECT_NAV = {level:'subjects'}; }
+    else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     renderModelScreen();
     window.scrollTo(0,0);
   }
 
   function renderModelScreen(){
     if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
+    if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
     const model = ALL_EXAMS.filter(e=>e.type==='model');
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -1380,6 +1383,83 @@
     SUBJECT_NAV = {level:'exams', subject};
     renderModelScreen();
     window.scrollTo(0,0);
+  }
+
+  // ---------- Practice mode: instant random quiz generated from the question bank ----------
+  let PRACTICE_SUBJECTS_CACHE = null;
+
+  async function renderPracticeScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'none';
+    heading.textContent = 'প্র্যাকটিস মোড';
+    subtext.textContent = 'বিষয় বেছে নিন — সাথে সাথে ১৫টি এলোমেলো প্রশ্ন নিয়ে একটি অনুশীলন শুরু হবে';
+
+    if(!PRACTICE_SUBJECTS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        PRACTICE_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects');
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!PRACTICE_SUBJECTS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো প্রশ্ন যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    // if logged in, highlight subjects the student is weakest in (lowest accuracy first)
+    let weakOrder = null;
+    if(USER_TOKEN){
+      try{
+        if(!SUBJ_STATS_CACHE) SUBJ_STATS_CACHE = await apiGetAuth('/api/results/me/subject-stats');
+        weakOrder = new Map(SUBJ_STATS_CACHE.map(s => [s.subject, s.total ? s.correct / s.total : 1]));
+      }catch(e){ /* not logged in or no stats yet — ignore, show plain list */ }
+    }
+
+    const list = [...PRACTICE_SUBJECTS_CACHE];
+    if(weakOrder){
+      list.sort((a,b)=>{
+        const wa = weakOrder.has(a.subject) ? weakOrder.get(a.subject) : 0.5;
+        const wb = weakOrder.has(b.subject) ? weakOrder.get(b.subject) : 0.5;
+        return wa - wb; // lowest accuracy first
+      });
+    }
+
+    listEl.innerHTML = list.map(s=>{
+      const acc = weakOrder && weakOrder.has(s.subject) ? Math.round(weakOrder.get(s.subject)*100) : null;
+      const weakTag = acc !== null && acc < 60 ? ' · <span style="color:var(--seal); font-weight:700;">দুর্বল জায়গা</span>' : '';
+      return `
+        <div class="group-card" onclick='startPractice(${JSON.stringify(s.subject)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">🎯</div>
+            <div>
+              <div class="gc-name">${s.subject}</div>
+              <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন ভাণ্ডারে${acc!==null ? ` · আপনার নির্ভুলতা ${toBnDigits(acc)}%` : ''}${weakTag}</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`;
+    }).join('');
+  }
+
+  async function startPractice(subject){
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">অনুশীলন তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiGet('/api/exams/public/practice?subject=' + encodeURIComponent(subject) + '&count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'অনুশীলন শুরু করা যায়নি');
+    }
   }
 
   // ---------- Load exam lists from the real backend ----------
