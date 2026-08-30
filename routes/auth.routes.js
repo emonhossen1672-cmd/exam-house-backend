@@ -6,8 +6,8 @@ const pool = require('../db');
 const { requireUser } = require('../middleware/auth');
 const { sendSMS } = require('../services/sms');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimit');
-
-const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const { JWT_SECRET, IS_PRODUCTION } = require('../config');
+const asyncHandler = require('../utils/asyncHandler');
 
 const PHONE_RE = /^01[3-9]\d{8}$/; // Bangladeshi mobile number
 const OTP_TTL_MINUTES = 5;
@@ -21,7 +21,7 @@ function genOtp() {
 }
 
 // POST /api/auth/otp/send — body: { phone, purpose? }  purpose defaults to 'register'
-router.post('/otp/send', otpLimiter, async (req, res) => {
+router.post('/otp/send', otpLimiter, asyncHandler(async (req, res) => {
   const { phone } = req.body;
   const purpose = req.body.purpose === 'reset_password' ? 'reset_password' : 'register';
 
@@ -62,14 +62,17 @@ router.post('/otp/send', otpLimiter, async (req, res) => {
   const smsResult = await sendSMS(phone, `আপনার Exam House ভেরিফিকেশন কোড: ${code} — এটি ${OTP_TTL_MINUTES} মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`);
 
   const response = { ok: true, expires_in_minutes: OTP_TTL_MINUTES };
-  // Dev-mode convenience only: when no real SMS gateway is configured, echo the
-  // code back so the flow can be tested without an actual phone.
-  if (smsResult.dev) response.dev_code = code;
+  // Dev-mode convenience only: when no real SMS gateway is configured AND
+  // we're not running in production, echo the code back so the flow can be
+  // tested without an actual phone. Gated on NODE_ENV so a forgotten
+  // SMS_API_URL in production fails loudly (broken OTP flow) instead of
+  // silently leaking every OTP code in the API response.
+  if (smsResult.dev && !IS_PRODUCTION) response.dev_code = code;
   res.json(response);
-});
+}));
 
 // POST /api/auth/otp/verify — body: { phone, code, purpose? }
-router.post('/otp/verify', async (req, res) => {
+router.post('/otp/verify', asyncHandler(async (req, res) => {
   const { phone, code } = req.body;
   const purpose = req.body.purpose === 'reset_password' ? 'reset_password' : 'register';
   if (!phone || !code) return res.status(400).json({ error: 'মোবাইল নম্বর ও কোড দিন' });
@@ -96,10 +99,10 @@ router.post('/otp/verify', async (req, res) => {
 
   await pool.query('UPDATE otp_codes SET verified_at = NOW() WHERE id=$1', [otp.id]);
   res.json({ verified: true });
-});
+}));
 
 // POST /api/auth/register — requires a phone already verified via /otp/verify
-router.post('/register', async (req, res) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const { name, phone, password } = req.body;
   if (!name || !phone || !password) {
     return res.status(400).json({ error: 'নাম, মোবাইল নম্বর ও পাসওয়ার্ড দিন' });
@@ -136,7 +139,7 @@ router.post('/register', async (req, res) => {
     await client.query('COMMIT');
 
     const user = rows[0];
-    const token = jwt.sign({ id: user.id, name: user.name, phone: user.phone, role: 'user' }, SECRET, { expiresIn: '90d' });
+    const token = jwt.sign({ id: user.id, name: user.name, phone: user.phone, role: 'user' }, JWT_SECRET, { expiresIn: '90d' });
     res.status(201).json({ token, user });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -144,10 +147,10 @@ router.post('/register', async (req, res) => {
   } finally {
     client.release();
   }
-});
+}));
 
 // POST /api/auth/login
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const { phone, password } = req.body;
   if (!phone || !password) return res.status(400).json({ error: 'মোবাইল নম্বর ও পাসওয়ার্ড দিন' });
 
@@ -157,14 +160,14 @@ router.post('/login', loginLimiter, async (req, res) => {
   const ok = await bcrypt.compare(password, rows[0].password_hash);
   if (!ok) return res.status(401).json({ error: 'ভুল মোবাইল নম্বর বা পাসওয়ার্ড' });
 
-  const token = jwt.sign({ id: rows[0].id, name: rows[0].name, phone: rows[0].phone, role: 'user' }, SECRET, { expiresIn: '90d' });
+  const token = jwt.sign({ id: rows[0].id, name: rows[0].name, phone: rows[0].phone, role: 'user' }, JWT_SECRET, { expiresIn: '90d' });
   res.json({ token, user: { id: rows[0].id, name: rows[0].name, phone: rows[0].phone } });
-});
+}));
 
 // POST /api/auth/reset-password — body: { phone, code, new_password }
 // Requires a fresh, correct OTP for purpose 'reset_password' (checked directly
 // here, same as /otp/verify, so this can be a single-step flow from the app).
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', asyncHandler(async (req, res) => {
   const { phone, code, new_password } = req.body;
   if (!phone || !code || !new_password) {
     return res.status(400).json({ error: 'মোবাইল নম্বর, কোড ও নতুন পাসওয়ার্ড দিন' });
@@ -199,10 +202,10 @@ router.post('/reset-password', async (req, res) => {
   await pool.query('UPDATE otp_codes SET verified_at = NOW(), consumed_at = NOW() WHERE id=$1', [otp.id]);
 
   res.json({ ok: true });
-});
+}));
 
 // GET /api/auth/me — current logged-in student's profile
-router.get('/me', requireUser, async (req, res) => {
+router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     'SELECT current_streak, longest_streak FROM users WHERE id=$1',
     [req.user.id]
@@ -212,6 +215,6 @@ router.get('/me', requireUser, async (req, res) => {
     id: req.user.id, name: req.user.name, phone: req.user.phone,
     current_streak: streak.current_streak, longest_streak: streak.longest_streak
   });
-});
+}));
 
 module.exports = router;
