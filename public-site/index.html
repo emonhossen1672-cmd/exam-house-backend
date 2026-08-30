@@ -210,6 +210,8 @@
   .btn-enter.archive{background:var(--gold);}
   .btn-enter:disabled{background:var(--ink-faint); cursor:not-allowed;}
   .btn-enter:active{opacity:0.85;}
+  .ticket-btn-group{display:flex; gap:8px;}
+  .btn-enter.practice{background:var(--gold, #C9973B);}
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
   .loading-note{text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:13px;}
 
@@ -501,6 +503,7 @@
   .aq-opt.correct{background:var(--success-bg); color:var(--success); font-weight:600;}
   .aq-opt .b{width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; font-size:10.5px; flex-shrink:0; font-family:'Space Mono',monospace;}
   .aq-opt.correct .b{background:var(--success); color:#fff;}
+  .aq-explain{margin-top:10px; padding:10px 12px; background:var(--paper-deep); border-radius:10px; font-size:12.5px; line-height:1.5; color:var(--ink-soft);}
 
   ::-webkit-scrollbar{width:0;}
   @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
@@ -775,7 +778,7 @@
   <!-- ============ ARCHIVE OVERLAY ============ -->
   <div class="archive-overlay" id="archive-overlay">
     <div class="archive-top">
-      <div class="ttl"><span>সমাধান / আর্কাইভ</span><span id="archive-title">—</span></div>
+      <div class="ttl"><span id="archive-mode-label">সমাধান / আর্কাইভ</span><span id="archive-title">—</span></div>
       <button class="archive-exit" onclick="closeArchive()">✕</button>
     </div>
     <div class="archive-body" id="archive-body"></div>
@@ -1277,7 +1280,16 @@
       subtext.textContent = 'পদ বেছে নিন';
       const inMinistry = model.filter(e=>(e.ministry_name||'অন্যান্য')===MODEL_NAV.ministry);
       const groups = groupBy(inMinistry, e=>(e.post_name||'সাধারণ')+'|'+(e.grade||''));
-      listEl.innerHTML = [...groups.entries()].map(([key, exams])=>{
+      // sort by grade ascending; posts with no specific grade go last
+      const sortedGroups = [...groups.entries()].sort((a,b)=>{
+        const gA = a[0].split('|')[1], gB = b[0].split('|')[1];
+        const nA = gA ? parseInt(gA,10) : null, nB = gB ? parseInt(gB,10) : null;
+        if(nA===null && nB===null) return 0;
+        if(nA===null) return 1;
+        if(nB===null) return -1;
+        return nA - nB;
+      });
+      listEl.innerHTML = sortedGroups.map(([key, exams])=>{
         const [postName, grade] = key.split('|');
         return `
           <div class="group-card" onclick='modelPickPost(${JSON.stringify(postName)},${JSON.stringify(grade)})'>
@@ -1496,9 +1508,22 @@
           ? `<div class="ticket-cd"><b>${fmtCountdown(st.countdown)}</b><span>বাকি</span></div>`
           : `<div class="ticket-cd"><b>${st.live?'চলছে':'শেষ'}</b><span>&nbsp;</span></div>`)
       : '';
-    const btnClass = exam.type==='model' ? 'btn-enter model' : (st.archive ? 'btn-enter archive' : 'btn-enter');
-    const disabled = st.canEnter ? '' : 'disabled';
-    const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
+
+    // Model tests (incl. practice-mode-generated ones) get two entry buttons:
+    // read-only practice/reading mode, or the timed real exam. Live exams keep
+    // the original single-button flow (enter/wait/view archive).
+    const bottomHtml = exam.type === 'model'
+      ? `<div class="ticket-btn-group">
+           <button class="btn-enter practice" onclick="openArchive(${exam.id}, 'প্র্যাকটিস / রিডিং মোড')">📖 প্র্যাকটিস</button>
+           <button class="btn-enter model" onclick="openNameSheet(${exam.id})">📝 পরীক্ষা দিন</button>
+         </div>`
+      : (() => {
+          const btnClass = st.archive ? 'btn-enter archive' : 'btn-enter';
+          const disabled = st.canEnter ? '' : 'disabled';
+          const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
+          return `<button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>`;
+        })();
+
     return `
       <div class="ticket" data-exam-id="${exam.id}">
         <div class="ticket-top">
@@ -1512,7 +1537,7 @@
         <div class="ticket-divider"></div>
         <div class="ticket-bottom">
           <span class="ticket-serial">${exam.serial||''}</span>
-          <button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>
+          ${bottomHtml}
         </div>
       </div>`;
   }
@@ -1593,9 +1618,12 @@
   }
 
   // ---------- Archive / solutions (after a live exam's window has closed) ----------
-  async function openArchive(examId){
+  // Also reused as the "practice / reading mode" viewer for model tests — same
+  // question+answer view, opened via a different button/label, no timer, no scoring.
+  async function openArchive(examId, modeLabel){
     try{
       const data = await apiGet('/api/exams/public/'+examId+'/archive');
+      document.getElementById('archive-mode-label').textContent = modeLabel || 'সমাধান / আর্কাইভ';
       document.getElementById('archive-title').textContent = data.exam.title;
       const letters = ['A','B','C','D'];
       const optKeys = ['option_a','option_b','option_c','option_d'];
@@ -1607,10 +1635,11 @@
             <div class="aq-opt ${q.correct_option===L?'correct':''}">
               <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${q[optKeys[idx]]}</span>
             </div>`).join('')}
+          ${q.explanation ? `<div class="aq-explain">💡 ${q.explanation}</div>` : ''}
         </div>`).join('');
       document.getElementById('archive-overlay').classList.add('active');
     }catch(err){
-      alert(err.message || 'সমাধান এখনো দেখা যাচ্ছে না');
+      alert(err.message || 'দেখা যাচ্ছে না');
     }
   }
   function closeArchive(){
