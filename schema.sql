@@ -131,3 +131,11 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_codes(phone, purpose, created_at DESC);
+
+-- ===== Feature: Subject-wise practice mode =====
+-- Marks exams that were auto-generated on-demand by practice mode (as opposed
+-- to admin-created live/model exams), purely so the admin dashboard can tell
+-- them apart later if needed. Practice exams otherwise behave like any other
+-- 'model' exam (taking, submitting, subject-stats, streak all reuse the same code).
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_practice BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
