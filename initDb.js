@@ -1,24 +1,22 @@
 // initDb.js — run once after deploy to create tables + your admin login
 // On Render: open the Shell tab for this service and run:  node initDb.js
-require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const pool = require('./db');
+const { ADMIN_USERNAME, ADMIN_PASSWORD } = require('./config');
 
 async function run() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await pool.query(schema);
   console.log('✅ Tables created.');
 
-  const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'changeme123';
-  const hash = await bcrypt.hash(password, 10);
+  const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
-  const existing = await pool.query('SELECT id FROM admin_users WHERE username=$1', [username]);
+  const existing = await pool.query('SELECT id FROM admin_users WHERE username=$1', [ADMIN_USERNAME]);
   if (existing.rows.length === 0) {
-    await pool.query('INSERT INTO admin_users (username, password_hash) VALUES ($1,$2)', [username, hash]);
-    console.log(`✅ Admin user created — username: ${username}`);
+    await pool.query('INSERT INTO admin_users (username, password_hash) VALUES ($1,$2)', [ADMIN_USERNAME, hash]);
+    console.log(`✅ Admin user created — username: ${ADMIN_USERNAME}`);
   } else {
     console.log('ℹ️ Admin user already exists, skipped.');
   }
