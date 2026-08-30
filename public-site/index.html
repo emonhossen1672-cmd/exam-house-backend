@@ -470,6 +470,12 @@
   .score-ring::before{content:""; position:absolute; inset:8px; background:var(--navy-deep); border-radius:50%;}
   .score-ring b{position:relative; font-family:'Noto Serif Bengali',serif; font-size:30px; z-index:2;}
   .result-hero p{color:#C7CEE0; font-size:13.5px;}
+  .rank-badge{
+    display:inline-flex; align-items:center; gap:6px; margin-top:12px;
+    background:rgba(184,144,46,0.16); border:1px solid rgba(184,144,46,0.4);
+    color:var(--gold-soft); font-size:12.5px; font-weight:700;
+    padding:7px 14px; border-radius:20px;
+  }
   .result-stats{display:flex; justify-content:center; gap:26px; padding:22px 18px 8px;}
   .rstat{text-align:center;}
   .rstat b{display:block; font-family:'Space Mono',monospace; font-size:19px;}
@@ -740,6 +746,7 @@
       <div class="rk">পরীক্ষা সম্পন্ন হয়েছে</div>
       <div class="score-ring" id="score-ring"><b id="score-num">০/০</b></div>
       <p id="result-exam-title">—</p>
+      <div><span class="rank-badge" id="rank-badge" style="display:none;"></span></div>
     </div>
     <div class="result-stats">
       <div class="rstat correct"><b id="stat-correct">0</b><span>সঠিক</span></div>
@@ -1822,6 +1829,15 @@
     document.getElementById('stat-correct').textContent = toBnDigits(result.correct_count);
     document.getElementById('stat-wrong').textContent = toBnDigits(result.wrong_count);
     document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
+
+    const rankBadge = document.getElementById('rank-badge');
+    if(result.rank_info && result.rank_info.total_participants > 0){
+      const { rank, total_participants } = result.rank_info;
+      rankBadge.textContent = '🏆 ' + toBnDigits(total_participants) + ' জনের মধ্যে ' + toBnDigits(rank) + 'তম';
+      rankBadge.style.display = 'inline-flex';
+    } else {
+      rankBadge.style.display = 'none';
+    }
 
     const reviewBtn = document.getElementById('result-review-btn');
     if(result.review && result.review.length){
