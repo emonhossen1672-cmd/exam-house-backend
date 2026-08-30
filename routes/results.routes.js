@@ -3,11 +3,12 @@ const router = express.Router();
 const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const { submitLimiter } = require('../middleware/rateLimit');
+const asyncHandler = require('../utils/asyncHandler');
 
 // POST /api/results — submitted when a participant finishes an exam.
 // Works for guests (participant_name/phone in body) AND logged-in users
 // (Authorization header) — if logged in, the result is linked to their account.
-router.post('/', submitLimiter, optionalUser, async (req, res) => {
+router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
   const { exam_id, participant_name, participant_phone, answers } = req.body;
   const userId = req.user ? req.user.id : null;
   const name = req.user ? req.user.name : participant_name;
@@ -17,8 +18,24 @@ router.post('/', submitLimiter, optionalUser, async (req, res) => {
     return res.status(400).json({ error: 'নাম ও উত্তর প্রয়োজন' });
   }
 
-  const examRes = await pool.query('SELECT negative_marks FROM exams WHERE id=$1', [exam_id]);
-  const negativeMarks = examRes.rows.length ? Number(examRes.rows[0].negative_marks) || 0 : 0;
+  const examRes = await pool.query('SELECT type, status, negative_marks FROM exams WHERE id=$1', [exam_id]);
+  if (!examRes.rows.length) {
+    return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
+  }
+  const exam = examRes.rows[0];
+  const negativeMarks = Number(exam.negative_marks) || 0;
+
+  // Fix: a logged-in user could previously submit the same LIVE exam
+  // unlimited times, each one counted separately toward the per-exam merit
+  // list and the site-wide leaderboard total. Model/practice/daily-quiz exams
+  // are still retakable on purpose (that's how revision/practice works) — this
+  // only blocks a second official submission for a real live exam.
+  if (userId && exam.type === 'live') {
+    const dup = await pool.query('SELECT id FROM results WHERE exam_id=$1 AND user_id=$2 LIMIT 1', [exam_id, userId]);
+    if (dup.rows.length) {
+      return res.status(409).json({ error: 'আপনি এই পরীক্ষা আগেই সাবমিট করেছেন' });
+    }
+  }
 
   const qRes = await pool.query(
     `SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
@@ -60,7 +77,7 @@ router.post('/', submitLimiter, optionalUser, async (req, res) => {
   }
 
   res.status(201).json({ ...rows[0], review, streak });
-});
+}));
 
 // Updates a logged-in user's daily streak after they submit a result.
 // Same day again -> unchanged. Consecutive day -> +1. Gap -> resets to 1.
@@ -98,7 +115,7 @@ async function updateStreak(userId) {
 }
 
 // GET /api/results/me — logged-in student's own exam history, across all exams
-router.get('/me', requireUser, async (req, res) => {
+router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT r.id, r.exam_id, e.title AS exam_title, e.type AS exam_type,
       r.correct_count, r.wrong_count, r.skipped_count, r.score, r.submitted_at
@@ -106,11 +123,11 @@ router.get('/me', requireUser, async (req, res) => {
     WHERE r.user_id = $1 ORDER BY r.submitted_at DESC
   `, [req.user.id]);
   res.json(rows);
-});
+}));
 
 // GET /api/results/me/subject-stats — subject-wise accuracy across ALL of this
 // user's submitted exams, so they can see which subjects need more work.
-router.get('/me/subject-stats', requireUser, async (req, res) => {
+router.get('/me/subject-stats', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT q.subject,
       COUNT(*)::int AS total,
@@ -126,11 +143,11 @@ router.get('/me/subject-stats', requireUser, async (req, res) => {
     ORDER BY total DESC
   `, [req.user.id]);
   res.json(rows);
-});
+}));
 
 // GET /api/results/me/wrong-questions — every question this user has ever
 // answered incorrectly (deduped, most recent attempt wins), for a revision quiz.
-router.get('/me/wrong-questions', requireUser, async (req, res) => {
+router.get('/me/wrong-questions', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT DISTINCT ON (q.id)
       q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
@@ -145,11 +162,11 @@ router.get('/me/wrong-questions', requireUser, async (req, res) => {
     LIMIT 100
   `, [req.user.id]);
   res.json(rows);
-});
+}));
 
 // GET /api/results/:id/review — per-question breakdown (with explanations) for
 // a specific past result, so the student can review it again later.
-router.get('/:id/review', requireUser, async (req, res) => {
+router.get('/:id/review', requireUser, asyncHandler(async (req, res) => {
   const rRes = await pool.query('SELECT * FROM results WHERE id=$1', [req.params.id]);
   if (!rRes.rows.length) return res.status(404).json({ error: 'ফলাফল পাওয়া যায়নি' });
   const result = rRes.rows[0];
@@ -173,13 +190,13 @@ router.get('/:id/review', requireUser, async (req, res) => {
     };
   });
   res.json({ result, review });
-});
+}));
 
 // GET /api/results/leaderboard/overall — site-wide ranking across ALL exams,
 // so users can see how they compare beyond a single exam. Ranked by total
 // score summed across every exam they've taken (rewards both accuracy and
 // consistency). Public — no login required to view.
-router.get('/leaderboard/overall', async (req, res) => {
+router.get('/leaderboard/overall', asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
   const { rows } = await pool.query(`
     SELECT
@@ -197,25 +214,25 @@ router.get('/leaderboard/overall', async (req, res) => {
     LIMIT $1
   `, [limit]);
   res.json(rows);
-});
+}));
 
 // GET /api/results/exam/:examId — merit list / leaderboard, public
-router.get('/exam/:examId', async (req, res) => {
+router.get('/exam/:examId', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, participant_name, correct_count, wrong_count, skipped_count, score, submitted_at
      FROM results WHERE exam_id=$1 ORDER BY score DESC, submitted_at ASC`,
     [req.params.examId]
   );
   res.json(rows);
-});
+}));
 
 // GET /api/results/admin/exam/:examId — full detail including phone, for admin
-router.get('/admin/exam/:examId', requireAdmin, async (req, res) => {
+router.get('/admin/exam/:examId', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT * FROM results WHERE exam_id=$1 ORDER BY score DESC, submitted_at ASC`,
     [req.params.examId]
   );
   res.json(rows);
-});
+}));
 
 module.exports = router;
