@@ -220,4 +220,63 @@ router.get('/public/archive/list', async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/exams/public/subjects — distinct subjects in the question bank with
+// their question counts, so the practice-mode screen can list them to pick from.
+router.get('/public/subjects', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT subject, COUNT(*)::int AS question_count
+    FROM questions
+    GROUP BY subject
+    ORDER BY question_count DESC
+  `);
+  res.json(rows);
+});
+
+// GET /api/exams/public/practice?subject=X&count=15 — instantly generates a
+// fresh practice quiz: picks random questions for the chosen subject and wraps
+// them in a real (but is_practice=true) 'model' exam row, so the rest of the
+// app (taking it, submitting, subject-stats, streak, wrong-questions revision)
+// all work automatically through the existing exam machinery — no separate code path.
+router.get('/public/practice', async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  let count = parseInt(req.query.count, 10);
+  if (!Number.isFinite(count) || count < 5) count = 15;
+  if (count > 30) count = 30;
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+
+  const client = await pool.connect();
+  try {
+    const qRes = await client.query(
+      `SELECT id FROM questions WHERE subject=$1 ORDER BY RANDOM() LIMIT $2`,
+      [subject, count]
+    );
+    if (!qRes.rows.length) {
+      return res.status(404).json({ error: 'এই বিষয়ে এখনো কোনো প্রশ্ন যোগ করা হয়নি' });
+    }
+
+    await client.query('BEGIN');
+    const serial = 'EH-PR-' + Math.floor(1000 + Math.random() * 9000);
+    const durationMinutes = Math.max(5, qRes.rows.length); // ~1 minute per question
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, subject, duration_minutes, status, serial, is_practice)
+       VALUES ($1,'model',$2,$3,'active',$4,true) RETURNING *`,
+      [`অনুশীলন: ${subject}`, subject, durationMinutes, serial]
+    );
+    const exam = examResult.rows[0];
+    for (let i = 0; i < qRes.rows.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, qRes.rows[i].id, i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ...exam, question_count: qRes.rows.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
