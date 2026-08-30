@@ -4,9 +4,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { loginLimiter } = require('../middleware/rateLimit');
+const { JWT_SECRET } = require('../config');
+const asyncHandler = require('../utils/asyncHandler');
 
 // POST /api/admin/login
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'ইউজারনেম ও পাসওয়ার্ড দিন' });
 
@@ -18,10 +20,10 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   const token = jwt.sign(
     { id: rows[0].id, username: rows[0].username, role: 'admin' },
-    process.env.JWT_SECRET || 'dev-secret-change-me',
+    JWT_SECRET,
     { expiresIn: '7d' }
   );
   res.json({ token, username: rows[0].username });
-});
+}));
 
 module.exports = router;
