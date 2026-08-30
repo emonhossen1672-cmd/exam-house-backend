@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+const { generalLimiter } = require('./middleware/rateLimit');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -12,6 +14,10 @@ app.use(express.static(path.join(__dirname, 'public-site')));
 
 // admin panel — served at "/admin"
 app.use('/admin', express.static(path.join(__dirname, 'public')));
+
+// general safety-net rate limit for all API traffic; stricter per-route
+// limiters (login, OTP, submissions) are applied inside their own route files
+app.use('/api/', generalLimiter);
 
 app.get('/api/status', (req, res) => {
   res.json({ ok: true, service: 'Exam House API' });
