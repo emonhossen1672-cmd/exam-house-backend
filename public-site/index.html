@@ -152,6 +152,24 @@
   .dq-sub{font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px;}
   .dq-arrow{font-size:18px;}
 
+  /* ---------- Circular calendar (সার্কুলার ক্যালেন্ডার) ---------- */
+  .circular-scroll{display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
+  .circular-scroll::-webkit-scrollbar{display:none;}
+  .circular-card{
+    flex:0 0 auto; width:220px; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:13px 14px; cursor:default;
+  }
+  .circular-card.expired{opacity:0.55;}
+  .circular-badge{
+    display:inline-block; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px;
+    background:var(--wrong-bg); color:var(--wrong); margin-bottom:8px;
+  }
+  .circular-badge.ok{background:var(--success-bg); color:var(--success);}
+  .circular-post{font-weight:700; font-size:13.5px; color:var(--ink); line-height:1.35;}
+  .circular-ministry{font-size:11px; color:var(--ink-faint); margin-top:3px;}
+  .circular-dates{font-size:10.5px; color:var(--ink-soft); margin-top:8px; line-height:1.6;}
+  .circular-link{display:block; margin-top:8px; font-size:11px; font-weight:600; color:var(--seal); text-decoration:none;}
+
   /* ---------- Section headers ---------- */
   .sec-head{display:flex; align-items:baseline; justify-content:space-between; margin:26px 0 12px;}
   .sec-head h2{font-family:'Noto Serif Bengali', serif; font-size:18px; color:var(--ink);}
@@ -597,6 +615,11 @@
         <div class="dq-sub">১০টি প্রশ্ন · ১৫ মিনিট · প্রতিদিন নতুন</div>
       </div>
       <div class="dq-arrow">→</div>
+    </div>
+
+    <div id="home-circulars-wrap" style="display:none;">
+      <div class="sec-head"><h2>সার্কুলার ক্যালেন্ডার</h2></div>
+      <div class="circular-scroll" id="home-circulars-list"><div class="loading-note">লোড হচ্ছে...</div></div>
     </div>
 
     <div id="home-perf-widget" style="display:none;">
@@ -1703,6 +1726,42 @@
     el.innerHTML = exams.map(ticketHtml).join('');
   }
 
+  // ---------- সার্কুলার ক্যালেন্ডার ----------
+  function circularCardHtml(c){
+    const expired = c.deadline_passed;
+    let badge = '';
+    if(c.days_left !== null && c.days_left !== undefined){
+      badge = expired
+        ? `<span class="circular-badge">মেয়াদ শেষ</span>`
+        : `<span class="circular-badge ${c.days_left<=3?'':'ok'}">আর ${toBnDigits(c.days_left)} দিন বাকি</span>`;
+    }
+    const deadlineTxt = c.application_deadline
+      ? `আবেদনের শেষ তারিখ: ${new Date(c.application_deadline).toLocaleDateString('bn-BD')}` : '';
+    const examDateTxt = c.exam_probable_date
+      ? `পরীক্ষার সম্ভাব্য তারিখ: ${new Date(c.exam_probable_date).toLocaleDateString('bn-BD')}` : '';
+    const linkTxt = c.circular_url ? `<a class="circular-link" href="${c.circular_url}" target="_blank" rel="noopener">মূল সার্কুলার দেখুন →</a>` : '';
+    return `
+      <div class="circular-card ${expired?'expired':''}">
+        ${badge}
+        <div class="circular-post">${c.post_name || c.title}</div>
+        <div class="circular-ministry">${c.ministry_name || ''}</div>
+        <div class="circular-dates">${[deadlineTxt, examDateTxt].filter(Boolean).join('<br>')}</div>
+        ${linkTxt}
+      </div>`;
+  }
+
+  async function loadCirculars(){
+    const wrap = document.getElementById('home-circulars-wrap');
+    try{
+      const circulars = await apiGet('/api/exams/public/circulars');
+      if(!circulars.length){ wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      document.getElementById('home-circulars-list').innerHTML = circulars.map(circularCardHtml).join('');
+    }catch(err){
+      wrap.style.display = 'none';
+    }
+  }
+
   // ---------- Global search (title / ministry / post / subject / serial) ----------
   function handleGlobalSearch(query){
     const q = query.trim().toLowerCase();
@@ -1743,6 +1802,7 @@
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
       renderModelScreen();
+      loadCirculars();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
@@ -2080,19 +2140,4 @@
 
   function answerRevisionOption(el){
     const card = el.closest('.rev-q');
-    if(card.querySelector('.rev-opt.is-correct, .rev-opt.is-wrong')) return; // already answered
-    const correct = el.dataset.correct;
-    card.querySelectorAll('.rev-opt').forEach(opt=>{
-      if(opt.dataset.letter === correct) opt.classList.add('is-correct');
-      else if(opt === el) opt.classList.add('is-wrong');
-    });
-    const explain = card.querySelector('.rev-explain');
-    if(explain) explain.style.display = 'block';
-  }
-
-  function closeRevision(){
-    document.getElementById('revision-overlay').classList.remove('active');
-  }
-</script>
-</body>
-</html>
+    if(card.querySelector('.rev-opt.is-correct, .rev-opt.i
