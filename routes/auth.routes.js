@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { requireUser } = require('../middleware/auth');
 const { sendSMS } = require('../services/sms');
+const { loginLimiter, otpLimiter } = require('../middleware/rateLimit');
 
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -20,7 +21,7 @@ function genOtp() {
 }
 
 // POST /api/auth/otp/send — body: { phone, purpose? }  purpose defaults to 'register'
-router.post('/otp/send', async (req, res) => {
+router.post('/otp/send', otpLimiter, async (req, res) => {
   const { phone } = req.body;
   const purpose = req.body.purpose === 'reset_password' ? 'reset_password' : 'register';
 
@@ -146,7 +147,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { phone, password } = req.body;
   if (!phone || !password) return res.status(400).json({ error: 'মোবাইল নম্বর ও পাসওয়ার্ড দিন' });
 
