@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 
 function genSerial(type) {
@@ -103,21 +103,56 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
 
 // ---------- PUBLIC (for the exam-taking frontend) ----------
 
-// GET /api/exams/public/list?type=live|model — no correct answers included
-router.get('/public/list', asyncHandler(async (req, res) => {
+// GET /api/exams/public/list?type=live|model — no correct answers included.
+// optionalUser: if a valid student token is sent, each exam also gets a
+// reminder_set flag showing whether *this* student has a pending 🔔
+// reminder for it (so the button can render already-toggled-on).
+router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
   const { type } = req.query;
   const params = [];
   let where = '';
   if (type) { params.push(type); where = 'WHERE e.type = $1'; }
+  params.push(req.user ? req.user.id : null);
+  const userParamIdx = params.length;
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
       e.is_daily, e.is_practice,
       m.name AS ministry_name,
-      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count
+      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
+      EXISTS(
+        SELECT 1 FROM exam_reminders er WHERE er.exam_id = e.id AND er.user_id = $${userParamIdx}
+      ) AS reminder_set
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
     ${where} ORDER BY e.start_time NULLS LAST, e.created_at DESC
   `, params);
   res.json(rows);
+}));
+
+// POST /api/exams/public/:id/remind — logged-in student opts in to an SMS
+// reminder before this live exam starts. Actual sending happens later, in
+// services/reminderScheduler.js.
+router.post('/public/:id/remind', requireUser, asyncHandler(async (req, res) => {
+  const examRes = await pool.query('SELECT id, type, start_time FROM exams WHERE id=$1', [req.params.id]);
+  if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
+  const exam = examRes.rows[0];
+  if (exam.type !== 'live' || !exam.start_time) {
+    return res.status(400).json({ error: 'শুধু লাইভ পরীক্ষার জন্য রিমাইন্ডার সেট করা যায়' });
+  }
+  if (new Date(exam.start_time) <= new Date()) {
+    return res.status(400).json({ error: 'পরীক্ষাটি ইতিমধ্যে শুরু হয়ে গেছে' });
+  }
+  await pool.query(
+    `INSERT INTO exam_reminders (user_id, exam_id) VALUES ($1,$2)
+     ON CONFLICT (user_id, exam_id) DO NOTHING`,
+    [req.user.id, req.params.id]
+  );
+  res.json({ ok: true, reminder_set: true });
+}));
+
+// DELETE /api/exams/public/:id/remind — cancel a previously set reminder
+router.delete('/public/:id/remind', requireUser, asyncHandler(async (req, res) => {
+  await pool.query('DELETE FROM exam_reminders WHERE user_id=$1 AND exam_id=$2', [req.user.id, req.params.id]);
+  res.json({ ok: true, reminder_set: false });
 }));
 
 // GET /api/exams/public/daily-quiz — auto-generated 10-question daily quiz.
