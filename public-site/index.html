@@ -213,6 +213,17 @@
   .ticket-btn-group{display:flex; gap:8px;}
   .btn-enter.practice{background:var(--gold, #C9973B);}
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
+  .search-bar-wrap{position:relative; margin-bottom:16px;}
+  .search-input{
+    width:100%; padding:13px 40px 13px 16px; border:1.5px solid var(--line); border-radius:13px;
+    font-family:'Noto Sans Bengali'; font-size:13.5px; background:var(--card); color:var(--ink);
+  }
+  .search-input::placeholder{color:var(--ink-faint);}
+  .search-clear-btn{
+    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    background:var(--ink-faint); color:#fff; border:none; width:22px; height:22px; border-radius:50%;
+    font-size:12px; cursor:pointer; line-height:1;
+  }
   .loading-note{text-align:center; padding:30px 20px; color:var(--ink-faint); font-size:13px;}
 
   /* ---------- Model test drill-down (ministry / post) ---------- */
@@ -529,6 +540,17 @@
 
   <!-- ============ HOME SCREEN ============ -->
   <div class="screen active" id="screen-home">
+    <div class="search-bar-wrap">
+      <input type="text" id="global-search-input" class="search-input" placeholder="🔍 পরীক্ষা, মন্ত্রণালয় বা পদের নাম খুঁজুন..." oninput="handleGlobalSearch(this.value)">
+      <button id="search-clear-btn" class="search-clear-btn" style="display:none;" onclick="clearGlobalSearch()">✕</button>
+    </div>
+
+    <div id="search-results-wrap" style="display:none;">
+      <div class="sec-head"><h2>অনুসন্ধানের ফলাফল</h2></div>
+      <div id="search-results-list"></div>
+    </div>
+
+    <div id="home-normal-content">
     <div class="hero-ticket">
       <div class="punch left"></div><div class="punch right"></div>
       <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
@@ -562,6 +584,7 @@
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
     <div id="home-live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+    </div>
   </div>
 
   <!-- ============ LIVE EXAM SCREEN ============ -->
@@ -1546,6 +1569,35 @@
     const el = document.getElementById(containerId);
     if(!exams.length){ el.innerHTML = `<div class="empty-note">${emptyMsg}</div>`; return; }
     el.innerHTML = exams.map(ticketHtml).join('');
+  }
+
+  // ---------- Global search (title / ministry / post / subject / serial) ----------
+  function handleGlobalSearch(query){
+    const q = query.trim().toLowerCase();
+    const clearBtn = document.getElementById('search-clear-btn');
+    const resultsWrap = document.getElementById('search-results-wrap');
+    const normalContent = document.getElementById('home-normal-content');
+    clearBtn.style.display = q ? 'block' : 'none';
+
+    if(!q){
+      resultsWrap.style.display = 'none';
+      normalContent.style.display = 'block';
+      return;
+    }
+    normalContent.style.display = 'none';
+    resultsWrap.style.display = 'block';
+
+    const matches = ALL_EXAMS.filter(e=>{
+      const haystack = [e.title, e.ministry_name, e.post_name, e.subject, e.serial]
+        .filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+    renderList('search-results-list', matches, 'কোনো পরীক্ষা পাওয়া যায়নি — অন্য কিছু দিয়ে চেষ্টা করুন।');
+  }
+
+  function clearGlobalSearch(){
+    document.getElementById('global-search-input').value = '';
+    handleGlobalSearch('');
   }
 
   async function loadHome(){
