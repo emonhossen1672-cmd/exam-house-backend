@@ -5,6 +5,7 @@ const { parse } = require('csv-parse/sync');
 const XLSX = require('xlsx');
 const pool = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const asyncHandler = require('../utils/asyncHandler');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -25,7 +26,7 @@ function parseFile(file) {
 }
 
 // POST /api/questions/bulk-upload  (multipart/form-data, field name: file)
-router.post('/', requireAdmin, upload.single('file'), async (req, res) => {
+router.post('/', requireAdmin, upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ফাইল পাওয়া যায়নি' });
 
   let rows;
@@ -91,6 +92,6 @@ router.post('/', requireAdmin, upload.single('file'), async (req, res) => {
   }
 
   res.json({ added, failed: errors.length, errors });
-});
+}));
 
 module.exports = router;
