@@ -2140,4 +2140,19 @@
 
   function answerRevisionOption(el){
     const card = el.closest('.rev-q');
-    if(card.querySelector('.rev-opt.is-correct, .rev-opt.i
+    if(card.querySelector('.rev-opt.is-correct, .rev-opt.is-wrong')) return; // already answered
+    const correct = el.dataset.correct;
+    card.querySelectorAll('.rev-opt').forEach(opt=>{
+      if(opt.dataset.letter === correct) opt.classList.add('is-correct');
+      else if(opt === el) opt.classList.add('is-wrong');
+    });
+    const explain = card.querySelector('.rev-explain');
+    if(explain) explain.style.display = 'block';
+  }
+
+  function closeRevision(){
+    document.getElementById('revision-overlay').classList.remove('active');
+  }
+</script>
+</body>
+</html>
