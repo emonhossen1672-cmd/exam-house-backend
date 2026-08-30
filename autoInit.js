@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const pool = require('./db');
+const { ADMIN_USERNAME, ADMIN_PASSWORD } = require('./config');
 
 async function autoInit() {
   try {
@@ -12,14 +13,11 @@ async function autoInit() {
     await pool.query(schema);
     console.log('✅ Tables ready.');
 
-    const username = process.env.ADMIN_USERNAME || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'changeme123';
-
-    const existing = await pool.query('SELECT id FROM admin_users WHERE username=$1', [username]);
+    const existing = await pool.query('SELECT id FROM admin_users WHERE username=$1', [ADMIN_USERNAME]);
     if (existing.rows.length === 0) {
-      const hash = await bcrypt.hash(password, 10);
-      await pool.query('INSERT INTO admin_users (username, password_hash) VALUES ($1,$2)', [username, hash]);
-      console.log(`✅ Admin user created — username: ${username}`);
+      const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      await pool.query('INSERT INTO admin_users (username, password_hash) VALUES ($1,$2)', [ADMIN_USERNAME, hash]);
+      console.log(`✅ Admin user created — username: ${ADMIN_USERNAME}`);
     } else {
       console.log('ℹ️ Admin user already exists.');
     }
