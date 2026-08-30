@@ -54,8 +54,10 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 4000;
 
 const autoInit = require('./autoInit');
+const { startReminderScheduler } = require('./services/reminderScheduler');
 autoInit().finally(() => {
   app.listen(PORT, () => console.log(`Exam House API running on port ${PORT}`));
+  startReminderScheduler();
 });
 
 // ----- Process-level safety nets -----
