@@ -14,7 +14,7 @@ function genSerial(type) {
 // POST /api/exams — create an exam and attach questions
 // body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks,
+  const { title, type, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, question_ids, negative_marks,
           application_deadline, exam_probable_date, circular_url } = req.body;
   if (!title || !type || !question_ids || !question_ids.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
@@ -28,10 +28,10 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     await client.query('BEGIN');
     const serial = genSerial(type);
     const examResult = await client.query(
-      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks,
+      `INSERT INTO exams (title, type, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, serial, status, negative_marks,
          application_deadline, exam_probable_date, circular_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-      [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [title, type, ministry_id || null, post_name || null, subject || null, topic || null, grade || null, duration_minutes || 60,
        type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
        application_deadline || null, exam_probable_date || null, circular_url || null]
     );
@@ -70,7 +70,7 @@ router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
 // so e.g. sending only { negative_marks } won't wipe ministry_id/post_name/
 // subject/grade/start_time like it used to.
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks,
+  const { title, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, negative_marks,
           application_deadline, exam_probable_date, circular_url } = req.body;
   const { rows } = await pool.query(
     `UPDATE exams SET
@@ -84,12 +84,14 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
       negative_marks = COALESCE($9, negative_marks),
       application_deadline = COALESCE($10, application_deadline),
       exam_probable_date = COALESCE($11, exam_probable_date),
-      circular_url = COALESCE($12, circular_url)
+      circular_url = COALESCE($12, circular_url),
+      topic = COALESCE($13, topic)
      WHERE id=$8 RETURNING *`,
     [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
      duration_minutes || null, start_time || null, req.params.id,
      negative_marks === undefined ? null : negative_marks,
-     application_deadline || null, exam_probable_date || null, circular_url || null]
+     application_deadline || null, exam_probable_date || null, circular_url || null,
+     topic || null]
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -123,7 +125,7 @@ router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
   params.push(req.user ? req.user.id : null);
   const userParamIdx = params.length;
   const { rows } = await pool.query(`
-    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
+    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.topic, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
       e.is_daily, e.is_practice,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
