@@ -36,6 +36,21 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
       return res.status(409).json({ error: 'আপনি এই পরীক্ষা আগেই সাবমিট করেছেন' });
     }
   }
+  // Same fix for guests: a guest could resubmit the same live exam unlimited
+  // times to game the merit list, since only user_id was checked before. We
+  // can only key this on the phone number they typed in — if a guest leaves
+  // phone blank there's no reliable identity to dedupe on, so this narrows
+  // but doesn't fully close the gap. Encouraging login for live exams (where
+  // this matters most) remains the strongest fix.
+  if (!userId && exam.type === 'live' && phone) {
+    const dup = await pool.query(
+      'SELECT id FROM results WHERE exam_id=$1 AND user_id IS NULL AND participant_phone=$2 LIMIT 1',
+      [exam_id, phone]
+    );
+    if (dup.rows.length) {
+      return res.status(409).json({ error: 'এই মোবাইল নম্বর দিয়ে আপনি এই পরীক্ষা আগেই সাবমিট করেছেন' });
+    }
+  }
 
   const qRes = await pool.query(
     `SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
