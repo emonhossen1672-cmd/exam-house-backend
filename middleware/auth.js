@@ -1,13 +1,13 @@
 // middleware/auth.js — protects admin routes and user (student) routes
 const jwt = require('jsonwebtoken');
-const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const { JWT_SECRET } = require('../config');
 
 function requireAdmin(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'লগইন প্রয়োজন' });
   try {
-    const payload = jwt.verify(token, SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
     if (payload.role !== 'admin') return res.status(403).json({ error: 'অনুমতি নেই' });
     req.admin = payload;
     next();
@@ -22,7 +22,7 @@ function requireUser(req, res, next) {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'লগইন প্রয়োজন' });
   try {
-    const payload = jwt.verify(token, SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
     if (payload.role !== 'user') return res.status(403).json({ error: 'অনুমতি নেই' });
     req.user = payload;
     next();
@@ -37,7 +37,7 @@ function optionalUser(req, res, next) {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (token) {
     try {
-      const payload = jwt.verify(token, SECRET);
+      const payload = jwt.verify(token, JWT_SECRET);
       if (payload.role === 'user') req.user = payload;
     } catch (err) { /* invalid/expired token — just continue as guest */ }
   }
