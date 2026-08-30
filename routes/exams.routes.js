@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
-const asyncHandler = require('../utils/asyncHandler');
+const { requireAdmin } = require('../middleware/auth');
 
 function genSerial(type) {
   const prefix = type === 'live' ? 'EH-LV' : 'EH-MT';
@@ -13,9 +12,8 @@ function genSerial(type) {
 
 // POST /api/exams — create an exam and attach questions
 // body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
-router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { title, type, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, question_ids, negative_marks,
-          application_deadline, exam_probable_date, circular_url } = req.body;
+router.post('/', requireAdmin, async (req, res) => {
+  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks } = req.body;
   if (!title || !type || !question_ids || !question_ids.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
   }
@@ -28,12 +26,10 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     await client.query('BEGIN');
     const serial = genSerial(type);
     const examResult = await client.query(
-      `INSERT INTO exams (title, type, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, serial, status, negative_marks,
-         application_deadline, exam_probable_date, circular_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-      [title, type, ministry_id || null, post_name || null, subject || null, topic || null, grade || null, duration_minutes || 60,
-       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
-       application_deadline || null, exam_probable_date || null, circular_url || null]
+      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
+       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0]
     );
     const exam = examResult.rows[0];
 
@@ -51,125 +47,86 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   } finally {
     client.release();
   }
-}));
+});
 
-// GET /api/exams/admin/list — full list for admin dashboard (with counts)
-router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
+// GET /api/exams/admin/list — full list for admin dashboard (with counts).
+// Auto-generated practice-mode/daily-quiz exams are excluded by default so
+// this table only shows exams the admin actually created; pass
+// ?include_auto=true to see everything (e.g. for debugging).
+router.get('/admin/list', requireAdmin, async (req, res) => {
+  const includeAuto = req.query.include_auto === 'true';
   const { rows } = await pool.query(`
     SELECT e.*, m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
       (SELECT COUNT(*) FROM results r WHERE r.exam_id = e.id) AS attempt_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
+    ${includeAuto ? '' : 'WHERE e.is_practice = false AND e.is_daily = false'}
     ORDER BY e.created_at DESC
   `);
   res.json(rows);
-}));
+});
 
-// PUT /api/exams/:id — update exam fields. Partial updates are safe: any
-// field left out of the request body keeps its current value (COALESCE),
-// so e.g. sending only { negative_marks } won't wipe ministry_id/post_name/
-// subject/grade/start_time like it used to.
-router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { title, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, negative_marks,
-          application_deadline, exam_probable_date, circular_url } = req.body;
+// PUT /api/exams/:id — update exam fields (title, ministry_id, post_name, subject, grade, duration_minutes, start_time)
+router.put('/:id', requireAdmin, async (req, res) => {
+  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks } = req.body;
   const { rows } = await pool.query(
     `UPDATE exams SET
       title = COALESCE($1, title),
-      ministry_id = COALESCE($2, ministry_id),
-      post_name = COALESCE($3, post_name),
-      subject = COALESCE($4, subject),
-      grade = COALESCE($5, grade),
+      ministry_id = $2,
+      post_name = $3,
+      subject = $4,
+      grade = $5,
       duration_minutes = COALESCE($6, duration_minutes),
-      start_time = COALESCE($7, start_time),
-      negative_marks = COALESCE($9, negative_marks),
-      application_deadline = COALESCE($10, application_deadline),
-      exam_probable_date = COALESCE($11, exam_probable_date),
-      circular_url = COALESCE($12, circular_url),
-      topic = COALESCE($13, topic)
+      start_time = $7,
+      negative_marks = COALESCE($9, negative_marks)
      WHERE id=$8 RETURNING *`,
     [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
-     duration_minutes || null, start_time || null, req.params.id,
-     negative_marks === undefined ? null : negative_marks,
-     application_deadline || null, exam_probable_date || null, circular_url || null,
-     topic || null]
+     duration_minutes || null, start_time || null, req.params.id, negative_marks]
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
-}));
+});
 
 // PUT /api/exams/:id/status — open/close an exam manually
-router.put('/:id/status', requireAdmin, asyncHandler(async (req, res) => {
+router.put('/:id/status', requireAdmin, async (req, res) => {
   const { status } = req.body; // scheduled | active | closed
   const { rows } = await pool.query('UPDATE exams SET status=$1 WHERE id=$2 RETURNING *', [status, req.params.id]);
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
-}));
+});
 
 // DELETE /api/exams/:id
-router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   await pool.query('DELETE FROM exams WHERE id=$1', [req.params.id]);
   res.json({ ok: true });
-}));
+});
 
 // ---------- PUBLIC (for the exam-taking frontend) ----------
 
 // GET /api/exams/public/list?type=live|model — no correct answers included.
-// optionalUser: if a valid student token is sent, each exam also gets a
-// reminder_set flag showing whether *this* student has a pending 🔔
-// reminder for it (so the button can render already-toggled-on).
-router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
+// Auto-generated exams (daily quiz, practice-mode sessions) are deliberately
+// excluded here — they're reached only through their own entry points (the
+// daily-quiz card, the প্র্যাকটিস মোড tab), never through ministry/subject browsing.
+router.get('/public/list', async (req, res) => {
   const { type } = req.query;
   const params = [];
-  let where = '';
-  if (type) { params.push(type); where = 'WHERE e.type = $1'; }
-  params.push(req.user ? req.user.id : null);
-  const userParamIdx = params.length;
+  let where = 'WHERE e.is_practice = false AND e.is_daily = false';
+  if (type) { params.push(type); where += ' AND e.type = $1'; }
   const { rows } = await pool.query(`
-    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.topic, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
-      e.is_daily, e.is_practice,
+    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
       m.name AS ministry_name,
-      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
-      EXISTS(
-        SELECT 1 FROM exam_reminders er WHERE er.exam_id = e.id AND er.user_id = $${userParamIdx}
-      ) AS reminder_set
+      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
     ${where} ORDER BY e.start_time NULLS LAST, e.created_at DESC
   `, params);
   res.json(rows);
-}));
-
-// POST /api/exams/public/:id/remind — logged-in student opts in to an SMS
-// reminder before this live exam starts. Actual sending happens later, in
-// services/reminderScheduler.js.
-router.post('/public/:id/remind', requireUser, asyncHandler(async (req, res) => {
-  const examRes = await pool.query('SELECT id, type, start_time FROM exams WHERE id=$1', [req.params.id]);
-  if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
-  const exam = examRes.rows[0];
-  if (exam.type !== 'live' || !exam.start_time) {
-    return res.status(400).json({ error: 'শুধু লাইভ পরীক্ষার জন্য রিমাইন্ডার সেট করা যায়' });
-  }
-  if (new Date(exam.start_time) <= new Date()) {
-    return res.status(400).json({ error: 'পরীক্ষাটি ইতিমধ্যে শুরু হয়ে গেছে' });
-  }
-  await pool.query(
-    `INSERT INTO exam_reminders (user_id, exam_id) VALUES ($1,$2)
-     ON CONFLICT (user_id, exam_id) DO NOTHING`,
-    [req.user.id, req.params.id]
-  );
-  res.json({ ok: true, reminder_set: true });
-}));
-
-// DELETE /api/exams/public/:id/remind — cancel a previously set reminder
-router.delete('/public/:id/remind', requireUser, asyncHandler(async (req, res) => {
-  await pool.query('DELETE FROM exam_reminders WHERE user_id=$1 AND exam_id=$2', [req.user.id, req.params.id]);
-  res.json({ ok: true, reminder_set: false });
-}));
+});
 
 // GET /api/exams/public/daily-quiz — auto-generated 10-question daily quiz.
 // Reuses the normal exam/results flow: creates (or reuses, if already generated
 // today) a real 'model' exam row so taking it, submitting, and reviewing it all
 // work exactly like any other model test.
-router.get('/public/daily-quiz', asyncHandler(async (req, res) => {
+router.get('/public/daily-quiz', async (req, res) => {
   const client = await pool.connect();
   try {
     const existing = await client.query(
@@ -210,21 +167,14 @@ router.get('/public/daily-quiz', asyncHandler(async (req, res) => {
   } finally {
     client.release();
   }
-}));
+});
 
 // GET /api/exams/public/:id/questions — questions WITHOUT correct answers (for taking the exam)
-router.get('/public/:id/questions', asyncHandler(async (req, res) => {
+router.get('/public/:id/questions', async (req, res) => {
   const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
   if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   const exam = examRes.rows[0];
 
-  // Fix: previously only `start_time` was checked for live exams — an admin
-  // manually closing an exam (status='closed') had no effect here, so
-  // students could still open and take a closed exam. Now status is checked
-  // for every exam type.
-  if (exam.status === 'closed') {
-    return res.status(403).json({ error: 'পরীক্ষাটি বন্ধ করে দেওয়া হয়েছে' });
-  }
   if (exam.type === 'live' && exam.start_time && new Date(exam.start_time) > new Date()) {
     return res.status(403).json({ error: 'পরীক্ষা এখনো শুরু হয়নি' });
   }
@@ -236,10 +186,10 @@ router.get('/public/:id/questions', asyncHandler(async (req, res) => {
   `, [req.params.id]);
 
   res.json({ exam, questions: rows });
-}));
+});
 
 // GET /api/exams/public/:id/archive — WITH correct answers, but only once the exam window has closed
-router.get('/public/:id/archive', asyncHandler(async (req, res) => {
+router.get('/public/:id/archive', async (req, res) => {
   const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
   if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   const exam = examRes.rows[0];
@@ -261,10 +211,10 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
   `, [req.params.id]);
 
   res.json({ exam, questions: rows });
-}));
+});
 
 // GET /api/exams/public/archive/list — closed/expired live exams, most recent first
-router.get('/public/archive/list', asyncHandler(async (req, res) => {
+router.get('/public/archive/list', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.grade, e.duration_minutes, e.start_time, e.serial,
       m.name AS ministry_name,
@@ -276,32 +226,11 @@ router.get('/public/archive/list', asyncHandler(async (req, res) => {
     ORDER BY e.start_time DESC
   `);
   res.json(rows);
-}));
-
-// GET /api/exams/public/circulars — countdown calendar: application deadline
-// ও exam-এর সম্ভাব্য তারিখ থাকা exam/post-গুলো, deadline অনুযায়ী সাজানো।
-// ?include_expired=1 দিলে মেয়াদ শেষ হওয়া সার্কুলারও (রেফারেন্সের জন্য) দেখাবে।
-router.get('/public/circulars', asyncHandler(async (req, res) => {
-  const includeExpired = req.query.include_expired === '1';
-  const { rows } = await pool.query(`
-    SELECT e.id, e.title, e.post_name, e.grade, e.serial,
-      e.application_deadline, e.exam_probable_date, e.circular_url,
-      m.name AS ministry_name,
-      (e.application_deadline IS NOT NULL AND e.application_deadline < NOW()) AS deadline_passed,
-      CASE WHEN e.application_deadline IS NOT NULL
-        THEN CEIL(EXTRACT(EPOCH FROM (e.application_deadline - NOW())) / 86400)::int
-        ELSE NULL END AS days_left
-    FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
-    WHERE (e.application_deadline IS NOT NULL OR e.exam_probable_date IS NOT NULL)
-      ${includeExpired ? '' : 'AND (e.application_deadline IS NULL OR e.application_deadline >= NOW())'}
-    ORDER BY COALESCE(e.application_deadline, e.exam_probable_date::timestamp) ASC
-  `);
-  res.json(rows);
-}));
+});
 
 // GET /api/exams/public/subjects — distinct subjects in the question bank with
 // their question counts, so the practice-mode screen can list them to pick from.
-router.get('/public/subjects', asyncHandler(async (req, res) => {
+router.get('/public/subjects', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT subject, COUNT(*)::int AS question_count
     FROM questions
@@ -309,14 +238,14 @@ router.get('/public/subjects', asyncHandler(async (req, res) => {
     ORDER BY question_count DESC
   `);
   res.json(rows);
-}));
+});
 
 // GET /api/exams/public/practice?subject=X&count=15 — instantly generates a
 // fresh practice quiz: picks random questions for the chosen subject and wraps
 // them in a real (but is_practice=true) 'model' exam row, so the rest of the
 // app (taking it, submitting, subject-stats, streak, wrong-questions revision)
 // all work automatically through the existing exam machinery — no separate code path.
-router.get('/public/practice', asyncHandler(async (req, res) => {
+router.get('/public/practice', async (req, res) => {
   const subject = (req.query.subject || '').trim();
   let count = parseInt(req.query.count, 10);
   if (!Number.isFinite(count) || count < 5) count = 15;
@@ -334,6 +263,18 @@ router.get('/public/practice', asyncHandler(async (req, res) => {
     }
 
     await client.query('BEGIN');
+
+    // Opportunistic housekeeping: remove old practice exams that were generated
+    // but never actually finished (no result submitted) — keeps the exams
+    // table from growing forever as more students use practice mode. Exams
+    // with a submitted result are never touched, so no one's score/history is lost.
+    await client.query(`
+      DELETE FROM exams
+      WHERE is_practice = true
+        AND created_at < NOW() - INTERVAL '24 hours'
+        AND id NOT IN (SELECT DISTINCT exam_id FROM results WHERE exam_id IS NOT NULL)
+    `);
+
     const serial = 'EH-PR-' + Math.floor(1000 + Math.random() * 9000);
     const durationMinutes = Math.max(5, qRes.rows.length); // ~1 minute per question
     const examResult = await client.query(
@@ -356,6 +297,6 @@ router.get('/public/practice', asyncHandler(async (req, res) => {
   } finally {
     client.release();
   }
-}));
+});
 
 module.exports = router;
