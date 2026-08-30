@@ -212,6 +212,13 @@
   .btn-enter:active{opacity:0.85;}
   .ticket-btn-group{display:flex; gap:8px;}
   .btn-enter.practice{background:var(--gold, #C9973B);}
+  .remind-btn{
+    display:flex; align-items:center; gap:6px; background:var(--paper-deep); color:var(--ink-soft);
+    border:1.5px solid var(--line); padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600;
+    cursor:pointer; font-family:'Noto Sans Bengali';
+  }
+  .remind-btn.active{background:var(--gold-soft); color:var(--seal-deep); border-color:var(--gold);}
+  .remind-btn:active{opacity:0.85;}
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
   .search-bar-wrap{position:relative; margin-bottom:16px;}
   .search-input{
@@ -491,6 +498,19 @@
   .merit-rank{font-family:'Space Mono',monospace; font-weight:700; color:var(--ink-soft); width:22px;}
   .merit-name{flex:1; font-size:13.5px;}
   .merit-score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700;}
+
+  /* ---------- Achievements / badges ---------- */
+  .badge-summary{font-size:12.5px; color:var(--ink-faint); padding:0 0 14px;}
+  .badge-group-title{font-family:'Noto Serif Bengali',serif; font-size:14px; color:var(--ink); margin:16px 0 10px;}
+  .badge-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .badge-item{
+    background:var(--card); border:1.5px solid var(--line); border-radius:14px;
+    padding:14px 8px; text-align:center; opacity:0.55;
+  }
+  .badge-item.earned{opacity:1; border-color:var(--gold); background:var(--gold-soft);}
+  .badge-emoji{font-size:24px; margin-bottom:6px;}
+  .badge-title{font-size:10.5px; color:var(--ink-soft); font-weight:600; line-height:1.35;}
+  .badge-progress{font-size:9.5px; color:var(--ink-faint); margin-top:4px; font-family:'Space Mono',monospace;}
   .result-close{
     position:sticky; bottom:0; margin:0 18px 18px; background:var(--ink); color:#fff;
     border:none; padding:14px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;
@@ -679,6 +699,10 @@
         🏆 <span>সার্বিক র‍্যাংকিং দেখুন</span>
       </button>
 
+      <button class="revision-trigger" id="achievements-trigger-btn" style="background:var(--seal);" onclick="openAchievements()">
+        🎖️ <span id="achievements-trigger-label">অর্জন দেখুন</span>
+      </button>
+
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
       <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
       <div id="subject-stats-list"></div>
@@ -793,6 +817,16 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="leaderboard-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ ACHIEVEMENTS / BADGES OVERLAY ============ -->
+  <div class="exam-overlay" id="achievements-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeAchievements()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">আমার অর্জন</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="achievements-body" style="padding:14px 18px 40px;"></div>
   </div>
 
   <!-- ============ MY BOOKMARKS OVERLAY ============ -->
@@ -1027,6 +1061,7 @@
 
       refreshRevisionTrigger();
       refreshBookmarkTrigger();
+      refreshAchievementsBadge();
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
@@ -1164,6 +1199,50 @@
 
   function closeLeaderboard(){
     document.getElementById('leaderboard-overlay').classList.remove('active');
+  }
+
+  // ---------- Achievements / badges ----------
+  const BADGE_GROUP_LABEL = { streak:'স্ট্রিক', questions:'প্রশ্ন সমাধান', exams:'পরীক্ষা সম্পন্ন', rank:'র‍্যাংকিং' };
+
+  function openAchievements(){
+    document.getElementById('achievements-overlay').classList.add('active');
+    loadAchievements();
+  }
+  function closeAchievements(){
+    document.getElementById('achievements-overlay').classList.remove('active');
+  }
+
+  async function loadAchievements(){
+    const body = document.getElementById('achievements-body');
+    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const data = await apiGetAuth('/api/results/me/achievements');
+      const groups = {};
+      data.badges.forEach(b=>{ (groups[b.group] = groups[b.group] || []).push(b); });
+
+      let html = `<div class="badge-summary">${toBnDigits(data.earned_count)} / ${toBnDigits(data.total_count)}টি ব্যাজ অর্জিত হয়েছে</div>`;
+      Object.keys(groups).forEach(group=>{
+        html += `<div class="badge-group-title">${BADGE_GROUP_LABEL[group] || group}</div><div class="badge-grid">`;
+        html += groups[group].map(b=>`
+          <div class="badge-item ${b.earned ? 'earned' : ''}">
+            <div class="badge-emoji">${b.emoji}</div>
+            <div class="badge-title">${b.title}</div>
+            ${(!b.earned && b.target) ? `<div class="badge-progress">${toBnDigits(b.progress)}/${toBnDigits(b.target)}</div>` : ''}
+          </div>`).join('');
+        html += `</div>`;
+      });
+      body.innerHTML = html;
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
+  async function refreshAchievementsBadge(){
+    try{
+      const data = await apiGetAuth('/api/results/me/achievements');
+      document.getElementById('achievements-trigger-label').textContent =
+        `অর্জন দেখুন (${toBnDigits(data.earned_count)}/${toBnDigits(data.total_count)})`;
+    }catch(e){ /* silent — label just stays generic */ }
   }
 
   let WRONG_QUESTIONS_CACHE = null;
@@ -1557,7 +1636,16 @@
           const btnClass = st.archive ? 'btn-enter archive' : 'btn-enter';
           const disabled = st.canEnter ? '' : 'disabled';
           const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
-          return `<button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>`;
+          const enterBtn = `<button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>`;
+          // Reminder bell: only for a logged-in student, only while the exam
+          // hasn't started yet (st.countdown is set precisely in that window).
+          if(USER_TOKEN && st.countdown !== undefined){
+            const isSet = !!exam.reminder_set;
+            const remindBtn = `<button class="remind-btn ${isSet ? 'active' : ''}" onclick="toggleReminder(${exam.id}, this)">
+              ${isSet ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন'}</button>`;
+            return `<div class="ticket-btn-group">${remindBtn}${enterBtn}</div>`;
+          }
+          return enterBtn;
         })();
 
     return `
@@ -1576,6 +1664,26 @@
           ${bottomHtml}
         </div>
       </div>`;
+  }
+
+  // Toggles a 🔔 SMS reminder for a live exam that hasn't started yet.
+  // Updates the cached exam object + button in place so every list showing
+  // this exam (home, live tab, search) reflects the new state without a refetch.
+  async function toggleReminder(examId, btnEl){
+    const exam = ALL_EXAMS.find(e=>e.id===examId);
+    if(!exam) return;
+    const turningOn = !exam.reminder_set;
+    btnEl.disabled = true;
+    try{
+      await apiAuth('/api/exams/public/'+examId+'/remind', turningOn ? 'POST' : 'DELETE', {});
+      exam.reminder_set = turningOn;
+      btnEl.classList.toggle('active', turningOn);
+      btnEl.innerHTML = turningOn ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন';
+    }catch(e){
+      alert(e.message || 'রিমাইন্ডার সেট করা যায়নি');
+    }finally{
+      btnEl.disabled = false;
+    }
   }
 
   function renderList(containerId, exams, emptyMsg){
