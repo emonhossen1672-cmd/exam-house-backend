@@ -209,6 +209,77 @@ router.get('/:id/review', requireUser, asyncHandler(async (req, res) => {
   res.json({ result, review });
 }));
 
+// GET /api/results/me/achievements — badges/milestones for the logged-in
+// student. Nothing is stored for this — every badge is derived fresh from
+// existing data (results + users.longest_streak) on each call, so there's
+// no separate table to keep in sync.
+router.get('/me/achievements', requireUser, asyncHandler(async (req, res) => {
+  const statsRes = await pool.query(`
+    SELECT
+      u.longest_streak,
+      COALESCE(SUM(r.correct_count + r.wrong_count), 0)::int AS questions_answered,
+      COUNT(r.id)::int AS exams_taken,
+      MIN(er.rank) AS best_exam_rank
+    FROM users u
+    LEFT JOIN results r ON r.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*) FILTER (WHERE r2.score > r.score)::int + 1 AS rank
+      FROM results r2 WHERE r2.exam_id = r.exam_id
+    ) er ON true
+    WHERE u.id = $1
+    GROUP BY u.id
+  `, [req.user.id]);
+  const stats = statsRes.rows[0] || { longest_streak: 0, questions_answered: 0, exams_taken: 0, best_exam_rank: null };
+
+  const overallRes = await pool.query(`
+    SELECT rank FROM (
+      SELECT u.id AS user_id, RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank
+      FROM results r JOIN users u ON u.id = r.user_id
+      WHERE r.user_id IS NOT NULL
+      GROUP BY u.id
+    ) t WHERE user_id = $1
+  `, [req.user.id]);
+  const overallRank = overallRes.rows[0] ? overallRes.rows[0].rank : null;
+
+  const streakBadges = [3, 7, 15, 30, 60].map(n => ({
+    id: `streak_${n}`, group: 'streak', emoji: '🔥',
+    title: `${n} দিনের স্ট্রিক`,
+    earned: stats.longest_streak >= n,
+    target: n, progress: Math.min(stats.longest_streak, n)
+  }));
+
+  const questionBadges = [50, 100, 250, 500, 1000].map(n => ({
+    id: `questions_${n}`, group: 'questions', emoji: '📚',
+    title: `${n} প্রশ্ন সমাধান`,
+    earned: stats.questions_answered >= n,
+    target: n, progress: Math.min(stats.questions_answered, n)
+  }));
+
+  const examBadges = [5, 10, 25, 50].map(n => ({
+    id: `exams_${n}`, group: 'exams', emoji: '📝',
+    title: `${n}টি পরীক্ষা সম্পন্ন`,
+    earned: stats.exams_taken >= n,
+    target: n, progress: Math.min(stats.exams_taken, n)
+  }));
+
+  const rankBadges = [
+    { id: 'top_1', group: 'rank', emoji: '🥇', title: 'কোনো পরীক্ষায় ১ম স্থান',
+      earned: stats.best_exam_rank === 1 },
+    { id: 'top_10', group: 'rank', emoji: '🏅', title: 'কোনো পরীক্ষায় টপ ১০',
+      earned: stats.best_exam_rank !== null && stats.best_exam_rank <= 10 },
+    { id: 'top_100_overall', group: 'rank', emoji: '🏆', title: 'সার্বিক লিডারবোর্ডে টপ ১০০',
+      earned: overallRank !== null && overallRank <= 100 },
+  ];
+
+  const badges = [...streakBadges, ...questionBadges, ...examBadges, ...rankBadges];
+  res.json({
+    badges,
+    earned_count: badges.filter(b => b.earned).length,
+    total_count: badges.length,
+    stats: { ...stats, overall_rank: overallRank }
+  });
+}));
+
 // GET /api/results/leaderboard/overall — site-wide ranking across ALL exams,
 // so users can see how they compare beyond a single exam. Ranked by total
 // score summed across every exam they've taken (rewards both accuracy and
