@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const asyncHandler = require('../utils/asyncHandler');
 
 // GET /api/questions?ministry_id=&grade=&subject=&search=  (admin only — includes correct answer)
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', requireAdmin, asyncHandler(async (req, res) => {
   const { ministry_id, grade, subject, search } = req.query;
   const clauses = [];
   const params = [];
@@ -22,10 +23,10 @@ router.get('/', requireAdmin, async (req, res) => {
     params
   );
   res.json(rows);
-});
+}));
 
 // POST /api/questions  — add a single question
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const { ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
   if (!subject || !question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
     return res.status(400).json({ error: 'সব ঘর পূরণ করুন' });
@@ -36,10 +37,10 @@ router.post('/', requireAdmin, async (req, res) => {
     [ministry_id || null, grade || null, subject, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
   );
   res.status(201).json(rows[0]);
-});
+}));
 
 // PUT /api/questions/:id — edit a question
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
   const { rows } = await pool.query(
     `UPDATE questions SET ministry_id=$1, grade=$2, subject=$3, question_text=$4,
@@ -49,22 +50,22 @@ router.put('/:id', requireAdmin, async (req, res) => {
   );
   if (rows.length === 0) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
   res.json(rows[0]);
-});
+}));
 
 // DELETE /api/questions/:id
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   await pool.query('DELETE FROM questions WHERE id=$1', [req.params.id]);
   res.json({ ok: true });
-});
+}));
 
 // GET /api/questions/ministries/list — for dropdowns
-router.get('/ministries/list', requireAdmin, async (req, res) => {
+router.get('/ministries/list', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM ministries ORDER BY name');
   res.json(rows);
-});
+}));
 
 // POST /api/questions/ministries — add a new ministry
-router.post('/ministries', requireAdmin, async (req, res) => {
+router.post('/ministries', requireAdmin, asyncHandler(async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'নাম দিন' });
   const { rows } = await pool.query(
@@ -72,11 +73,11 @@ router.post('/ministries', requireAdmin, async (req, res) => {
     [name]
   );
   res.status(201).json(rows[0]);
-});
+}));
 
 // POST /api/questions/bulk — insert many already-structured questions at once
 // body: { questions: [{ ministry_id, grade, subject, question_text, option_a..d, correct_option, explanation }] }
-router.post('/bulk', requireAdmin, async (req, res) => {
+router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
   const { questions } = req.body;
   if (!Array.isArray(questions) || !questions.length) {
     return res.status(400).json({ error: 'কোনো প্রশ্ন পাওয়া যায়নি' });
@@ -111,6 +112,6 @@ router.post('/bulk', requireAdmin, async (req, res) => {
   }
 
   res.json({ added, failed: errors.length, errors });
-});
+}));
 
 module.exports = router;
