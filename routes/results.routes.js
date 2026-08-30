@@ -76,7 +76,24 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
     streak = await updateStreak(userId);
   }
 
-  res.status(201).json({ ...rows[0], review, streak });
+  // Rank/percentile within this exam: how this result compares to everyone
+  // else who has submitted the same exam, so far. Rank = 1 + how many
+  // scored strictly higher (ties share the same rank). Recomputed fresh
+  // each submission, so it's always accurate as of "right now".
+  const rankRes = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE score > $2)::int + 1 AS rank,
+       COUNT(*)::int AS total_participants
+     FROM results WHERE exam_id = $1`,
+    [exam_id, score]
+  );
+  const { rank, total_participants } = rankRes.rows[0];
+  const percentile = total_participants > 1
+    ? Math.round(((total_participants - rank) / (total_participants - 1)) * 10000) / 100
+    : 100;
+  const rankInfo = { rank, total_participants, percentile };
+
+  res.status(201).json({ ...rows[0], review, streak, rank_info: rankInfo });
 }));
 
 // Updates a logged-in user's daily streak after they submit a result.
