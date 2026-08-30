@@ -601,7 +601,10 @@ async function loadExamsList(){
             </select>
           </td>
           <td class="mono" style="font-size:12px;">${ex.serial || '-'}</td>
-          <td class="row-actions"><button class="btn btn-ghost btn-small danger" onclick="deleteExam(${ex.id})">মুছুন</button></td>
+          <td class="row-actions">
+            <button class="btn btn-ghost btn-small" onclick="editExamNegativeMarks(${ex.id}, ${ex.negative_marks})">এডিট</button>
+            <button class="btn btn-ghost btn-small danger" onclick="deleteExam(${ex.id})">মুছুন</button>
+          </td>
         </tr>
       `).join('')}
     </table>`;
@@ -621,6 +624,27 @@ async function deleteExam(id){
   if (!confirm('আপনি কি নিশ্চিত এই পরীক্ষাটি মুছে ফেলতে চান?')) return;
   try{
     await api('/api/exams/' + id, { method: 'DELETE' });
+    loadExamsList();
+  } catch(err){ alert(err.message); }
+}
+
+// Quick-edit for negative marking — the field admins get wrong most often
+// (typing a whole number like 2 instead of a fraction like 0.25). Only
+// sends negative_marks in the request; the backend now COALESCEs every
+// other field so nothing else on the exam gets touched.
+async function editExamNegativeMarks(id, current){
+  const input = prompt(
+    'প্রতি ভুল উত্তরে কত নম্বর কাটা হবে? (০ = নেগেটিভ মার্কিং নেই, সাধারণত ০.২৫ বা ০.৫ ব্যবহার হয়)',
+    current
+  );
+  if (input === null) return; // cancelled
+  const value = parseFloat(input);
+  if (isNaN(value) || value < 0) {
+    alert('সঠিক সংখ্যা দিন (যেমন ০, ০.২৫, ০.৫)');
+    return;
+  }
+  try{
+    await api('/api/exams/' + id, { method: 'PUT', body: JSON.stringify({ negative_marks: value }) });
     loadExamsList();
   } catch(err){ alert(err.message); }
 }
