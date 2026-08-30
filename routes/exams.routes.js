@@ -11,9 +11,10 @@ function genSerial(type) {
 // ---------- ADMIN ----------
 
 // POST /api/exams — create an exam and attach questions
-// body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
+// body: { title, type: 'live'|'model', ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, negative_marks, application_deadline, exam_probable_date, circular_url, question_ids: [1,2,3] }
 router.post('/', requireAdmin, async (req, res) => {
-  const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks } = req.body;
+  const { title, type, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time,
+          question_ids, negative_marks, application_deadline, exam_probable_date, circular_url } = req.body;
   if (!title || !type || !question_ids || !question_ids.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
   }
@@ -26,10 +27,11 @@ router.post('/', requireAdmin, async (req, res) => {
     await client.query('BEGIN');
     const serial = genSerial(type);
     const examResult = await client.query(
-      `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
-       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0]
+      `INSERT INTO exams (title, type, ministry_id, post_name, subject, topic, grade, duration_minutes, start_time, serial, status, negative_marks, application_deadline, exam_probable_date, circular_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [title, type, ministry_id || null, post_name || null, subject || null, topic || null, grade || null, duration_minutes || 60,
+       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
+       application_deadline || null, exam_probable_date || null, circular_url || null]
     );
     const exam = examResult.rows[0];
 
@@ -66,22 +68,36 @@ router.get('/admin/list', requireAdmin, async (req, res) => {
   res.json(rows);
 });
 
-// PUT /api/exams/:id — update exam fields (title, ministry_id, post_name, subject, grade, duration_minutes, start_time)
+// PUT /api/exams/:id — partial update: only touches the fields actually
+// present in the request body, leaving everything else untouched. This is
+// what makes the admin panel's quick-edit buttons (which each send just one
+// or two fields, e.g. only negative_marks, or only topic) safe to use —
+// previously this endpoint used to silently blank out ministry_id, post_name,
+// subject, grade, and start_time on ANY partial edit, because it wrote every
+// field unconditionally instead of only the ones sent. Fixed here.
+const EXAM_EDITABLE_FIELDS = [
+  'title', 'ministry_id', 'post_name', 'subject', 'topic', 'grade',
+  'duration_minutes', 'start_time', 'negative_marks',
+  'application_deadline', 'exam_probable_date', 'circular_url'
+];
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks } = req.body;
+  const sets = [];
+  const values = [];
+  let i = 1;
+  for (const key of EXAM_EDITABLE_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+      sets.push(`${key} = $${i}`);
+      values.push(req.body[key] === '' ? null : req.body[key]);
+      i++;
+    }
+  }
+  if (!sets.length) {
+    return res.status(400).json({ error: 'কোনো পরিবর্তনযোগ্য তথ্য দেওয়া হয়নি' });
+  }
+  values.push(req.params.id);
   const { rows } = await pool.query(
-    `UPDATE exams SET
-      title = COALESCE($1, title),
-      ministry_id = $2,
-      post_name = $3,
-      subject = $4,
-      grade = $5,
-      duration_minutes = COALESCE($6, duration_minutes),
-      start_time = $7,
-      negative_marks = COALESCE($9, negative_marks)
-     WHERE id=$8 RETURNING *`,
-    [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
-     duration_minutes || null, start_time || null, req.params.id, negative_marks]
+    `UPDATE exams SET ${sets.join(', ')} WHERE id=$${i} RETURNING *`,
+    values
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -113,7 +129,8 @@ router.get('/public/list', async (req, res) => {
   let where = 'WHERE e.is_practice = false AND e.is_daily = false';
   if (type) { params.push(type); where += ' AND e.type = $1'; }
   const { rows } = await pool.query(`
-    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
+    SELECT e.id, e.title, e.type, e.post_name, e.subject, e.topic, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
+      e.application_deadline, e.exam_probable_date, e.circular_url,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
