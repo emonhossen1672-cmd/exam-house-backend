@@ -534,6 +534,42 @@
     border:none; padding:14px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;
   }
 
+  /* ---------- Share card ---------- */
+  .share-btn{
+    width:100%; background:var(--gold); color:var(--navy-deep, #10182C); border:none; border-radius:12px;
+    padding:12px; font-size:13.5px; font-weight:700; font-family:'Noto Sans Bengali'; cursor:pointer; margin-top:10px;
+  }
+  .share-card-wrap{padding:12px 18px 6px; text-align:center;}
+  .share-card-wrap img{width:100%; border-radius:12px; border:1px solid var(--line); margin-bottom:10px; display:block;}
+  .share-actions{display:flex; gap:10px;}
+  .share-actions a, .share-actions button{
+    flex:1; text-align:center; padding:11px; border-radius:10px; font-size:12.5px; font-weight:700;
+    text-decoration:none; cursor:pointer; font-family:'Noto Sans Bengali'; border:none;
+  }
+  .share-actions .dl{background:var(--paper-deep); color:var(--ink);}
+  .share-actions .sh{background:var(--navy-deep); color:#fff;}
+
+  /* ---------- Syllabus tracker ---------- */
+  .syl-progress-wrap{padding:14px 18px 4px;}
+  .syl-progress-top{display:flex; justify-content:space-between; font-size:12.5px; color:#C7CEE0; margin-bottom:6px;}
+  .syl-progress-bar{height:8px; border-radius:6px; background:rgba(255,255,255,0.12); overflow:hidden;}
+  .syl-progress-fill{height:100%; border-radius:6px; background:linear-gradient(90deg,var(--gold) 0%, var(--success) 100%); transition:width .3s ease;}
+  .syl-subject-title{font-family:'Noto Serif Bengali',serif; font-size:15px; color:var(--gold-soft); margin:18px 18px 8px;}
+  .syl-topic{
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,0.045); border:1.5px solid rgba(255,255,255,0.09);
+    border-radius:12px; padding:12px 14px; margin:0 18px 8px; cursor:pointer;
+  }
+  .syl-topic.done{border-color:rgba(47,122,79,0.5); background:rgba(47,122,79,0.12);}
+  .syl-check{
+    width:22px; height:22px; border-radius:50%; flex-shrink:0;
+    border:1.5px solid rgba(255,255,255,0.35);
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff;
+  }
+  .syl-topic.done .syl-check{background:var(--success); border-color:var(--success);}
+  .syl-topic-text{font-size:13.5px; color:#E4E8F2; line-height:1.5;}
+  .syl-topic.done .syl-topic-text{color:#9AA4BE; text-decoration:line-through;}
+
   /* ---------- Archive overlay ---------- */
   .archive-overlay{
     position:fixed; inset:0; z-index:105; background:var(--paper);
@@ -726,6 +762,10 @@
         🎖️ <span id="achievements-trigger-label">অর্জন দেখুন</span>
       </button>
 
+      <button class="revision-trigger" id="syllabus-trigger-btn" style="background:#2E6BA8;" onclick="openSyllabus()">
+        📘 <span>সিলেবাস ট্র্যাকার</span>
+      </button>
+
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
       <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
       <div id="subject-stats-list"></div>
@@ -802,10 +842,42 @@
     </div>
     <div style="padding:0 18px 6px;">
       <button class="result-review-btn" id="result-review-btn" onclick="openReview()" style="display:none;">📖 উত্তরপত্র ও ব্যাখ্যা দেখুন</button>
+      <button class="share-btn" id="result-share-btn" onclick="toggleShareCard()">📤 রেজাল্ট শেয়ার করুন</button>
     </div>
-    <div class="sec-head" style="margin:6px 18px 4px;"><h2>মেধা তালিকা</h2></div>
+    <div class="share-card-wrap" id="share-card-block" style="display:none;">
+      <img id="share-card-img" src="" alt="শেয়ার কার্ড">
+      <div class="share-actions">
+        <a class="dl" id="share-download-link" href="#" download>⬇️ ডাউনলোড</a>
+        <button class="sh" onclick="doShareResult()">📲 শেয়ার করুন</button>
+      </div>
+    </div>
+    <div class="sec-head" style="margin:6px 18px 4px;"><h2>মেধা তালিকা</h2><a onclick="openExamMerit()">সম্পূর্ণ দেখুন →</a></div>
     <div class="review-list" id="merit-list"></div>
     <button class="result-close" onclick="closeResult()">ফিরে যান</button>
+  </div>
+
+  <!-- ============ EXAM-SPECIFIC MERIT LIST OVERLAY ============ -->
+  <div class="exam-overlay" id="exam-merit-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeExamMerit()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">এই পরীক্ষার মেধাক্রম</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="exam-merit-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ SYLLABUS TRACKER OVERLAY ============ -->
+  <div class="exam-overlay" id="syllabus-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeSyllabus()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);" id="syllabus-title">সিলেবাস ট্র্যাকার</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div id="syllabus-progress-wrap" class="syl-progress-wrap" style="display:none;">
+      <div class="syl-progress-top"><span id="syl-progress-label">০%</span><span id="syl-progress-count"></span></div>
+      <div class="syl-progress-bar"><div class="syl-progress-fill" id="syl-progress-fill" style="width:0%;"></div></div>
+    </div>
+    <div class="exam-body" id="syllabus-body" style="padding-bottom:40px;"></div>
   </div>
 
   <!-- ============ ANSWER REVIEW OVERLAY ============ -->
@@ -2007,6 +2079,7 @@
   }
 
   async function showResult(result){
+    LAST_RESULT = result; // needed later for share-card + full merit list lookups
     const total = result.correct_count + result.wrong_count + result.skipped_count;
     document.getElementById('score-ring').style.setProperty('--pct', result.score);
     document.getElementById('score-num').textContent = toBnDigits(result.correct_count) + '/' + toBnDigits(total);
@@ -2014,6 +2087,7 @@
     document.getElementById('stat-correct').textContent = toBnDigits(result.correct_count);
     document.getElementById('stat-wrong').textContent = toBnDigits(result.wrong_count);
     document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
+    document.getElementById('share-card-block').style.display = 'none';
 
     const rankBadge = document.getElementById('rank-badge');
     if(result.rank_info && result.rank_info.total_participants > 0){
@@ -2034,13 +2108,24 @@
     }
 
     try{
-      const merit = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
-      document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
+      const data = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
+      const list = data.leaderboard || [];
+      let html = list.slice(0,15).map(m=>`
         <div class="merit-item ${m.id===result.id ? 'me' : ''}">
-          <div class="merit-rank">${toBnDigits(i+1)}</div>
+          <div class="merit-rank">${toBnDigits(m.rank)}</div>
           <div class="merit-name">${escapeHtml(m.participant_name)}</div>
           <div class="merit-score">${m.score}%</div>
         </div>`).join('');
+      // if this result didn't make the top-15 shown above, still show where it stands
+      if(data.my_result && !list.slice(0,15).some(m=>m.id===result.id)){
+        html += `
+          <div class="merit-item me">
+            <div class="merit-rank">${toBnDigits(data.my_result.rank)}</div>
+            <div class="merit-name">আপনি</div>
+            <div class="merit-score">${data.my_result.score}%</div>
+          </div>`;
+      }
+      document.getElementById('merit-list').innerHTML = html;
     }catch(e){
       document.getElementById('merit-list').innerHTML = '';
     }
@@ -2058,6 +2143,167 @@
   function closeResult(){
     document.getElementById('result-overlay').classList.remove('active');
     goScreen('history');
+  }
+
+  // ---------- Share card ----------
+  let LAST_RESULT = null;
+
+  function toggleShareCard(){
+    const block = document.getElementById('share-card-block');
+    if(block.style.display !== 'none'){ block.style.display = 'none'; return; }
+    if(!LAST_RESULT) return;
+    const url = API_BASE + '/api/results/' + LAST_RESULT.id + '/share-card.svg';
+    document.getElementById('share-card-img').src = url;
+    document.getElementById('share-download-link').href = url;
+    block.style.display = 'block';
+  }
+
+  async function doShareResult(){
+    if(!LAST_RESULT) return;
+    const shareUrl = window.location.origin + '/api/results/' + LAST_RESULT.id + '/share-card.svg';
+    const text = 'Exam House-এ আমার স্কোর ' + LAST_RESULT.score + '%! দেখুন:';
+    if(navigator.share){
+      try{ await navigator.share({ title: 'Exam House রেজাল্ট', text, url: shareUrl }); }
+      catch(e){ /* user cancelled the share sheet — nothing to do */ }
+    } else {
+      try{
+        await navigator.clipboard.writeText(shareUrl);
+        alert('লিংক কপি হয়েছে — ফেসবুক বা হোয়াটসঅ্যাপে পেস্ট করে শেয়ার করুন');
+      }catch(e){
+        alert(shareUrl);
+      }
+    }
+  }
+
+  // ---------- Exam-specific full merit list ----------
+  function openExamMerit(){
+    if(!CURRENT_EXAM) return;
+    document.getElementById('exam-merit-overlay').classList.add('active');
+    loadExamMerit();
+  }
+  async function loadExamMerit(){
+    const body = document.getElementById('exam-merit-body');
+    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const data = await apiGet('/api/results/exam/'+CURRENT_EXAM.id+'?limit=200');
+      const list = data.leaderboard || [];
+      if(!list.length){
+        body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">এখনো কেউ এই পরীক্ষা দেননি।</p>';
+        return;
+      }
+      const myId = LAST_RESULT ? LAST_RESULT.id : null;
+      body.innerHTML = list.map(m=>`
+        <div class="merit-item ${myId && m.id===myId ? 'me' : ''}">
+          <div class="merit-rank">${toBnDigits(m.rank)}</div>
+          <div class="merit-name">${escapeHtml(m.participant_name)}</div>
+          <div class="merit-score">${m.score}%</div>
+        </div>`).join('');
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+  function closeExamMerit(){
+    document.getElementById('exam-merit-overlay').classList.remove('active');
+  }
+
+  // ---------- Syllabus tracker ----------
+  let SYLLABUS_NAV = {level:'pick'};
+  let SYLLABUS_DATA = null;
+
+  function openSyllabus(){
+    document.getElementById('syllabus-overlay').classList.add('active');
+    SYLLABUS_NAV = {level:'pick'};
+    renderSyllabusScreen();
+  }
+  function closeSyllabus(){
+    document.getElementById('syllabus-overlay').classList.remove('active');
+  }
+
+  function renderSyllabusScreen(){
+    const body = document.getElementById('syllabus-body');
+    document.getElementById('syllabus-progress-wrap').style.display = 'none';
+    document.getElementById('syllabus-title').textContent = 'সিলেবাস ট্র্যাকার';
+
+    // distinct ministry+grade combos, derived from exams that actually carry both —
+    // no separate ministries endpoint exists on the public site.
+    const combos = new Map();
+    ALL_EXAMS.forEach(e=>{
+      if(!e.ministry_id || !e.grade) return;
+      const key = e.ministry_id + '|' + e.grade;
+      if(!combos.has(key)) combos.set(key, {ministry_id:e.ministry_id, ministry_name:e.ministry_name||'অন্যান্য', grade:e.grade});
+    });
+    if(!combos.size){
+      body.innerHTML = '<p style="padding:20px 18px; color:#9AA4BE;">এখনো কোনো মন্ত্রণালয়+গ্রেডের জন্য সিলেবাস যুক্ত হয়নি।</p>';
+      return;
+    }
+    body.innerHTML = [...combos.values()].map(c=>`
+      <div class="group-card" style="margin:0 18px 10px;" onclick='syllabusPick(${c.ministry_id},${c.grade},${JSON.stringify(c.ministry_name)})'>
+        <div class="gc-left">
+          <div class="gc-ic ministry">📘</div>
+          <div>
+            <div class="gc-name" style="color:#fff;">${escapeHtml(c.ministry_name)}</div>
+            <div class="gc-meta" style="color:#9AA4BE;">গ্রেড ${toBnDigits(c.grade)}</div>
+          </div>
+        </div>
+        <div class="gc-arrow" style="color:#9AA4BE;">›</div>
+      </div>`).join('');
+  }
+
+  async function syllabusPick(ministryId, grade, ministryName){
+    SYLLABUS_NAV = {level:'topics', ministryId, grade, ministryName};
+    document.getElementById('syllabus-title').textContent = ministryName + ' · গ্রেড ' + toBnDigits(grade);
+    const body = document.getElementById('syllabus-body');
+    body.innerHTML = '<p style="padding:20px 18px; color:#9AA4BE;">লোড হচ্ছে...</p>';
+    try{
+      SYLLABUS_DATA = await apiGetAuth('/api/syllabus/public?ministry_id='+ministryId+'&grade='+grade);
+      renderSyllabusTopics();
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 18px; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
+  function renderSyllabusTopics(){
+    const body = document.getElementById('syllabus-body');
+    const progressWrap = document.getElementById('syllabus-progress-wrap');
+    const data = SYLLABUS_DATA;
+    if(!data || !data.total_topics){
+      progressWrap.style.display = 'none';
+      body.innerHTML = '<p style="padding:20px 18px; color:#9AA4BE;">এই মন্ত্রণালয়+গ্রেডের জন্য এখনো সিলেবাস যুক্ত হয়নি।</p>';
+      return;
+    }
+    progressWrap.style.display = 'block';
+    document.getElementById('syl-progress-label').textContent = data.percent + '%';
+    document.getElementById('syl-progress-count').textContent = toBnDigits(data.completed_topics) + ' / ' + toBnDigits(data.total_topics) + ' সম্পন্ন';
+    document.getElementById('syl-progress-fill').style.width = data.percent + '%';
+
+    const subjects = data.subjects || {};
+    body.innerHTML = Object.keys(subjects).map(subj=>{
+      const topics = subjects[subj];
+      return `<div class="syl-subject-title">${escapeHtml(subj)}</div>` + topics.map(t=>`
+        <div class="syl-topic ${t.completed ? 'done' : ''}" onclick="toggleSyllabusTopic(${t.id})">
+          <div class="syl-check">${t.completed ? '✓' : ''}</div>
+          <div class="syl-topic-text">${escapeHtml(t.topic)}</div>
+        </div>`).join('');
+    }).join('');
+  }
+
+  async function toggleSyllabusTopic(topicId){
+    if(!USER_TOKEN){
+      alert('টিক দিতে হলে আগে লগইন করুন');
+      return;
+    }
+    try{
+      const res = await apiAuth('/api/syllabus/'+topicId+'/toggle', 'POST');
+      for(const subj in SYLLABUS_DATA.subjects){
+        const t = SYLLABUS_DATA.subjects[subj].find(x=>x.id===topicId);
+        if(t){ t.completed = res.completed; break; }
+      }
+      SYLLABUS_DATA.completed_topics += res.completed ? 1 : -1;
+      SYLLABUS_DATA.percent = SYLLABUS_DATA.total_topics ? Math.round((SYLLABUS_DATA.completed_topics / SYLLABUS_DATA.total_topics) * 10000) / 100 : 0;
+      renderSyllabusTopics();
+    }catch(e){
+      alert('আপডেট করা যায়নি: ' + e.message);
+    }
   }
 
   let LAST_REVIEW = null;
