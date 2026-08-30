@@ -140,29 +140,11 @@ CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_codes(phone, purpose, cr
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_practice BOOLEAN NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
 
--- ===== Feature: Live-exam SMS reminders =====
--- A logged-in student can opt in (🔔 button) to get an SMS shortly before a
--- live exam starts. services/reminderScheduler.js polls this table for
--- exams starting soon and texts everyone who hasn't been sent one yet.
-CREATE TABLE IF NOT EXISTS exam_reminders (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
-  sent_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE (user_id, exam_id)
-);
-CREATE INDEX IF NOT EXISTS idx_exam_reminders_pending ON exam_reminders(exam_id) WHERE sent_at IS NULL;
-
--- ===== Feature: সার্কুলার ক্যালেন্ডার =====
--- আবেদনের শেষ তারিখ + পরীক্ষার সম্ভাব্য তারিখ, প্রতিটা exam/post-এর সাথে।
+-- ===== Fields the admin panel (admin_index.html) already had UI for, but the
+-- backend was missing — adding them now so those buttons actually save data
+-- instead of silently doing nothing (or worse, see the exams.routes.js fix
+-- for the data-loss bug this uncovered in the old PUT /api/exams/:id).
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS topic VARCHAR(150);
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT; -- মূল সার্কুলার PDF/নোটিশের লিংক (ঐচ্ছিক)
-CREATE INDEX IF NOT EXISTS idx_exams_deadline ON exams(application_deadline);
-
--- ===== Feature: বিষয়ভিত্তিক মডেল টেস্টে টপিক লেভেল =====
--- বিষয়ভিত্তিক (subject) মডেল টেস্টের ভেতরে আরেকটি ধাপ: বিষয় -> টপিক -> টেস্ট।
--- খালি থাকলে সেই টেস্টগুলো "সাধারণ" টপিকের নিচে দেখানো হয় (frontend-এ হ্যান্ডেল করা)।
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS topic VARCHAR(150);
-CREATE INDEX IF NOT EXISTS idx_exams_subject_topic ON exams(subject, topic);
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT;
