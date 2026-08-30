@@ -10,6 +10,14 @@ const path = require('path');
 const { generalLimiter } = require('./middleware/rateLimit');
 
 const app = express();
+
+// Render sits in front of this app behind a reverse proxy, which adds an
+// X-Forwarded-For header on every request. Without telling Express it's
+// behind a trusted proxy, express-rate-limit can't safely determine the
+// real client IP and throws (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR), crashing
+// every /api/ request. '1' = trust exactly one hop (Render's own proxy).
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 
