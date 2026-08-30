@@ -139,3 +139,17 @@ CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_codes(phone, purpose, cr
 -- 'model' exam (taking, submitting, subject-stats, streak all reuse the same code).
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_practice BOOLEAN NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
+
+-- ===== Feature: Live-exam SMS reminders =====
+-- A logged-in student can opt in (🔔 button) to get an SMS shortly before a
+-- live exam starts. services/reminderScheduler.js polls this table for
+-- exams starting soon and texts everyone who hasn't been sent one yet.
+CREATE TABLE IF NOT EXISTS exam_reminders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+  sent_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, exam_id)
+);
+CREATE INDEX IF NOT EXISTS idx_exam_reminders_pending ON exam_reminders(exam_id) WHERE sent_at IS NULL;
