@@ -148,3 +148,24 @@ ALTER TABLE exams ADD COLUMN IF NOT EXISTS topic VARCHAR(150);
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT;
+-- ===== Feature: সিলেবাস ট্র্যাকার =====
+-- অ্যাডমিন প্রতিটা মন্ত্রণালয়+গ্রেডের জন্য বিষয়ভিত্তিক টপিক লিস্ট বানিয়ে রাখে;
+-- লগইন-করা প্রতিটা ইউজার নিজে নিজে টিক দিয়ে রাখে কোন টপিক পড়া শেষ।
+CREATE TABLE IF NOT EXISTS syllabus_topics (
+  id SERIAL PRIMARY KEY,
+  ministry_id INTEGER REFERENCES ministries(id) ON DELETE CASCADE,
+  grade INTEGER,
+  subject VARCHAR(30) NOT NULL,
+  topic TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_syllabus_topics_scope ON syllabus_topics(ministry_id, grade);
+
+CREATE TABLE IF NOT EXISTS user_syllabus_progress (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  topic_id INTEGER NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, topic_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_syllabus_progress_user ON user_syllabus_progress(user_id);
