@@ -78,7 +78,7 @@ router.post('/ministries', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/questions/bulk — insert many already-structured questions at once
-// body: { questions: [{ ministry_id, grade, subject, question_text, option_a..d, correct_option, explanation }] }
+// body: { questions: [{ ministry_id, grade, subject, topic, question_text, option_a..d, correct_option, explanation, post_name, exam_year }] }
 router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
   const { questions } = req.body;
   if (!Array.isArray(questions) || !questions.length) {
@@ -98,10 +98,10 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
         continue;
       }
       await client.query(
-        `INSERT INTO questions (ministry_id, grade, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        `INSERT INTO questions (ministry_id, grade, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [q.ministry_id || null, q.grade || null, q.subject, (q.topic || '').trim() || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
-         q.correct_option.toUpperCase(), q.explanation || null]
+         q.correct_option.toUpperCase(), q.explanation || null, (q.post_name || '').toString().trim() || null, q.exam_year || null]
       );
       added++;
     }
