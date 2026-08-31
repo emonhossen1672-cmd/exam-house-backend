@@ -2312,9 +2312,12 @@
       ALL_EXAMS = all;
       const live = all.filter(e=>e.type==='live');
       // "মোট পরীক্ষা" should reflect only exams the admin actually uploaded —
-      // not the auto-generated daily quiz, practice-mode quizzes, or duel
-      // challenges (each of those creates its own throwaway 'model' exam row).
-      const uploadedExams = all.filter(e=>!e.is_daily && !e.is_practice && !e.is_duel);
+      // not the auto-generated daily quiz, practice-mode quizzes, duel
+      // challenges, or the auto-built বিষয়ভিত্তিক/সর্বাধিক পুনরাবৃত্ত wrapper
+      // exams (is_auto_subject / is_repeated_bank) — those all re-wrap the
+      // same underlying questions the admin already uploaded, so counting
+      // them here would double-count the same content.
+      const uploadedExams = all.filter(e=>!e.is_daily && !e.is_practice && !e.is_duel && !e.is_auto_subject && !e.is_repeated_bank);
       document.getElementById('stat-total').textContent = toBnDigits(uploadedExams.length);
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
