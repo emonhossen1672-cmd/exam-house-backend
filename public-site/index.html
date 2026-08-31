@@ -256,11 +256,11 @@
   /* ---------- Model test drill-down (ministry / post) ---------- */
   .model-back{background:none; border:none; color:var(--seal); font-size:12.5px; font-weight:700; cursor:pointer; padding:0 0 10px; font-family:'Noto Sans Bengali'; display:flex; align-items:center; gap:4px;}
   .mode-toggle{
-    display:flex; gap:5px; margin-bottom:14px;
+    display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px;
     background:var(--paper-deep); border:1px solid var(--line); border-radius:16px; padding:5px;
   }
   .mode-btn{
-    flex:1; background:transparent; border:none; border-radius:12px; padding:10px 6px;
+    flex:1 1 30%; background:transparent; border:none; border-radius:12px; padding:10px 6px;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
     min-height:60px; font-size:11.5px; font-weight:700; line-height:1.25;
     color:var(--ink-soft); font-family:'Noto Sans Bengali'; cursor:pointer;
@@ -760,6 +760,7 @@
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
       <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')"><span class="mb-ic">📘</span>বিষয়ভিত্তিক</button>
       <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
+      <button class="mode-btn" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
       <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
     </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
@@ -1611,9 +1612,11 @@
     document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
     document.getElementById('mode-btn-subject').classList.toggle('active', mode==='subject');
     document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
+    document.getElementById('mode-btn-topic').classList.toggle('active', mode==='topic');
     document.getElementById('mode-btn-duel').classList.toggle('active', mode==='duel');
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
+    else if(mode === 'topic'){ TOPIC_NAV = {level:'subjects'}; }
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -1621,6 +1624,7 @@
   function renderModelScreen(){
     if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
+    if(MODEL_MODE === 'topic'){ renderTopicScreen(); return; }
     if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
     // Daily quiz (is_daily) and practice-mode quizzes (is_practice) are auto-generated
     // on the fly and have no real ministry — they belong only on the home "today's
@@ -1729,6 +1733,13 @@
     }
     if(MODEL_MODE === 'practice'){
       READING_NAV = {level:'subjects'};
+      renderModelScreen();
+      window.scrollTo(0,0);
+      return;
+    }
+    if(MODEL_MODE === 'topic'){
+      if(TOPIC_NAV.level === 'questions'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
+      else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -1988,6 +1999,202 @@
     listEl.innerHTML = '<div class="loading-note">কুইজ তৈরি হচ্ছে...</div>';
     try{
       const exam = await apiPost('/api/exams/public/reading-quiz', { question_ids: READING_PAGE_QUESTIONS.map(q=>q.id) });
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'কুইজ শুরু করা যায়নি');
+    }
+  }
+
+  // ---------- Topic-wise Job Solution (টপিকভিত্তিক জব সলুশন) ----------
+  // Subject list (level:'subjects') -> topics inside that subject with counts
+  // (level:'topics') -> paginated 30-question read-through of one topic
+  // (level:'questions'), each question tagged with its source (মন্ত্রণালয়/পদ/সাল),
+  // plus the same auto-quiz CTA as রিডিং লিস্ট, reusing the same reading-quiz endpoint.
+  let TOPIC_SUBJECTS_CACHE = null; // shared subject list (question_count per canonical subject)
+  let TOPIC_NAV = {level:'subjects'};
+  let TOPIC_TOPICS_CACHE = null; // topics for the currently open subject
+  let TOPIC_PAGE_QUESTIONS = []; // current page's questions, for the auto-quiz CTA
+
+  async function renderTopicScreen(){
+    if(TOPIC_NAV.level === 'topics'){ renderTopicListScreen(); return; }
+    if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
+
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'none';
+    heading.textContent = 'টপিকভিত্তিক জব সলুশন';
+    subtext.textContent = 'বিষয় বেছে নিন';
+
+    if(!TOPIC_SUBJECTS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        TOPIC_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects');
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!TOPIC_SUBJECTS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো প্রশ্ন যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    listEl.innerHTML = TOPIC_SUBJECTS_CACHE.map(s=>`
+      <div class="group-card" onclick='openTopicSubject(${JSON.stringify(s.subject)})'>
+        <div class="gc-left">
+          <div class="gc-ic post">🗂️</div>
+          <div>
+            <div class="gc-name">${s.subject}</div>
+            <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`).join('');
+  }
+
+  function openTopicSubject(subject){
+    TOPIC_NAV = {level:'topics', subject};
+    TOPIC_TOPICS_CACHE = null;
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderTopicListScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = TOPIC_NAV.subject;
+    subtext.textContent = 'টপিক বেছে নিন';
+
+    if(!TOPIC_TOPICS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        const data = await apiGet('/api/questions/public/topics?subject=' + encodeURIComponent(TOPIC_NAV.subject));
+        TOPIC_TOPICS_CACHE = data.topics;
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!TOPIC_TOPICS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এই বিষয়ে এখনো কোনো টপিক যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    listEl.innerHTML = TOPIC_TOPICS_CACHE.map(t=>{
+      const pages = Math.max(1, Math.ceil(t.question_count / 30));
+      return `
+        <div class="group-card" onclick='openTopicQuestions(${JSON.stringify(t.topic)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">📌</div>
+            <div>
+              <div class="gc-name">${escapeHtml(t.topic)}</div>
+              <div class="gc-meta">${toBnDigits(t.question_count)}টি প্রশ্ন · ${toBnDigits(pages)}টি পৃষ্ঠা</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`;
+    }).join('');
+  }
+
+  function openTopicQuestions(topic){
+    TOPIC_NAV = {level:'questions', subject:TOPIC_NAV.subject, topic, page:1};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  function goTopicPage(delta){
+    TOPIC_NAV.page = Math.max(1, TOPIC_NAV.page + delta);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderTopicQuestionsPage(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = TOPIC_NAV.topic;
+    subtext.textContent = TOPIC_NAV.subject + ' · টপিকভিত্তিক জব সলুশন';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data;
+    try{
+      data = await apiGet('/api/questions/public/topic-questions?subject=' + encodeURIComponent(TOPIC_NAV.subject)
+        + '&topic=' + encodeURIComponent(TOPIC_NAV.topic) + '&page=' + TOPIC_NAV.page);
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+      return;
+    }
+
+    TOPIC_NAV.page = data.page;
+    TOPIC_PAGE_QUESTIONS = data.questions;
+    const startNum = (data.page - 1) * 30 + 1;
+
+    const cards = data.questions.map((q, i)=>{
+      const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
+      const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+      const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      return `
+        <div class="rl-q-card" id="tp-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startNum + i)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="rl-q-opts">${opts}</div>
+          <button class="rl-q-reveal" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর দেখুন</button>
+          ${explainHtml}
+        </div>`;
+    }).join('');
+
+    const quizCta = `
+      <div class="rl-quiz-cta" onclick="startTopicQuiz()">
+        <div class="rq-ic">⏱️</div>
+        <div class="rq-title">অটো কুইজ শুরু করুন</div>
+        <div class="rq-sub">এই টপিকের প্রশ্নের উপর ভিত্তি করে ১০টি প্রশ্ন · ৫ মিনিট</div>
+      </div>`;
+
+    const pager = `
+      <div class="rl-pager">
+        <button class="rl-pager-btn" onclick="goTopicPage(-1)" ${data.page<=1?'disabled':''}>← আগের পৃষ্ঠা</button>
+        <span class="rl-pager-info">${toBnDigits(data.page)} / ${toBnDigits(data.total_pages)}</span>
+        <button class="rl-pager-btn" onclick="goTopicPage(1)" ${data.page>=data.total_pages?'disabled':''}>পরের পৃষ্ঠা →</button>
+      </div>`;
+
+    listEl.innerHTML = (data.questions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
+  }
+
+  function toggleTopicAnswer(qid, correctKey){
+    const card = document.getElementById('tp-q-' + qid);
+    if(!card) return;
+    card.querySelectorAll('.rl-q-opt').forEach(el=>{
+      el.classList.toggle('correct', el.getAttribute('data-key') === correctKey);
+    });
+    const explain = card.querySelector('.rl-q-explain');
+    if(explain) explain.style.display = 'block';
+    const btn = card.querySelector('.rl-q-reveal');
+    if(btn) btn.style.display = 'none';
+  }
+
+  // Auto quiz: 10 random questions from just this topic's current page, 5 minutes.
+  // Reuses the exact same endpoint as রিডিং লিস্ট's auto quiz — it just builds
+  // a quiz from whatever question_ids it's handed.
+  async function startTopicQuiz(){
+    if(!TOPIC_PAGE_QUESTIONS.length){ return; }
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">কুইজ তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiPost('/api/exams/public/reading-quiz', { question_ids: TOPIC_PAGE_QUESTIONS.map(q=>q.id) });
       const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
       if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
       openNameSheet(exam.id);
