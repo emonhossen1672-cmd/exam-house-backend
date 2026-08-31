@@ -1491,10 +1491,12 @@
     if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
     if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
-    // Daily quiz (is_daily) and practice-mode quizzes (is_practice) are auto-generated
-    // on the fly and have no real ministry — they belong only on the home "today's
-    // quiz" card and inside the Practice Mode tab, not mixed into ministry-wise listing.
-    const model = ALL_EXAMS.filter(e=>e.type==='model' && !e.is_daily && !e.is_practice);
+    // Daily quiz (is_daily), practice-mode quizzes (is_practice), and duel
+    // challenges (is_duel) are all auto-generated on the fly and have no real
+    // ministry — they belong only on the home "today's quiz" card, the
+    // Practice Mode tab, and the Duel Mode tab respectively, never mixed
+    // into ministry-wise listing.
+    const model = ALL_EXAMS.filter(e=>e.type==='model' && !e.is_daily && !e.is_practice && !e.is_duel);
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
@@ -1607,8 +1609,10 @@
   function renderSubjectModelScreen(){
     // Subject-based tab is for dedicated model tests an admin created for a subject —
     // not the throwaway quizzes practice mode generates each time a student taps a
-    // subject (those are is_practice=true and live only inside the Practice Mode tab).
-    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject && !e.is_practice && !e.is_daily);
+    // subject (is_practice=true, lives only in the Practice Mode tab), and not
+    // duel challenges either (is_duel=true, they also carry a subject, and
+    // live only in the Duel Mode tab).
+    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject && !e.is_practice && !e.is_daily && !e.is_duel);
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
@@ -2126,8 +2130,12 @@
       const all = await apiGet('/api/exams/public/list');
       ALL_EXAMS = all;
       const live = all.filter(e=>e.type==='live');
-      const model = all.filter(e=>e.type==='model');
-      document.getElementById('stat-total').textContent = toBnDigits(all.length);
+      // "মোট পরীক্ষা" should reflect exams an admin actually created — not
+      // every auto-generated daily quiz, practice quiz, or duel challenge
+      // (each duel a student creates adds a new row, so counting those would
+      // make this number balloon and no longer mean anything).
+      const realExams = all.filter(e=>!e.is_daily && !e.is_practice && !e.is_duel);
+      document.getElementById('stat-total').textContent = toBnDigits(realExams.length);
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
