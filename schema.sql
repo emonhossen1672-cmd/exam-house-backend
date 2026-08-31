@@ -140,32 +140,45 @@ CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_codes(phone, purpose, cr
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_practice BOOLEAN NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
 
--- ===== Fields the admin panel (admin_index.html) already had UI for, but the
--- backend was missing — adding them now so those buttons actually save data
--- instead of silently doing nothing (or worse, see the exams.routes.js fix
--- for the data-loss bug this uncovered in the old PUT /api/exams/:id).
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS topic VARCHAR(150);
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT;
--- ===== Feature: সিলেবাস ট্র্যাকার =====
--- অ্যাডমিন প্রতিটা মন্ত্রণালয়+গ্রেডের জন্য বিষয়ভিত্তিক টপিক লিস্ট বানিয়ে রাখে;
--- লগইন-করা প্রতিটা ইউজার নিজে নিজে টিক দিয়ে রাখে কোন টপিক পড়া শেষ।
-CREATE TABLE IF NOT EXISTS syllabus_topics (
+-- ===== Feature: Live-exam SMS reminders =====
+-- A logged-in student can opt in (🔔 button) to get an SMS shortly before a
+-- live exam starts. services/reminderScheduler.js polls this table for
+-- exams starting soon and texts everyone who hasn't been sent one yet.
+CREATE TABLE IF NOT EXISTS exam_reminders (
   id SERIAL PRIMARY KEY,
-  ministry_id INTEGER REFERENCES ministries(id) ON DELETE CASCADE,
-  grade INTEGER,
-  subject VARCHAR(30) NOT NULL,
-  topic TEXT NOT NULL,
-  position INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_syllabus_topics_scope ON syllabus_topics(ministry_id, grade);
-
-CREATE TABLE IF NOT EXISTS user_syllabus_progress (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  topic_id INTEGER NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
-  completed_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (user_id, topic_id)
+  exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+  sent_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, exam_id)
 );
-CREATE INDEX IF NOT EXISTS idx_user_syllabus_progress_user ON user_syllabus_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_exam_reminders_pending ON exam_reminders(exam_id) WHERE sent_at IS NULL;
+
+-- ===== Feature: Duel mode (challenge-a-friend quiz) =====
+-- A duel is a shareable link where one logged-in student challenges another
+-- to the same auto-generated subject quiz — whoever scores higher wins.
+-- Reuses the normal exam/results machinery: creates a real 'model' exam
+-- (is_duel=true) with random questions, taken and submitted through the
+-- usual /api/exams and /api/results endpoints. routes/results.routes.js
+-- links each submission back to its duel automatically and decides the
+-- winner once both sides have submitted.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_duel BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS duels (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(12) UNIQUE NOT NULL,
+  exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+  challenger_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  opponent_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  subject VARCHAR(30) NOT NULL,
+  question_count INTEGER NOT NULL,
+  challenger_result_id INTEGER REFERENCES results(id) ON DELETE SET NULL,
+  opponent_result_id INTEGER REFERENCES results(id) ON DELETE SET NULL,
+  winner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  status VARCHAR(15) NOT NULL DEFAULT 'pending', -- pending (waiting for opponent to join) | active (opponent joined) | completed
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_duels_challenger ON duels(challenger_user_id);
+CREATE INDEX IF NOT EXISTS idx_duels_opponent ON duels(opponent_user_id);
+
