@@ -114,4 +114,37 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
   res.json({ added, failed: errors.length, errors });
 }));
 
+// GET /api/questions/public/reading-list?subject=X&page=1 — plain paginated
+// listing of a subject's whole question bank, 30 per page, for রিডিং লিস্ট
+// (read-through study, not an exam). Answer/explanation are included in the
+// payload — the reveal is a client-side tap, same trust level as the archive
+// endpoint in exams.routes.js which already sends correct_option once a
+// window has closed. Ordered by id so pagination is stable across requests.
+const READING_PAGE_SIZE = 30;
+router.get('/public/reading-list', asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  let page = parseInt(req.query.page, 10);
+  if (!Number.isFinite(page) || page < 1) page = 1;
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+
+  const countRes = await pool.query('SELECT COUNT(*)::int AS total FROM questions WHERE subject=$1', [subject]);
+  const total = countRes.rows[0].total;
+  const totalPages = Math.max(1, Math.ceil(total / READING_PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+  const offset = (page - 1) * READING_PAGE_SIZE;
+
+  const { rows } = await pool.query(
+    `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+            q.correct_option, q.explanation, q.post_name, q.exam_year,
+            m.name AS ministry_name
+     FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
+     WHERE q.subject = $1
+     ORDER BY q.id ASC
+     LIMIT $2 OFFSET $3`,
+    [subject, READING_PAGE_SIZE, offset]
+  );
+
+  res.json({ subject, page, total_pages: totalPages, total_count: total, questions: rows });
+}));
+
 module.exports = router;
