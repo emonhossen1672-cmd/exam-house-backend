@@ -969,6 +969,14 @@
   // Backend is served from this same origin
   const API_BASE = '';
 
+  // ---------- Back-button / history support ----------
+  // The app never used to push history entries, so on mobile the very
+  // first "back" press had nowhere to go inside the app and just closed
+  // the site. This sets a base entry for the current screen (home) and
+  // goScreen()/the overlay watcher below add one entry per screen switch
+  // or overlay open, so back steps through the app before it steps out.
+  history.replaceState({screen:'home'}, '', location.href);
+
   function toBnDigits(str){
     const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
     return String(str).replace(/[0-9]/g, d=>bn[d]);
@@ -1474,6 +1482,8 @@
   }
 
   // ---------- Navigation ----------
+  let SUPPRESS_HISTORY_PUSH = false;
+
   function goScreen(name){
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('screen-'+name).classList.add('active');
@@ -1483,8 +1493,57 @@
     if(name === 'history') renderProfile();
     if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
     window.scrollTo(0,0);
+    if(!SUPPRESS_HISTORY_PUSH){
+      history.pushState({screen:name}, '', location.pathname);
+    }
   }
   renderProfile();
+
+  // Every full-screen overlay (bookmark, leaderboard, achievements, name
+  // entry, archive, exam intro/review/revision, result) gets one history
+  // entry while it's open, so a back press closes it instead of leaving
+  // the whole site. We just watch each overlay's "active" class rather
+  // than editing every open/close call site.
+  const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
+    'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay'];
+
+  function anyOverlayOpen(){
+    return OVERLAY_IDS.some(id=>{
+      const el = document.getElementById(id);
+      return el && el.classList.contains('active');
+    });
+  }
+  function closeAllOverlays(){
+    OVERLAY_IDS.forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.classList.remove('active');
+    });
+  }
+  OVERLAY_IDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    new MutationObserver(()=>{
+      if(SUPPRESS_HISTORY_PUSH) return;
+      const isOpen = el.classList.contains('active');
+      if(isOpen && el.dataset.histPushed !== '1'){
+        el.dataset.histPushed = '1';
+        history.pushState({overlay:id}, '', location.pathname);
+      } else if(!isOpen){
+        el.dataset.histPushed = '0';
+      }
+    }).observe(el, {attributes:true, attributeFilter:['class']});
+  });
+
+  window.addEventListener('popstate', (e)=>{
+    if(anyOverlayOpen()){
+      closeAllOverlays();
+      return;
+    }
+    const screenName = (e.state && e.state.screen) ? e.state.screen : 'home';
+    SUPPRESS_HISTORY_PUSH = true;
+    goScreen(screenName);
+    SUPPRESS_HISTORY_PUSH = false;
+  });
 
   // ---------- Model test drill-down: ministry -> post/grade -> exams ----------
   let MODEL_NAV = {level:'ministries', ministry:null, post:null, grade:null};
@@ -2194,6 +2253,10 @@
     PENDING_DUEL_CODE = code.trim();
     goScreen('model');
     setModelMode('duel');
+    // Strip the ?duel=... param from the address bar now that it's been
+    // handled — otherwise a refresh re-reads it and lands back on Duel
+    // mode every time instead of the home screen.
+    history.replaceState({screen:'model'}, '', location.pathname);
   })();
   setInterval(()=>{
     // refresh countdowns/status every 15s without a full reload feel
