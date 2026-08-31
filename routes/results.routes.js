@@ -91,6 +91,46 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
     streak = await updateStreak(userId);
   }
 
+  // Duel mode: if this submission belongs to an in-progress duel (this user is
+  // the challenger or the accepted opponent, and hasn't submitted their side
+  // yet), link this result to that side. Once both sides have a result,
+  // decide the winner (higher score) and mark the duel completed.
+  let duelUpdate = null;
+  if (userId) {
+    const duelRes = await pool.query(
+      `SELECT * FROM duels WHERE exam_id=$1 AND (
+         (challenger_user_id=$2 AND challenger_result_id IS NULL) OR
+         (opponent_user_id=$2 AND opponent_result_id IS NULL)
+       ) LIMIT 1`,
+      [exam_id, userId]
+    );
+    if (duelRes.rows.length) {
+      const duel = duelRes.rows[0];
+      const isChallenger = duel.challenger_user_id === userId;
+      const column = isChallenger ? 'challenger_result_id' : 'opponent_result_id';
+      await pool.query(`UPDATE duels SET ${column}=$1 WHERE id=$2`, [rows[0].id, duel.id]);
+
+      const updatedRes = await pool.query('SELECT * FROM duels WHERE id=$1', [duel.id]);
+      const d = updatedRes.rows[0];
+      if (d.challenger_result_id && d.opponent_result_id) {
+        const scoresRes = await pool.query(
+          `SELECT
+             (SELECT score FROM results WHERE id=$1) AS challenger_score,
+             (SELECT score FROM results WHERE id=$2) AS opponent_score`,
+          [d.challenger_result_id, d.opponent_result_id]
+        );
+        const { challenger_score, opponent_score } = scoresRes.rows[0];
+        let winner = null;
+        if (Number(challenger_score) > Number(opponent_score)) winner = d.challenger_user_id;
+        else if (Number(opponent_score) > Number(challenger_score)) winner = d.opponent_user_id;
+        await pool.query(`UPDATE duels SET status='completed', winner_user_id=$1 WHERE id=$2`, [winner, d.id]);
+        duelUpdate = { code: d.code, status: 'completed', winner_user_id: winner };
+      } else {
+        duelUpdate = { code: d.code, status: d.status };
+      }
+    }
+  }
+
   // Rank/percentile within this exam: how this result compares to everyone
   // else who has submitted the same exam, so far. Rank = 1 + how many
   // scored strictly higher (ties share the same rank). Recomputed fresh
@@ -108,7 +148,7 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
     : 100;
   const rankInfo = { rank, total_participants, percentile };
 
-  res.status(201).json({ ...rows[0], review, streak, rank_info: rankInfo });
+  res.status(201).json({ ...rows[0], review, streak, rank_info: rankInfo, duel: duelUpdate });
 }));
 
 // Updates a logged-in user's daily streak after they submit a result.
