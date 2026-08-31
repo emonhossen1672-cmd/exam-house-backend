@@ -11,6 +11,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 // Expected columns (header row, any order):
 // ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct
+// Optional: post_name (পদের নাম), year (সাল) — used to tag this question's
+// source when it later appears in an auto-generated বিষয়ভিত্তিক model test.
 const REQUIRED = ['subject', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct'];
 
 function parseFile(file) {
@@ -76,9 +78,10 @@ router.post('/', requireAdmin, upload.single('file'), asyncHandler(async (req, r
 
       const ministryId = await getMinistryId(r.ministry);
       await client.query(
-        `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [ministryId, r.grade || null, r.subject, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null]
+        `INSERT INTO questions (ministry_id, grade, subject, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [ministryId, r.grade || null, r.subject, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
+         r.post_name || null, r.year || null]
       );
       added++;
     }
