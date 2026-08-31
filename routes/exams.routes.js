@@ -124,7 +124,7 @@ router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
   const userParamIdx = params.length;
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
-      e.is_daily, e.is_practice, e.is_duel, e.ministry_id,
+      e.is_daily, e.is_practice, e.is_duel, e.is_auto_subject, e.is_repeated_bank, e.ministry_id,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
       EXISTS(
@@ -228,7 +228,7 @@ router.get('/public/:id/questions', asyncHandler(async (req, res) => {
   }
 
   const { rows } = await pool.query(`
-    SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, eq.position
+    SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, eq.position, eq.tag
     FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
     WHERE eq.exam_id = $1 ORDER BY eq.position
   `, [req.params.id]);
@@ -253,7 +253,7 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
   }
 
   const { rows } = await pool.query(`
-    SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option, eq.position
+    SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option, eq.position, eq.tag
     FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
     WHERE eq.exam_id = $1 ORDER BY eq.position
   `, [req.params.id]);
@@ -450,6 +450,130 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
+
+// POST /api/exams/sync-subject-tests — regenerate all auto বিষয়ভিত্তিক model
+// tests from the current question bank, grouped by subject. Idempotent: wipes
+// the previous auto batch first (exam_questions cascades), then rebuilds from
+// scratch, so re-running after every bulk upload just picks up whatever is
+// new — nothing needs to be re-uploaded or manually re-picked into an exam.
+router.post('/sync-subject-tests', requireAdmin, asyncHandler(async (req, res) => {
+  const BATCH_SIZE = 25;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM exams WHERE is_auto_subject = true');
+
+    const { rows: qs } = await client.query(`
+      SELECT q.id, q.subject, q.grade, q.post_name, q.exam_year, m.name AS ministry_name
+      FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
+      WHERE q.subject IS NOT NULL AND q.subject <> ''
+      ORDER BY q.subject, q.id
+    `);
+
+    const bySubject = new Map();
+    qs.forEach(q => {
+      if (!bySubject.has(q.subject)) bySubject.set(q.subject, []);
+      bySubject.get(q.subject).push(q);
+    });
+
+    let examsCreated = 0, questionsPlaced = 0;
+    for (const [subject, list] of bySubject.entries()) {
+      for (let i = 0; i < list.length; i += BATCH_SIZE) {
+        const batch = list.slice(i, i + BATCH_SIZE);
+        const partNum = Math.floor(i / BATCH_SIZE) + 1;
+        const title = `${subject} — অটো মডেল টেস্ট ${partNum}`;
+        const serial = genSerial('model');
+        const duration = Math.max(15, Math.round(batch.length * 0.8));
+        const examResult = await client.query(
+          `INSERT INTO exams (title, type, subject, duration_minutes, serial, status, is_auto_subject)
+           VALUES ($1,'model',$2,$3,$4,'scheduled',true) RETURNING id`,
+          [title, subject, duration, serial]
+        );
+        const examId = examResult.rows[0].id;
+        examsCreated++;
+        for (let pos = 0; pos < batch.length; pos++) {
+          const q = batch[pos];
+          const tagParts = [q.ministry_name, q.post_name, q.grade ? `গ্রেড ${q.grade}` : null, q.exam_year]
+            .filter(Boolean);
+          const tag = tagParts.length ? tagParts.join(' · ') : null;
+          await client.query(
+            'INSERT INTO exam_questions (exam_id, question_id, position, tag) VALUES ($1,$2,$3,$4)',
+            [examId, q.id, pos + 1, tag]
+          );
+          questionsPlaced++;
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ subjects: bySubject.size, examsCreated, questionsPlaced });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'সিঙ্ক ব্যর্থ: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
+
+// POST /api/exams/sync-repeated-questions — finds question text that appears
+// more than once across the whole bank (exact match after trim+lowercase)
+// and collects one copy of each into a dedicated "সর্বাধিক পুনরাবৃত্ত প্রশ্ন"
+// model test, tagging each with how many times and which ministries it
+// showed up in. Also idempotent — safe to re-run after every upload.
+router.post('/sync-repeated-questions', requireAdmin, asyncHandler(async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM exams WHERE is_repeated_bank = true');
+
+    const { rows: qs } = await client.query(`
+      SELECT q.id, q.question_text, q.subject, m.name AS ministry_name
+      FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
+      ORDER BY q.id DESC
+    `);
+
+    const groups = new Map(); // normalized text -> [questions]
+    qs.forEach(q => {
+      const key = q.question_text.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(q);
+    });
+
+    const repeated = [...groups.values()].filter(g => g.length > 1);
+    if (!repeated.length) {
+      await client.query('COMMIT');
+      return res.json({ found: 0, message: 'এখনো কোনো পুনরাবৃত্ত প্রশ্ন পাওয়া যায়নি' });
+    }
+
+    const serial = genSerial('model');
+    const duration = Math.max(15, Math.round(repeated.length * 0.8));
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, duration_minutes, serial, status, is_repeated_bank)
+       VALUES ('সর্বাধিক পুনরাবৃত্ত প্রশ্ন','model',$1,$2,'scheduled',true) RETURNING id`,
+      [duration, serial]
+    );
+    const examId = examResult.rows[0].id;
+
+    for (let pos = 0; pos < repeated.length; pos++) {
+      const group = repeated[pos];
+      const rep = group[0]; // most recent (list is ordered by q.id DESC)
+      const ministries = [...new Set(group.map(g => g.ministry_name).filter(Boolean))];
+      const tag = `🔁 ${group.length} বার এসেছে` + (ministries.length ? ' — ' + ministries.join(', ') : '');
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position, tag) VALUES ($1,$2,$3,$4)',
+        [examId, rep.id, pos + 1, tag]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ found: repeated.length });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'সিঙ্ক ব্যর্থ: ' + err.message });
   } finally {
     client.release();
   }
