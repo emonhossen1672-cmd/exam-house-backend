@@ -152,24 +152,6 @@
   .dq-sub{font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px;}
   .dq-arrow{font-size:18px;}
 
-  /* ---------- Circular calendar (সার্কুলার ক্যালেন্ডার) ---------- */
-  .circular-scroll{display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
-  .circular-scroll::-webkit-scrollbar{display:none;}
-  .circular-card{
-    flex:0 0 auto; width:220px; background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:13px 14px; cursor:default;
-  }
-  .circular-card.expired{opacity:0.55;}
-  .circular-badge{
-    display:inline-block; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px;
-    background:var(--wrong-bg); color:var(--wrong); margin-bottom:8px;
-  }
-  .circular-badge.ok{background:var(--success-bg); color:var(--success);}
-  .circular-post{font-weight:700; font-size:13.5px; color:var(--ink); line-height:1.35;}
-  .circular-ministry{font-size:11px; color:var(--ink-faint); margin-top:3px;}
-  .circular-dates{font-size:10.5px; color:var(--ink-soft); margin-top:8px; line-height:1.6;}
-  .circular-link{display:block; margin-top:8px; font-size:11px; font-weight:600; color:var(--seal); text-decoration:none;}
-
   /* ---------- Section headers ---------- */
   .sec-head{display:flex; align-items:baseline; justify-content:space-between; margin:26px 0 12px;}
   .sec-head h2{font-family:'Noto Serif Bengali', serif; font-size:18px; color:var(--ink);}
@@ -230,14 +212,9 @@
   .btn-enter:active{opacity:0.85;}
   .ticket-btn-group{display:flex; gap:8px;}
   .btn-enter.practice{background:var(--gold, #C9973B);}
-  .remind-btn{
-    display:flex; align-items:center; gap:6px; background:var(--paper-deep); color:var(--ink-soft);
-    border:1.5px solid var(--line); padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600;
-    cursor:pointer; font-family:'Noto Sans Bengali';
-  }
-  .remind-btn.active{background:var(--gold-soft); color:var(--seal-deep); border-color:var(--gold);}
-  .remind-btn:active{opacity:0.85;}
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
+  .trend-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px 6px;}
+  .trend-head{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--ink-soft); margin-bottom:4px;}
   .search-bar-wrap{position:relative; margin-bottom:16px;}
   .search-input{
     width:100%; padding:13px 40px 13px 16px; border:1.5px solid var(--line); border-radius:13px;
@@ -253,96 +230,25 @@
 
   /* ---------- Model test drill-down (ministry / post) ---------- */
   .model-back{background:none; border:none; color:var(--seal); font-size:12.5px; font-weight:700; cursor:pointer; padding:0 0 10px; font-family:'Noto Sans Bengali'; display:flex; align-items:center; gap:4px;}
-  .mode-toggle{
-    display:flex; gap:5px; margin-bottom:14px;
-    background:var(--paper-deep); border:1px solid var(--line); border-radius:16px; padding:5px;
-  }
-  .mode-btn{
-    flex:1; background:transparent; border:none; border-radius:12px; padding:10px 6px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    min-height:60px; font-size:11.5px; font-weight:700; line-height:1.25;
-    color:var(--ink-soft); font-family:'Noto Sans Bengali'; cursor:pointer;
-    transition:background .2s ease, color .2s ease, transform .15s ease;
-  }
-  .mode-btn .mb-ic{font-size:17px; line-height:1;}
-  .mode-btn:active{transform:scale(0.97);}
-  .mode-btn.active{
-    background:var(--seal); color:#fff;
-    box-shadow:0 4px 12px rgba(166,51,43,0.28);
-  }
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .mode-btn{ flex:1; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:9px 8px; font-size:12.5px; font-weight:600; color:var(--ink-soft); font-family:'Noto Sans Bengali'; cursor:pointer; }
+  .mode-btn.active{ background:var(--seal); border-color:var(--seal); color:#fff; }
   .group-card{
-    background:var(--t-bg,var(--card)); border:1px solid var(--t-bd,var(--line)); color:var(--t-fg,var(--ink));
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    border-radius:14px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
     padding:14px 15px; margin-bottom:10px; cursor:pointer; transition:transform .1s ease;
   }
-  .group-card:active{transform:scale(0.98);}
+  .group-card:active{transform:scale(0.98); background:var(--paper-deep);}
   .group-card .gc-left{display:flex; align-items:center; gap:12px; min-width:0;}
   .group-card .gc-ic{
     width:40px; height:40px; border-radius:11px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center; font-size:17px;
-    background:var(--t-bd,#EAF1F8); color:var(--t-fg,#2E6BA8);
   }
+  .group-card .gc-ic.ministry{background:#EAF1F8; color:#2E6BA8;}
   .group-card .gc-ic.post{background:var(--gold-soft); color:#7A5E12;}
-  .group-card .gc-name{font-size:14px; color:var(--t-fg,var(--ink)); font-weight:700; line-height:1.4;}
-  .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
-  .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
-
-  /* ---------- Smart practice card ---------- */
-  .smart-practice-card{
-    background:var(--seal); color:#fff; border-radius:16px; padding:16px;
-    margin-bottom:14px; display:flex; align-items:center; gap:12px; cursor:pointer;
-    transition:transform .1s ease;
-  }
-  .smart-practice-card:active{transform:scale(0.98);}
-  .smart-practice-card .sp-ic{font-size:26px; flex-shrink:0;}
-  .smart-practice-card .sp-title{font-size:14px; font-weight:700;}
-  .smart-practice-card .sp-sub{font-size:11px; color:#F5C4B3; margin-top:3px; line-height:1.5;}
-
-  /* ---------- Duel mode ---------- */
-  .duel-guest{text-align:center; padding:34px 20px;}
-  .duel-guest .dg-ic{font-size:34px; margin-bottom:10px;}
-  .duel-guest p{font-size:13px; color:var(--ink-faint); margin-bottom:16px; line-height:1.7;}
-  .duel-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px;}
-  .duel-card h3{font-size:13.5px; font-weight:700; margin-bottom:12px;}
-  .duel-select, .duel-input{
-    width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:11px;
-    font-family:inherit; font-size:14px; background:var(--paper); margin-bottom:10px; color:var(--ink);
-  }
-  .duel-row{display:flex; gap:8px; align-items:flex-start;}
-  .duel-row .duel-input{flex:1; margin-bottom:0;}
-  .duel-btn{
-    width:100%; background:var(--seal); color:#fff; border:none; padding:12px;
-    border-radius:11px; font-weight:700; font-size:13.5px; cursor:pointer; font-family:'Noto Sans Bengali';
-  }
-  .duel-btn.ghost{background:var(--navy-deep);}
-  .duel-btn.small{width:auto; padding:12px 16px; flex-shrink:0;}
-  .duel-btn:active{transform:scale(0.98);}
-  .duel-code-box{
-    text-align:center; background:var(--navy-deep); color:#fff; border-radius:16px;
-    padding:22px 16px; margin-bottom:14px; position:relative; overflow:hidden;
-  }
-  .duel-code-box::before{
-    content:""; position:absolute; inset:0;
-    background:radial-gradient(circle at 15% 20%, rgba(184,144,46,0.28), transparent 45%);
-  }
-  .duel-code-eyebrow{font-size:10.5px; letter-spacing:2px; color:var(--gold-soft); font-family:'Space Mono',monospace; position:relative; z-index:2;}
-  .duel-code-num{
-    font-family:'Space Mono',monospace; font-size:26px; font-weight:700; letter-spacing:4px;
-    margin:10px 0; position:relative; z-index:2;
-  }
-  .duel-code-meta{font-size:11.5px; color:#9AA4BE; position:relative; z-index:2;}
-  .duel-list-item{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px; margin-bottom:10px;}
-  .duel-li-top{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px;}
-  .duel-li-subject{font-size:13.5px; font-weight:700;}
-  .duel-status{font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap;}
-  .duel-status.pending{background:var(--gold-soft); color:#7A5E12;}
-  .duel-status.active{background:#E9F1FA; color:#1E4F78;}
-  .duel-status.won{background:var(--success-bg); color:var(--success);}
-  .duel-status.lost{background:var(--wrong-bg); color:var(--wrong);}
-  .duel-status.draw{background:var(--paper-deep); color:var(--ink-soft);}
-  .duel-vs{display:flex; align-items:center; justify-content:space-between; font-size:12.5px; color:var(--ink-soft);}
-  .duel-vs b{font-size:15px; color:var(--ink); font-family:'Space Mono',monospace;}
+  .group-card .gc-name{font-size:14px; color:var(--ink); font-weight:600; line-height:1.4;}
+  .group-card .gc-meta{font-size:11.5px; color:var(--ink-faint); margin-top:3px;}
+  .group-card .gc-arrow{color:var(--ink-faint); font-size:18px; flex-shrink:0;}
 
   /* ---------- Auth (login/register) & Profile ---------- */
   .auth-label{font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin:14px 0 6px;}
@@ -472,86 +378,75 @@
   /* ---------- Exam overlay ---------- */
   .exam-overlay{
     position:fixed; inset:0; z-index:100;
-    background:var(--paper-deep);
+    background:linear-gradient(180deg,var(--navy-deep) 0%,#1B2540 100%);
     display:none; flex-direction:column;
     max-width:430px; margin:0 auto;
   }
   .exam-overlay.active{display:flex;}
   #review-overlay.active{z-index:120;}
   .rev-filter-btn{flex:1; padding:9px; border-radius:9px; border:none; background:var(--paper-deep); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Noto Sans Bengali';}
-  .rev-filter-btn.active{background:var(--ink); color:#fff;}
+  .rev-filter-btn.active{background:var(--navy-deep); color:#fff;}
   .exam-top{
     padding:16px 18px 14px; display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid var(--line); background:var(--paper);
+    border-bottom:1px solid rgba(255,255,255,0.1);
   }
-  .exam-exit{background:none; border:none; color:var(--ink-soft); font-size:20px; cursor:pointer;}
+  .exam-exit{background:none; border:none; color:#9AA4BE; font-size:20px; cursor:pointer;}
   .exam-timer{
-    font-family:'Space Mono',monospace; color:var(--ink); font-size:15px;
-    background:var(--paper-deep); border:1px solid var(--line); padding:6px 12px; border-radius:20px;
+    font-family:'Space Mono',monospace; color:#fff; font-size:15px;
+    background:rgba(255,255,255,0.08); padding:6px 12px; border-radius:20px;
     display:flex; align-items:center; gap:6px;
   }
-  .exam-timer.warn{color:var(--seal-deep); background:var(--wrong-bg); border-color:var(--seal); animation:examPulse 1s infinite;}
+  .exam-timer.warn{color:#FF9B8A; background:rgba(166,51,43,0.35); animation:examPulse 1s infinite;}
   @keyframes examPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 
   .exam-progress-wrap{padding:12px 18px 0;}
-  .admit-strip{
-    margin:0 18px; padding:9px 12px; border-radius:10px;
-    background:var(--gold-soft); border:1px dashed var(--gold);
-    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  }
-  .admit-tag{
-    font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:1px; text-transform:uppercase;
-    color:#fff; background:var(--seal); padding:3px 8px; border-radius:5px; flex-shrink:0;
-  }
-  .admit-title{font-family:'Noto Serif Bengali',serif; font-size:12.5px; color:var(--ink); font-weight:600;}
-  .admit-meta{font-family:'Space Mono',monospace; font-size:10.5px; color:#7A5E12; margin-left:auto;}
-  .exam-progress-bar{height:7px; border-radius:5px; background:var(--line); overflow:hidden;}
+  .exam-progress-bar{height:7px; border-radius:5px; background:rgba(255,255,255,0.12); overflow:hidden;}
   .exam-progress-fill{height:100%; border-radius:5px; width:0%; transition:width .25s ease;
     background:linear-gradient(90deg,var(--seal) 0%, var(--gold) 55%, var(--success) 100%);}
-  .exam-progress-count{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin-top:7px; letter-spacing:0.4px;}
+  .exam-progress-count{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--gold-soft); margin-top:7px; letter-spacing:0.4px;}
 
   .exam-body{flex:1; overflow-y:auto; padding:16px 16px 110px;}
   .qcard{
-    background:var(--card); border:1.5px solid var(--line);
+    background:rgba(255,255,255,0.045); border:1.5px solid rgba(255,255,255,0.09);
     border-radius:16px; padding:18px 16px; margin-bottom:14px; transition:border-color .2s ease, background .2s ease;
   }
-  .qcard.answered{border-color:var(--gold); background:var(--gold-soft);}
+  .qcard.answered{border-color:rgba(184,144,46,0.5); background:rgba(184,144,46,0.05);}
   .q-label{
     display:flex; align-items:center; gap:9px;
-    font-family:'Space Mono',monospace; font-size:11px; color:#7A5E12; letter-spacing:1px; margin-bottom:12px;
+    font-family:'Space Mono',monospace; font-size:11px; color:var(--gold-soft); letter-spacing:1px; margin-bottom:12px;
   }
   .bm-star{
     margin-left:auto; background:none; border:none; cursor:pointer; font-size:17px; line-height:1;
-    color:var(--ink-faint); padding:2px 4px;
+    color:rgba(255,255,255,0.35); padding:2px 4px;
   }
   .bm-star.on{color:var(--gold);}
   .qnum{
     width:23px; height:23px; border-radius:50%; flex-shrink:0;
-    background:var(--paper-deep); color:var(--ink-soft);
+    background:rgba(255,255,255,0.1); color:#C7CEE0;
     display:flex; align-items:center; justify-content:center; font-size:11px;
     transition:all .2s ease;
   }
-  .qcard.answered .qnum{background:var(--gold); color:#fff;}
-  .q-text{font-family:'Noto Serif Bengali', serif; font-size:18px; color:var(--ink); line-height:1.55; margin-bottom:16px;}
+  .qcard.answered .qnum{background:var(--gold); color:var(--navy-deep);}
+  .q-text{font-family:'Noto Serif Bengali', serif; font-size:18px; color:#fff; line-height:1.55; margin-bottom:16px;}
   .opt{
     display:flex; align-items:center; gap:12px;
-    background:var(--paper); border:1.5px solid var(--line);
+    background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12);
     border-radius:12px; padding:13px 14px; margin-bottom:9px; cursor:pointer;
-    color:var(--ink); font-size:14.5px; transition:all .15s ease;
+    color:#E4E8F2; font-size:14.5px; transition:all .15s ease;
   }
   .opt:active{transform:scale(0.98);}
   .opt .bullet{
-    width:22px; height:22px; border-radius:50%; border:1.5px solid var(--ink-faint);
+    width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.35);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-soft);
+    font-family:'Space Mono',monospace; font-size:11px; color:#C7CEE0;
   }
-  .opt.selected{background:var(--gold-soft); border-color:var(--gold); box-shadow:0 0 0 1px var(--gold);}
-  .opt.selected .bullet{background:var(--gold); border-color:var(--gold); color:#fff;}
+  .opt.selected{background:rgba(184,144,46,0.2); border-color:var(--gold); box-shadow:0 0 0 1px rgba(184,144,46,0.35);}
+  .opt.selected .bullet{background:var(--gold); border-color:var(--gold); color:var(--navy-deep);}
 
   .exam-bottom{
     position:sticky; bottom:0;
     padding:14px 18px calc(14px + env(safe-area-inset-bottom));
-    background:linear-gradient(0deg, var(--paper-deep) 55%, rgba(242,235,216,0));
+    background:linear-gradient(0deg, var(--navy-deep) 55%, rgba(16,24,44,0));
     display:flex; gap:10px;
   }
   .ebtn{flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:14.5px; font-family:'Noto Sans Bengali'; cursor:pointer;}
@@ -577,12 +472,6 @@
   .score-ring::before{content:""; position:absolute; inset:8px; background:var(--navy-deep); border-radius:50%;}
   .score-ring b{position:relative; font-family:'Noto Serif Bengali',serif; font-size:30px; z-index:2;}
   .result-hero p{color:#C7CEE0; font-size:13.5px;}
-  .rank-badge{
-    display:inline-flex; align-items:center; gap:6px; margin-top:12px;
-    background:rgba(184,144,46,0.16); border:1px solid rgba(184,144,46,0.4);
-    color:var(--gold-soft); font-size:12.5px; font-weight:700;
-    padding:7px 14px; border-radius:20px;
-  }
   .result-stats{display:flex; justify-content:center; gap:26px; padding:22px 18px 8px;}
   .rstat{text-align:center;}
   .rstat b{display:block; font-family:'Space Mono',monospace; font-size:19px;}
@@ -598,19 +487,6 @@
   .merit-rank{font-family:'Space Mono',monospace; font-weight:700; color:var(--ink-soft); width:22px;}
   .merit-name{flex:1; font-size:13.5px;}
   .merit-score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700;}
-
-  /* ---------- Achievements / badges ---------- */
-  .badge-summary{font-size:12.5px; color:var(--ink-faint); padding:0 0 14px;}
-  .badge-group-title{font-family:'Noto Serif Bengali',serif; font-size:14px; color:var(--ink); margin:16px 0 10px;}
-  .badge-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
-  .badge-item{
-    background:var(--card); border:1.5px solid var(--line); border-radius:14px;
-    padding:14px 8px; text-align:center; opacity:0.55;
-  }
-  .badge-item.earned{opacity:1; border-color:var(--gold); background:var(--gold-soft);}
-  .badge-emoji{font-size:24px; margin-bottom:6px;}
-  .badge-title{font-size:10.5px; color:var(--ink-soft); font-weight:600; line-height:1.35;}
-  .badge-progress{font-size:9.5px; color:var(--ink-faint); margin-top:4px; font-family:'Space Mono',monospace;}
   .result-close{
     position:sticky; bottom:0; margin:0 18px 18px; background:var(--ink); color:#fff;
     border:none; padding:14px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;
@@ -699,11 +575,6 @@
       <div class="dq-arrow">→</div>
     </div>
 
-    <div id="home-circulars-wrap" style="display:none;">
-      <div class="sec-head"><h2>সার্কুলার ক্যালেন্ডার</h2></div>
-      <div class="circular-scroll" id="home-circulars-list"><div class="loading-note">লোড হচ্ছে...</div></div>
-    </div>
-
     <div id="home-perf-widget" style="display:none;">
       <div class="sec-head" style="margin:22px 0 12px;"><h2>আপনার পারফরম্যান্স</h2><a onclick="goScreen('history')">বিস্তারিত →</a></div>
       <div id="home-perf-empty" class="empty-note" style="display:none;">একটি পরীক্ষা দিলে এখানে আপনার বিষয়ভিত্তিক ফলাফল দেখাবে।</div>
@@ -728,10 +599,9 @@
   <div class="screen" id="screen-model">
     <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
     <div class="mode-toggle" id="model-mode-toggle">
-      <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
-      <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')"><span class="mb-ic">📘</span>বিষয়ভিত্তিক</button>
-      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">🎯</span>প্র্যাকটিস মোড</button>
-      <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
+      <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')">মন্ত্রণালয় অনুযায়ী</button>
+      <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')">বিষয়ভিত্তিক মডেল টেস্ট</button>
+      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')">প্র্যাকটিস মোড</button>
     </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
     <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
@@ -805,15 +675,12 @@
         🏆 <span>সার্বিক র‍্যাংকিং দেখুন</span>
       </button>
 
-      <button class="revision-trigger" id="achievements-trigger-btn" style="background:var(--seal);" onclick="openAchievements()">
-        🎖️ <span id="achievements-trigger-label">অর্জন দেখুন</span>
-      </button>
-
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
       <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
       <div id="subject-stats-list"></div>
 
       <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার ফলাফল</h2></div>
+      <div id="profile-trend-chart-wrap" style="display:none; margin-bottom:16px;"></div>
       <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
       <div id="profile-history-list"></div>
     </div>
@@ -860,11 +727,6 @@
       <div class="exam-timer" id="exam-timer">⏱ --:--</div>
       <div style="width:20px;"></div>
     </div>
-    <div class="admit-strip" id="admit-strip">
-      <span class="admit-tag">প্রবেশপত্র</span>
-      <span class="admit-title" id="admit-title">—</span>
-      <span class="admit-meta" id="admit-meta">—</span>
-    </div>
     <div class="exam-progress-wrap">
       <div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill"></div></div>
       <div class="exam-progress-count" id="exam-progress-count">০ / ০ উত্তর দেওয়া হয়েছে</div>
@@ -881,8 +743,6 @@
       <div class="rk">পরীক্ষা সম্পন্ন হয়েছে</div>
       <div class="score-ring" id="score-ring"><b id="score-num">০/০</b></div>
       <p id="result-exam-title">—</p>
-      <div><span class="rank-badge" id="rank-badge" style="display:none;"></span></div>
-      <div id="duel-result-banner" style="display:none; margin-top:10px;"></div>
     </div>
     <div class="result-stats">
       <div class="rstat correct"><b id="stat-correct">0</b><span>সঠিক</span></div>
@@ -931,16 +791,6 @@
     <div class="exam-body" id="leaderboard-body" style="padding:14px 18px 40px;"></div>
   </div>
 
-  <!-- ============ ACHIEVEMENTS / BADGES OVERLAY ============ -->
-  <div class="exam-overlay" id="achievements-overlay">
-    <div class="exam-top">
-      <button class="exam-exit" onclick="closeAchievements()">✕</button>
-      <div style="font-size:13px; font-weight:700; color:var(--ink);">আমার অর্জন</div>
-      <div style="width:20px;"></div>
-    </div>
-    <div class="exam-body" id="achievements-body" style="padding:14px 18px 40px;"></div>
-  </div>
-
   <!-- ============ MY BOOKMARKS OVERLAY ============ -->
   <div class="exam-overlay" id="bookmark-overlay">
     <div class="exam-top">
@@ -969,17 +819,6 @@
   function toBnDigits(str){
     const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
     return String(str).replace(/[0-9]/g, d=>bn[d]);
-  }
-  // Escapes text before it's inserted via innerHTML, so a user-entered name,
-  // question, or explanation can never be interpreted as HTML/script (XSS fix).
-  function escapeHtml(str){
-    if(str === null || str === undefined) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
   }
   async function apiGet(path){
     const r = await fetch(API_BASE + path);
@@ -1143,6 +982,47 @@
     showAuthForm('login');
   }
 
+  // ---------- Trend chart: last N scores as a small SVG line chart ----------
+  function renderTrendChart(history){
+    const wrap = document.getElementById('profile-trend-chart-wrap');
+    if(!history || history.length < 2){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+    const N = 15;
+    const points = history.slice(0, N).slice().reverse(); // oldest → newest, most recent N
+    const scores = points.map(p => Number(p.score));
+    const W = 320, H = 108, padX = 8, padY = 14;
+    const stepX = points.length > 1 ? (W - padX*2) / (points.length - 1) : 0;
+    const coords = scores.map((s,i) => {
+      const x = padX + i*stepX;
+      const y = H - padY - (Math.max(0, Math.min(100, s))/100) * (H - padY*2);
+      return [x, y];
+    });
+    const pathD = coords.map((c,i) => (i===0?'M':'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+    const areaD = pathD + ` L${coords[coords.length-1][0].toFixed(1)},${H-padY} L${coords[0][0].toFixed(1)},${H-padY} Z`;
+
+    const first = scores[0], last = scores[scores.length-1];
+    const trendUp = last >= first;
+    const color = trendUp ? 'var(--success)' : 'var(--seal)';
+    const bgColor = trendUp ? 'var(--success-bg)' : 'var(--wrong-bg)';
+    const dotsHtml = coords.map(c =>
+      `<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="3" style="fill:${color};"></circle>`
+    ).join('');
+
+    wrap.style.display = 'block';
+    wrap.innerHTML = `
+      <div class="trend-card">
+        <div class="trend-head">
+          <span>শেষ ${toBnDigits(points.length)}টি পরীক্ষার প্রবণতা</span>
+          <span style="color:${color}; font-weight:700;">${trendUp?'▲':'▼'} ${toBnDigits(Math.abs(Math.round(last-first)))}%</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+          <path d="${areaD}" style="fill:${bgColor}; stroke:none;"></path>
+          <path d="${pathD}" style="fill:none; stroke:${color}; stroke-width:2;"></path>
+          ${dotsHtml}
+        </svg>
+      </div>`;
+  }
+
   async function renderProfile(){
     if(!USER_TOKEN){
       document.getElementById('auth-guest').style.display = 'block';
@@ -1159,6 +1039,7 @@
       applyStreakDisplay(USER_INFO.current_streak || 0, USER_INFO.longest_streak || 0);
 
       const history = await apiGetAuth('/api/results/me');
+      renderTrendChart(history);
       const empty = document.getElementById('profile-history-empty');
       const list = document.getElementById('profile-history-list');
       if(!history.length){ empty.style.display='block'; list.innerHTML=''; }
@@ -1167,7 +1048,7 @@
         list.innerHTML = history.map(h=>{
           const total = h.correct_count + h.wrong_count + h.skipped_count;
           return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
-            <div class="top"><span class="title">${escapeHtml(h.exam_title)}</span><span class="score">${h.score}%</span></div>
+            <div class="top"><span class="title">${h.exam_title}</span><span class="score">${h.score}%</span></div>
             <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')} · উত্তরপত্র দেখতে চাপুন</div>
           </div>`;
         }).join('');
@@ -1184,7 +1065,6 @@
 
       refreshRevisionTrigger();
       refreshBookmarkTrigger();
-      refreshAchievementsBadge();
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
@@ -1262,15 +1142,15 @@
         const opts = optKeys.map(k=>{
           const letter = k.toUpperCase();
           const cls = letter === q.correct_option ? 'is-correct' : '';
-          return `<div class="rev-opt ${cls}">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
+          return `<div class="rev-opt ${cls}">${letter}. ${q['option_'+k]}</div>`;
         }).join('');
-        const explain = q.explanation ? `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>` : '';
+        const explain = q.explanation ? `<div class="rev-explain">💡 ${q.explanation}</div>` : '';
         return `<div class="rev-q">
           <div class="rev-q-top">
-            <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
+            <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
             <button class="bm-star on" onclick="removeBookmarkFromList(${q.id})" title="বুকমার্ক সরান">★</button>
           </div>
-          <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
+          <div class="rev-q-text">${q.question_text}</div>
           ${opts}
           ${explain}
         </div>`;
@@ -1312,7 +1192,7 @@
       body.innerHTML = rows.map(r=>`
         <div class="merit-item ${myId && r.user_id===myId ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(r.rank)}</div>
-          <div class="merit-name">${escapeHtml(r.name)}<br><span style="font-size:10.5px; color:var(--ink-faint,#888);">${toBnDigits(r.exams_taken)}টি পরীক্ষা · গড় ${r.avg_score}%</span></div>
+          <div class="merit-name">${r.name}<br><span style="font-size:10.5px; color:var(--ink-faint,#888);">${toBnDigits(r.exams_taken)}টি পরীক্ষা · গড় ${r.avg_score}%</span></div>
           <div class="merit-score">${r.total_score}</div>
         </div>`).join('');
     }catch(e){
@@ -1322,50 +1202,6 @@
 
   function closeLeaderboard(){
     document.getElementById('leaderboard-overlay').classList.remove('active');
-  }
-
-  // ---------- Achievements / badges ----------
-  const BADGE_GROUP_LABEL = { streak:'স্ট্রিক', questions:'প্রশ্ন সমাধান', exams:'পরীক্ষা সম্পন্ন', rank:'র‍্যাংকিং' };
-
-  function openAchievements(){
-    document.getElementById('achievements-overlay').classList.add('active');
-    loadAchievements();
-  }
-  function closeAchievements(){
-    document.getElementById('achievements-overlay').classList.remove('active');
-  }
-
-  async function loadAchievements(){
-    const body = document.getElementById('achievements-body');
-    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
-    try{
-      const data = await apiGetAuth('/api/results/me/achievements');
-      const groups = {};
-      data.badges.forEach(b=>{ (groups[b.group] = groups[b.group] || []).push(b); });
-
-      let html = `<div class="badge-summary">${toBnDigits(data.earned_count)} / ${toBnDigits(data.total_count)}টি ব্যাজ অর্জিত হয়েছে</div>`;
-      Object.keys(groups).forEach(group=>{
-        html += `<div class="badge-group-title">${BADGE_GROUP_LABEL[group] || group}</div><div class="badge-grid">`;
-        html += groups[group].map(b=>`
-          <div class="badge-item ${b.earned ? 'earned' : ''}">
-            <div class="badge-emoji">${b.emoji}</div>
-            <div class="badge-title">${b.title}</div>
-            ${(!b.earned && b.target) ? `<div class="badge-progress">${toBnDigits(b.progress)}/${toBnDigits(b.target)}</div>` : ''}
-          </div>`).join('');
-        html += `</div>`;
-      });
-      body.innerHTML = html;
-    }catch(e){
-      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
-    }
-  }
-
-  async function refreshAchievementsBadge(){
-    try{
-      const data = await apiGetAuth('/api/results/me/achievements');
-      document.getElementById('achievements-trigger-label').textContent =
-        `অর্জন দেখুন (${toBnDigits(data.earned_count)}/${toBnDigits(data.total_count)})`;
-    }catch(e){ /* silent — label just stays generic */ }
   }
 
   let WRONG_QUESTIONS_CACHE = null;
@@ -1454,25 +1290,6 @@
     return map;
   }
 
-  // Assigns each distinct name (ministry, subject, etc.) a consistent pastel
-  // tint from a fixed palette, so the same name always gets the same color
-  // across screens and reloads — based on a hash of the name, not random.
-  const TINT_PALETTE = [
-    {bg:'#E9F1FA', bd:'#CFE1F1', fg:'#1E4F78'},
-    {bg:'#E8F5EC', bd:'#C9E8D2', fg:'#245C3B'},
-    {bg:'#FBF2DC', bd:'#EEDCA8', fg:'#7A5E12'},
-    {bg:'#F7E9E7', bd:'#EAC9C6', fg:'#7E241D'},
-    {bg:'#EFE9F7', bd:'#D8C9EE', fg:'#4E3B7A'},
-    {bg:'#E8F2F2', bd:'#C6E3E3', fg:'#1F6B6B'},
-    {bg:'#FCEEE3', bd:'#F0D3B8', fg:'#8A4E1D'},
-    {bg:'#F0F1E6', bd:'#DADCC0', fg:'#565E2E'},
-  ];
-  function tintFor(name){
-    let h = 0;
-    for(let i=0;i<name.length;i++){ h = (h*31 + name.charCodeAt(i)) >>> 0; }
-    return TINT_PALETTE[h % TINT_PALETTE.length];
-  }
-
   let MODEL_MODE = 'ministry';
 
   function setModelMode(mode){
@@ -1480,7 +1297,6 @@
     document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
     document.getElementById('mode-btn-subject').classList.toggle('active', mode==='subject');
     document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
-    document.getElementById('mode-btn-duel').classList.toggle('active', mode==='duel');
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     renderModelScreen();
@@ -1490,13 +1306,7 @@
   function renderModelScreen(){
     if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
-    if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
-    // Daily quiz (is_daily), practice-mode quizzes (is_practice), and duel
-    // challenges (is_duel) are all auto-generated on the fly and have no real
-    // ministry — they belong only on the home "today's quiz" card, the
-    // Practice Mode tab, and the Duel Mode tab respectively, never mixed
-    // into ministry-wise listing.
-    const model = ALL_EXAMS.filter(e=>e.type==='model' && !e.is_daily && !e.is_practice && !e.is_duel);
+    const model = ALL_EXAMS.filter(e=>e.type==='model');
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
@@ -1517,11 +1327,10 @@
       const groups = groupBy(model, e=>e.ministry_name || 'অন্যান্য');
       listEl.innerHTML = [...groups.entries()].map(([name, exams])=>{
         const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
-        const t = tintFor(name);
         return `
-          <div class="group-card" style="--t-bg:${t.bg}; --t-bd:${t.bd}; --t-fg:${t.fg};" onclick='modelPickMinistry(${JSON.stringify(name)})'>
+          <div class="group-card" onclick='modelPickMinistry(${JSON.stringify(name)})'>
             <div class="gc-left">
-              <div class="gc-ic">🏛️</div>
+              <div class="gc-ic ministry">🏛️</div>
               <div>
                 <div class="gc-name">${name}</div>
                 <div class="gc-meta">${toBnDigits(posts.size)}টি পদ · ${toBnDigits(exams.length)}টি টেস্ট</div>
@@ -1607,12 +1416,7 @@
   let SUBJECT_NAV = {level:'subjects'};
 
   function renderSubjectModelScreen(){
-    // Subject-based tab is for dedicated model tests an admin created for a subject —
-    // not the throwaway quizzes practice mode generates each time a student taps a
-    // subject (is_practice=true, lives only in the Practice Mode tab), and not
-    // duel challenges either (is_duel=true, they also carry a subject, and
-    // live only in the Duel Mode tab).
-    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject && !e.is_practice && !e.is_daily && !e.is_duel);
+    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject);
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
@@ -1706,16 +1510,7 @@
       });
     }
 
-    const smartCard = `
-      <div class="smart-practice-card" onclick="startSmartPractice()">
-        <div class="sp-ic">✨</div>
-        <div>
-          <div class="sp-title">স্মার্ট প্র্যাকটিস</div>
-          <div class="sp-sub">আপনার দুর্বল বিষয়গুলো থেকে ১৫টি প্রশ্ন — স্বয়ংক্রিয়ভাবে বাছাই করা</div>
-        </div>
-      </div>`;
-
-    listEl.innerHTML = smartCard + list.map(s=>{
+    listEl.innerHTML = list.map(s=>{
       const acc = weakOrder && weakOrder.has(s.subject) ? Math.round(weakOrder.get(s.subject)*100) : null;
       const weakTag = acc !== null && acc < 60 ? ' · <span style="color:var(--seal); font-weight:700;">দুর্বল জায়গা</span>' : '';
       return `
@@ -1730,216 +1525,6 @@
           <div class="gc-arrow">›</div>
         </div>`;
     }).join('');
-  }
-
-  // Smart Practice: server picks ~15 questions weighted toward the student's
-  // weakest subjects (see /api/exams/public/smart-practice). Requires login
-  // since it's based on this student's own result history.
-  async function startSmartPractice(){
-    if(!USER_TOKEN){
-      alert('স্মার্ট প্র্যাকটিসের জন্য আগে লগইন করুন — আপনার আগের ফলাফল অনুযায়ী প্রশ্ন বাছাই করা হয়।');
-      goScreen('history');
-      showAuthForm('login');
-      return;
-    }
-    const listEl = document.getElementById('model-list');
-    const prevHtml = listEl.innerHTML;
-    listEl.innerHTML = '<div class="loading-note">আপনার দুর্বল জায়গা বিশ্লেষণ করা হচ্ছে...</div>';
-    try{
-      const exam = await apiGetAuth('/api/exams/public/smart-practice?count=15');
-      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
-      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
-      startExam(exam.id, USER_INFO.name, USER_INFO.phone);
-    }catch(err){
-      listEl.innerHTML = prevHtml;
-      alert(err.message || 'স্মার্ট প্র্যাকটিস শুরু করা যায়নি');
-    }
-  }
-
-  // ---------- Duel mode: challenge a friend, compare scores ----------
-  let PENDING_DUEL_CODE = null;
-
-  async function renderDuelScreen(){
-    const backBtn = document.getElementById('model-back-btn');
-    const heading = document.getElementById('model-heading');
-    const subtext = document.getElementById('model-subtext');
-    const listEl = document.getElementById('model-list');
-    backBtn.style.display = 'none';
-    heading.textContent = 'ডুয়েল মোড';
-    subtext.textContent = 'বন্ধুকে চ্যালেঞ্জ করুন, কে বেশি নম্বর পায় দেখা যাক';
-
-    if(!USER_TOKEN){
-      listEl.innerHTML = `
-        <div class="duel-guest">
-          <div class="dg-ic">⚔️</div>
-          <p>ডুয়েলে বন্ধুকে চ্যালেঞ্জ করতে আগে লগইন করুন — ফলাফল দুজনের প্রোফাইলেই সংরক্ষিত থাকবে।</p>
-          <button class="auth-btn" style="margin-top:0;" onclick="goScreen('history'); showAuthForm('login');">লগইন করুন</button>
-        </div>`;
-      return;
-    }
-
-    if(!PRACTICE_SUBJECTS_CACHE){
-      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
-      try{ PRACTICE_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects'); }
-      catch(err){ listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`; return; }
-    }
-    if(!PRACTICE_SUBJECTS_CACHE.length){
-      listEl.innerHTML = '<div class="empty-note">এখনো কোনো প্রশ্ন যুক্ত হয়নি।</div>';
-      return;
-    }
-
-    const subjectOptions = PRACTICE_SUBJECTS_CACHE
-      .map(s => `<option value="${escapeHtml(s.subject)}">${escapeHtml(s.subject)}</option>`)
-      .join('');
-
-    listEl.innerHTML = `
-      <div class="duel-card">
-        <h3>🆕 নতুন চ্যালেঞ্জ তৈরি করুন</h3>
-        <select class="duel-select" id="duel-subject-select">${subjectOptions}</select>
-        <select class="duel-select" id="duel-count-select">
-          <option value="10">১০টি প্রশ্ন</option>
-          <option value="15" selected>১৫টি প্রশ্ন</option>
-          <option value="20">২০টি প্রশ্ন</option>
-        </select>
-        <button class="duel-btn" onclick="createDuel()">চ্যালেঞ্জ তৈরি করুন</button>
-      </div>
-
-      <div class="duel-card">
-        <h3>🔑 কোড দিয়ে যোগ দিন</h3>
-        <div class="duel-row">
-          <input class="duel-input" id="duel-join-code" placeholder="যেমনঃ a1b2c3d4" maxlength="8">
-          <button class="duel-btn ghost small" onclick="joinDuelByCode()">যোগ দিন</button>
-        </div>
-        <div class="auth-err" id="duel-join-err"></div>
-      </div>
-
-      <div class="sec-head" style="margin:20px 0 12px;"><h2>আমার চ্যালেঞ্জসমূহ</h2></div>
-      <div id="duel-my-list"><div class="loading-note">লোড হচ্ছে...</div></div>
-    `;
-
-    if(PENDING_DUEL_CODE){
-      const inp = document.getElementById('duel-join-code');
-      if(inp) inp.value = PENDING_DUEL_CODE;
-      PENDING_DUEL_CODE = null;
-    }
-
-    loadMyDuels();
-  }
-
-  async function createDuel(){
-    const subject = document.getElementById('duel-subject-select').value;
-    const count = document.getElementById('duel-count-select').value;
-    const listEl = document.getElementById('model-list');
-    const prevHtml = listEl.innerHTML;
-    listEl.innerHTML = '<div class="loading-note">চ্যালেঞ্জ তৈরি হচ্ছে...</div>';
-    try{
-      const duel = await apiAuth('/api/duels', 'POST', {subject, count});
-      showDuelCreated(duel);
-    }catch(err){
-      listEl.innerHTML = prevHtml;
-      alert(err.message || 'চ্যালেঞ্জ তৈরি করা যায়নি');
-    }
-  }
-
-  function showDuelCreated(duel){
-    const listEl = document.getElementById('model-list');
-    const shareText = `আমি Exam House-এ তোমাকে ডুয়েল চ্যালেঞ্জ করেছি — বিষয়: ${duel.subject}। কোড: ${duel.code}\nযোগ দিতে লিংকে যাও: ${location.origin}${location.pathname}?duel=${duel.code}`;
-    listEl.innerHTML = `
-      <div class="duel-code-box">
-        <div class="duel-code-eyebrow">চ্যালেঞ্জ কোড</div>
-        <div class="duel-code-num">${escapeHtml(duel.code)}</div>
-        <div class="duel-code-meta">${escapeHtml(duel.subject)} · ${toBnDigits(duel.question_count)}টি প্রশ্ন · ৭ দিন বৈধ</div>
-      </div>
-      <button class="duel-btn" onclick='shareDuel(${JSON.stringify(shareText)})'>📤 বন্ধুকে শেয়ার করুন</button>
-      <button class="duel-btn ghost" style="margin-top:10px;" onclick="startExam(${duel.exam_id}, USER_INFO.name, USER_INFO.phone)">⚔️ এখনই খেলা শুরু করুন</button>
-      <button class="model-back" style="margin-top:16px;" onclick="renderDuelScreen()">← ডুয়েল হোমে ফিরুন</button>
-    `;
-  }
-
-  function shareDuel(text){
-    if(navigator.share){
-      navigator.share({text}).catch(()=>{});
-    }else if(navigator.clipboard){
-      navigator.clipboard.writeText(text)
-        .then(()=>alert('কপি হয়েছে — এখন বন্ধুকে পাঠিয়ে দিন'))
-        .catch(()=>prompt('কপি করুন:', text));
-    }else{
-      prompt('কপি করুন:', text);
-    }
-  }
-
-  async function joinDuelByCode(){
-    const codeInput = document.getElementById('duel-join-code');
-    const errEl = document.getElementById('duel-join-err');
-    const code = codeInput.value.trim().toLowerCase();
-    errEl.textContent = '';
-    if(!code){ errEl.textContent = 'কোড লিখুন'; return; }
-    try{
-      const res = await apiAuth('/api/duels/code/'+encodeURIComponent(code)+'/join', 'POST');
-      startExam(res.exam_id, USER_INFO.name, USER_INFO.phone);
-    }catch(err){
-      errEl.textContent = err.message || 'যোগ দেওয়া যায়নি';
-    }
-  }
-
-  async function loadMyDuels(){
-    const wrap = document.getElementById('duel-my-list');
-    if(!wrap) return;
-    try{
-      const duels = await apiGetAuth('/api/duels/me');
-      if(!duels.length){
-        wrap.innerHTML = '<div class="empty-note">এখনো কোনো চ্যালেঞ্জ পাঠাননি বা গ্রহণ করেননি।</div>';
-        return;
-      }
-      wrap.innerHTML = duels.map(d=>{
-        let statusCls = 'pending', statusLabel = 'যোগদানের অপেক্ষায়';
-        if(d.status === 'active'){
-          statusCls = 'active';
-          statusLabel = d.my_score != null ? 'প্রতিপক্ষের অপেক্ষায়' : 'আপনার পালা';
-        }
-        if(d.status === 'completed'){
-          if(d.my_score != null && d.opponent_score != null){
-            if(d.my_score > d.opponent_score){ statusCls='won'; statusLabel='জয়ী 🏆'; }
-            else if(d.my_score < d.opponent_score){ statusCls='lost'; statusLabel='পরাজিত'; }
-            else { statusCls='draw'; statusLabel='ড্র'; }
-          }else{
-            statusCls = 'active'; statusLabel = 'ফলাফলের অপেক্ষায়';
-          }
-        }
-        const myScoreTxt = d.my_score != null ? toBnDigits(d.my_score) : '—';
-        const oppScoreTxt = d.opponent_score != null ? toBnDigits(d.opponent_score) : '—';
-        let actionBtn = '';
-        if(d.status === 'pending'){
-          actionBtn = `<button class="duel-btn" style="margin-top:10px;" onclick='shareDuel(${JSON.stringify('চ্যালেঞ্জ কোড: ')}+${JSON.stringify(d.code)})'>📤 আবার শেয়ার করুন</button>`;
-        }else if(d.status === 'active' && d.my_score == null){
-          actionBtn = `<button class="duel-btn" style="margin-top:10px;" onclick='resumeDuel(${JSON.stringify(d.code)})'>⚔️ এখনই খেলুন</button>`;
-        }
-        return `
-          <div class="duel-list-item">
-            <div class="duel-li-top">
-              <span class="duel-li-subject">${escapeHtml(d.subject)}</span>
-              <span class="duel-status ${statusCls}">${statusLabel}</span>
-            </div>
-            <div class="duel-vs">
-              <span>আপনি <b>${myScoreTxt}</b></span>
-              <span style="opacity:.5;">বনাম</span>
-              <span>${escapeHtml(d.opponent_name || 'অপেক্ষমাণ')} <b>${oppScoreTxt}</b></span>
-            </div>
-            ${actionBtn}
-          </div>`;
-      }).join('');
-    }catch(err){
-      wrap.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
-    }
-  }
-
-  async function resumeDuel(code){
-    try{
-      const info = await apiGet('/api/duels/code/'+encodeURIComponent(code));
-      startExam(info.exam_id, USER_INFO.name, USER_INFO.phone);
-    }catch(err){
-      alert(err.message || 'শুরু করা যায়নি');
-    }
   }
 
   async function startPractice(subject){
@@ -2004,16 +1589,7 @@
           const btnClass = st.archive ? 'btn-enter archive' : 'btn-enter';
           const disabled = st.canEnter ? '' : 'disabled';
           const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
-          const enterBtn = `<button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>`;
-          // Reminder bell: only for a logged-in student, only while the exam
-          // hasn't started yet (st.countdown is set precisely in that window).
-          if(USER_TOKEN && st.countdown !== undefined){
-            const isSet = !!exam.reminder_set;
-            const remindBtn = `<button class="remind-btn ${isSet ? 'active' : ''}" onclick="toggleReminder(${exam.id}, this)">
-              ${isSet ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন'}</button>`;
-            return `<div class="ticket-btn-group">${remindBtn}${enterBtn}</div>`;
-          }
-          return enterBtn;
+          return `<button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>`;
         })();
 
     return `
@@ -2034,66 +1610,10 @@
       </div>`;
   }
 
-  // Toggles a 🔔 SMS reminder for a live exam that hasn't started yet.
-  // Updates the cached exam object + button in place so every list showing
-  // this exam (home, live tab, search) reflects the new state without a refetch.
-  async function toggleReminder(examId, btnEl){
-    const exam = ALL_EXAMS.find(e=>e.id===examId);
-    if(!exam) return;
-    const turningOn = !exam.reminder_set;
-    btnEl.disabled = true;
-    try{
-      await apiAuth('/api/exams/public/'+examId+'/remind', turningOn ? 'POST' : 'DELETE', {});
-      exam.reminder_set = turningOn;
-      btnEl.classList.toggle('active', turningOn);
-      btnEl.innerHTML = turningOn ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন';
-    }catch(e){
-      alert(e.message || 'রিমাইন্ডার সেট করা যায়নি');
-    }finally{
-      btnEl.disabled = false;
-    }
-  }
-
   function renderList(containerId, exams, emptyMsg){
     const el = document.getElementById(containerId);
     if(!exams.length){ el.innerHTML = `<div class="empty-note">${emptyMsg}</div>`; return; }
     el.innerHTML = exams.map(ticketHtml).join('');
-  }
-
-  // ---------- সার্কুলার ক্যালেন্ডার ----------
-  function circularCardHtml(c){
-    const expired = c.deadline_passed;
-    let badge = '';
-    if(c.days_left !== null && c.days_left !== undefined){
-      badge = expired
-        ? `<span class="circular-badge">মেয়াদ শেষ</span>`
-        : `<span class="circular-badge ${c.days_left<=3?'':'ok'}">আর ${toBnDigits(c.days_left)} দিন বাকি</span>`;
-    }
-    const deadlineTxt = c.application_deadline
-      ? `আবেদনের শেষ তারিখ: ${new Date(c.application_deadline).toLocaleDateString('bn-BD')}` : '';
-    const examDateTxt = c.exam_probable_date
-      ? `পরীক্ষার সম্ভাব্য তারিখ: ${new Date(c.exam_probable_date).toLocaleDateString('bn-BD')}` : '';
-    const linkTxt = c.circular_url ? `<a class="circular-link" href="${c.circular_url}" target="_blank" rel="noopener">মূল সার্কুলার দেখুন →</a>` : '';
-    return `
-      <div class="circular-card ${expired?'expired':''}">
-        ${badge}
-        <div class="circular-post">${c.post_name || c.title}</div>
-        <div class="circular-ministry">${c.ministry_name || ''}</div>
-        <div class="circular-dates">${[deadlineTxt, examDateTxt].filter(Boolean).join('<br>')}</div>
-        ${linkTxt}
-      </div>`;
-  }
-
-  async function loadCirculars(){
-    const wrap = document.getElementById('home-circulars-wrap');
-    try{
-      const circulars = await apiGet('/api/exams/public/circulars');
-      if(!circulars.length){ wrap.style.display = 'none'; return; }
-      wrap.style.display = 'block';
-      document.getElementById('home-circulars-list').innerHTML = circulars.map(circularCardHtml).join('');
-    }catch(err){
-      wrap.style.display = 'none';
-    }
   }
 
   // ---------- Global search (title / ministry / post / subject / serial) ----------
@@ -2130,47 +1650,25 @@
       const all = await apiGet('/api/exams/public/list');
       ALL_EXAMS = all;
       const live = all.filter(e=>e.type==='live');
-      // "মোট পরীক্ষা" should reflect exams an admin actually created — not
-      // every auto-generated daily quiz, practice quiz, or duel challenge
-      // (each duel a student creates adds a new row, so counting those would
-      // make this number balloon and no longer mean anything).
-      const realExams = all.filter(e=>!e.is_daily && !e.is_practice && !e.is_duel);
-      document.getElementById('stat-total').textContent = toBnDigits(realExams.length);
+      const model = all.filter(e=>e.type==='model');
+      document.getElementById('stat-total').textContent = toBnDigits(all.length);
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
       renderModelScreen();
-      loadCirculars();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
   }
   loadHome();
-
-  // Deep-link support: a shared duel link like /?duel=a1b2c3d4 opens straight
-  // to the Duel tab with the code pre-filled in the join box. Placed at the
-  // end of the script (after every function/state it touches is defined) so
-  // it doesn't run into a temporal-dead-zone error on page load.
-  (function handleDuelDeepLink(){
-    const code = new URLSearchParams(location.search).get('duel');
-    if(!code) return;
-    PENDING_DUEL_CODE = code.trim();
-    goScreen('model');
-    setModelMode('duel');
-  })();
   setInterval(()=>{
     // refresh countdowns/status every 15s without a full reload feel
     if(ALL_EXAMS.length){
       const live = ALL_EXAMS.filter(e=>e.type==='live');
+      const model = ALL_EXAMS.filter(e=>e.type==='model');
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      // Skip re-rendering the Model screen while the Duel tab is open — that
-      // screen has live form inputs (subject/count dropdowns, join-code box)
-      // which this periodic refresh would silently wipe every 15s, resetting
-      // whatever the student had just selected/typed.
-      if(MODEL_MODE !== 'duel'){
-        renderModelScreen();
-      }
+      renderModelScreen();
     }
   }, 15000);
 
@@ -2228,13 +1726,13 @@
       const optKeys = ['option_a','option_b','option_c','option_d'];
       document.getElementById('archive-body').innerHTML = data.questions.map((q,i)=>`
         <div class="aq">
-          <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</div>
-          <div class="aq-text">${escapeHtml(q.question_text)}</div>
+          <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</div>
+          <div class="aq-text">${q.question_text}</div>
           ${letters.map((L,idx)=>`
             <div class="aq-opt ${q.correct_option===L?'correct':''}">
-              <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${escapeHtml(q[optKeys[idx]])}</span>
+              <span class="b">${['ক','খ','গ','ঘ'][idx]}</span><span>${q[optKeys[idx]]}</span>
             </div>`).join('')}
-          ${q.explanation ? `<div class="aq-explain">💡 ${escapeHtml(q.explanation)}</div>` : ''}
+          ${q.explanation ? `<div class="aq-explain">💡 ${q.explanation}</div>` : ''}
         </div>`).join('');
       document.getElementById('archive-overlay').classList.add('active');
     }catch(err){
@@ -2271,10 +1769,6 @@
       }
 
       document.getElementById('exam-overlay').classList.add('active');
-      document.getElementById('admit-title').textContent = CURRENT_EXAM.title || '';
-      document.getElementById('admit-meta').textContent =
-        [CURRENT_EXAM.serial, CURRENT_EXAM.grade ? ('গ্রেড ' + toBnDigits(CURRENT_EXAM.grade)) : null]
-          .filter(Boolean).join(' · ');
       if(USER_TOKEN) await loadBookmarkIds();
       renderAllQuestions();
       clearInterval(timerHandle);
@@ -2299,7 +1793,7 @@
     const bnLetters = ['ক','খ','গ','ঘ'];
     const body = document.getElementById('exam-body');
     body.innerHTML = CURRENT_QUESTIONS.map((q, qi)=>{
-      const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d].map(escapeHtml);
+      const optTexts = [q.option_a, q.option_b, q.option_c, q.option_d];
       const optsHtml = letters.map((L,i)=>`
         <div class="opt${answers[q.id]===L ? ' selected' : ''}" onclick="selectAnswer(${q.id},'${L}')">
           <span class="bullet">${bnLetters[i]}</span><span>${optTexts[i]}</span>
@@ -2307,11 +1801,11 @@
       const bmOn = BOOKMARK_IDS.has(q.id);
       return `
         <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
-          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${escapeHtml(q.subject)}</span>
+          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${q.subject}</span>
             <button class="bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)" title="বুকমার্ক">${bmOn ? '★' : '☆'}</button>
             <button class="bm-star" onclick="reportQuestion(${q.id}, event)" title="প্রশ্নে সমস্যা রিপোর্ট করুন" style="font-size:14px;">⚠</button>
           </div>
-          <div class="q-text">${escapeHtml(q.question_text)}</div>
+          <div class="q-text">${q.question_text}</div>
           <div>${optsHtml}</div>
         </div>`;
     }).join('');
@@ -2374,42 +1868,6 @@
     document.getElementById('stat-wrong').textContent = toBnDigits(result.wrong_count);
     document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
 
-    const rankBadge = document.getElementById('rank-badge');
-    // Duel submissions get their own win/lose/draw/waiting banner just below
-    // (see the duel-result-banner block right after this) — the generic
-    // "N জনের মধ্যে ১তম" merit-list badge is misleading here (a 2-person duel
-    // where you submitted first always shows "১ জনের মধ্যে ১তম", which reads
-    // like a final result even while the banner below says "still waiting"),
-    // so it's suppressed for duels specifically.
-    if(result.rank_info && result.rank_info.total_participants > 0 && !result.duel){
-      const { rank, total_participants } = result.rank_info;
-      rankBadge.textContent = '🏆 ' + toBnDigits(total_participants) + ' জনের মধ্যে ' + toBnDigits(rank) + 'তম';
-      rankBadge.style.display = 'inline-flex';
-    } else {
-      rankBadge.style.display = 'none';
-    }
-
-    // Duel mode: the /api/results response includes `duel` whenever this
-    // submission belonged to a duel (see routes/results.routes.js). Show
-    // the outcome right here — this is the payoff moment of a duel.
-    const duelBanner = document.getElementById('duel-result-banner');
-    if(result.duel){
-      duelBanner.style.display = 'block';
-      if(result.duel.status === 'completed'){
-        const iWon = result.duel.winner_user_id && USER_INFO && result.duel.winner_user_id === USER_INFO.id;
-        const isDraw = !result.duel.winner_user_id;
-        const label = isDraw ? '🤝 ডুয়েল ড্র হয়েছে!' : (iWon ? '🏆 আপনি ডুয়েলে জিতেছেন!' : '😔 এবার ডুয়েলে হেরে গেছেন — পরেরবার হবে!');
-        const bg = isDraw ? 'var(--paper-deep)' : (iWon ? 'var(--success-bg)' : 'var(--wrong-bg)');
-        const fg = isDraw ? 'var(--ink-soft)' : (iWon ? 'var(--success)' : 'var(--wrong)');
-        duelBanner.innerHTML = `<div style="background:${bg}; color:${fg}; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:700; display:inline-block;">${label}</div>`;
-      }else{
-        duelBanner.innerHTML = `<div style="background:var(--paper-deep); color:var(--ink-soft); border-radius:12px; padding:10px 14px; font-size:12.5px; font-weight:600; display:inline-block;">⏳ প্রতিপক্ষ এখনো খেলেননি — ফলাফলের জন্য অপেক্ষা করুন</div>`;
-      }
-    }else{
-      duelBanner.style.display = 'none';
-      duelBanner.innerHTML = '';
-    }
-
     const reviewBtn = document.getElementById('result-review-btn');
     if(result.review && result.review.length){
       LAST_REVIEW = result.review;
@@ -2424,7 +1882,7 @@
       document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
         <div class="merit-item ${m.id===result.id ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(i+1)}</div>
-          <div class="merit-name">${escapeHtml(m.participant_name)}</div>
+          <div class="merit-name">${m.participant_name}</div>
           <div class="merit-score">${m.score}%</div>
         </div>`).join('');
     }catch(e){
@@ -2466,15 +1924,15 @@
         let cls = '';
         if(letter === q.correct_option) cls = 'is-correct';
         else if(letter === q.given) cls = 'is-wrong';
-        return `<div class="rev-opt ${cls}">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
+        return `<div class="rev-opt ${cls}">${letter}. ${q['option_'+k]}</div>`;
       }).join('');
-      const explain = q.explanation ? `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      const explain = q.explanation ? `<div class="rev-explain">💡 ${q.explanation}</div>` : '';
       return `<div class="rev-q">
         <div class="rev-q-top">
-          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
+          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
           <span class="rev-q-status ${q.status}">${statusLabel}</span>
         </div>
-        <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
+        <div class="rev-q-text">${q.question_text}</div>
         ${opts}
         ${explain}
       </div>`;
@@ -2509,14 +1967,14 @@
     document.getElementById('revision-body').innerHTML = WRONG_QUESTIONS_CACHE.map((q,i)=>{
       const opts = optKeys.map(k=>{
         const letter = k.toUpperCase();
-        return `<div class="rev-opt clickable" data-qid="${q.id}" data-letter="${letter}" data-correct="${q.correct_option}" onclick="answerRevisionOption(this)">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
+        return `<div class="rev-opt clickable" data-qid="${q.id}" data-letter="${letter}" data-correct="${q.correct_option}" onclick="answerRevisionOption(this)">${letter}. ${q['option_'+k]}</div>`;
       }).join('');
-      const explain = q.explanation ? `<div class="rev-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      const explain = q.explanation ? `<div class="rev-explain" style="display:none;">💡 ${q.explanation}</div>` : '';
       return `<div class="rev-q">
         <div class="rev-q-top">
-          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
+          <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${q.subject}</span>
         </div>
-        <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
+        <div class="rev-q-text">${q.question_text}</div>
         ${opts}
         ${explain}
       </div>`;
