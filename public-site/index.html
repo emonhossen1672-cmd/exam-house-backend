@@ -2154,10 +2154,15 @@
     // refresh countdowns/status every 15s without a full reload feel
     if(ALL_EXAMS.length){
       const live = ALL_EXAMS.filter(e=>e.type==='live');
-      const model = ALL_EXAMS.filter(e=>e.type==='model');
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      renderModelScreen();
+      // Skip re-rendering the Model screen while the Duel tab is open — that
+      // screen has live form inputs (subject/count dropdowns, join-code box)
+      // which this periodic refresh would silently wipe every 15s, resetting
+      // whatever the student had just selected/typed.
+      if(MODEL_MODE !== 'duel'){
+        renderModelScreen();
+      }
     }
   }, 15000);
 
@@ -2362,7 +2367,13 @@
     document.getElementById('stat-skip').textContent = toBnDigits(result.skipped_count);
 
     const rankBadge = document.getElementById('rank-badge');
-    if(result.rank_info && result.rank_info.total_participants > 0){
+    // Duel submissions get their own win/lose/draw/waiting banner just below
+    // (see the duel-result-banner block right after this) — the generic
+    // "N জনের মধ্যে ১তম" merit-list badge is misleading here (a 2-person duel
+    // where you submitted first always shows "১ জনের মধ্যে ১তম", which reads
+    // like a final result even while the banner below says "still waiting"),
+    // so it's suppressed for duels specifically.
+    if(result.rank_info && result.rank_info.total_participants > 0 && !result.duel){
       const { rank, total_participants } = result.rank_info;
       rankBadge.textContent = '🏆 ' + toBnDigits(total_participants) + ' জনের মধ্যে ' + toBnDigits(rank) + 'তম';
       rankBadge.style.display = 'inline-flex';
