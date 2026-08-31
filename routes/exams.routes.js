@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
+const { normalizeSubject } = require('../utils/subjectMap');
 
 function genSerial(type) {
   const prefix = type === 'live' ? 'EH-LV' : 'EH-MT';
@@ -298,15 +299,27 @@ router.get('/public/circulars', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/exams/public/subjects — distinct subjects in the question bank with
-// their question counts, so the practice-mode screen can list them to pick from.
+// their question counts, so Reading List / Duel mode / Smart Practice can list
+// them to pick from. Raw subject values entered inconsistently over time
+// (English vs ইংরেজি, বাংলা vs বাংলা (ধ্বনি ও বর্ণ)) are merged into the 5
+// canonical subjects here — counts are summed across every raw variant, and
+// anything outside the 5 (ভূমি বিষয়ক, ইসলাম শিক্ষা, ...) is left out entirely.
 router.get('/public/subjects', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT subject, COUNT(*)::int AS question_count
     FROM questions
     GROUP BY subject
-    ORDER BY question_count DESC
   `);
-  res.json(rows);
+  const merged = new Map();
+  for (const row of rows) {
+    const canonical = normalizeSubject(row.subject);
+    if (!canonical) continue;
+    merged.set(canonical, (merged.get(canonical) || 0) + row.question_count);
+  }
+  const result = [...merged.entries()]
+    .map(([subject, question_count]) => ({ subject, question_count }))
+    .sort((a, b) => b.question_count - a.question_count);
+  res.json(result);
 }));
 
 // GET /api/exams/public/practice?subject=X&count=15 — instantly generates a
@@ -431,9 +444,6 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
     }
 
     const accuracyBySubject = new Map(statsRes.rows.map(s => [s.subject, s.total ? s.correct / s.total : 0]));
-    // Weakness weight: never-attempted or 0% accuracy subjects get weight 1
-    // (fully weak); 100% accuracy subjects get weight ~0.1 (still included,
-    // just rarely) so a mastered subject isn't dropped entirely.
     const weighted = allSubjectsRes.rows.map(s => {
       const acc = accuracyBySubject.has(s.subject) ? accuracyBySubject.get(s.subject) : 0;
       const weight = Math.max(0.1, 1 - acc);
@@ -441,7 +451,6 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
     });
     const totalWeight = weighted.reduce((sum, s) => sum + s.weight, 0);
 
-    // Allocate `count` questions across subjects proportional to weakness weight
     let remaining = count;
     const allocation = weighted.map((s, i) => {
       const isLast = i === weighted.length - 1;
@@ -458,7 +467,6 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
       );
       questionIds.push(...qRes.rows.map(r => r.id));
     }
-    // Top up with random questions from anywhere if rounding left us short
     if (questionIds.length < count) {
       const topUp = await client.query(
         `SELECT id FROM questions WHERE id != ALL($1::int[]) ORDER BY RANDOM() LIMIT $2`,
@@ -466,7 +474,6 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
       );
       questionIds.push(...topUp.rows.map(r => r.id));
     }
-    // Shuffle so weak-subject questions aren't all grouped at the start
     for (let i = questionIds.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [questionIds[i], questionIds[j]] = [questionIds[j], questionIds[i]];
@@ -498,10 +505,7 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
 }));
 
 // POST /api/exams/sync-subject-tests — regenerate all auto বিষয়ভিত্তিক model
-// tests from the current question bank, grouped by subject. Idempotent: wipes
-// the previous auto batch first (exam_questions cascades), then rebuilds from
-// scratch, so re-running after every bulk upload just picks up whatever is
-// new — nothing needs to be re-uploaded or manually re-picked into an exam.
+// tests from the current question bank, grouped by subject.
 router.post('/sync-subject-tests', requireAdmin, asyncHandler(async (req, res) => {
   const BATCH_SIZE = 25;
   const client = await pool.connect();
@@ -561,11 +565,7 @@ router.post('/sync-subject-tests', requireAdmin, asyncHandler(async (req, res) =
   }
 }));
 
-// POST /api/exams/sync-repeated-questions — finds question text that appears
-// more than once across the whole bank (exact match after trim+lowercase)
-// and collects one copy of each into a dedicated "সর্বাধিক পুনরাবৃত্ত প্রশ্ন"
-// model test, tagging each with how many times and which ministries it
-// showed up in. Also idempotent — safe to re-run after every upload.
+// POST /api/exams/sync-repeated-questions
 router.post('/sync-repeated-questions', requireAdmin, asyncHandler(async (req, res) => {
   const client = await pool.connect();
   try {
@@ -578,7 +578,7 @@ router.post('/sync-repeated-questions', requireAdmin, asyncHandler(async (req, r
       ORDER BY q.id DESC
     `);
 
-    const groups = new Map(); // normalized text -> [questions]
+    const groups = new Map();
     qs.forEach(q => {
       const key = q.question_text.trim().toLowerCase().replace(/\s+/g, ' ');
       if (!groups.has(key)) groups.set(key, []);
@@ -602,7 +602,7 @@ router.post('/sync-repeated-questions', requireAdmin, asyncHandler(async (req, r
 
     for (let pos = 0; pos < repeated.length; pos++) {
       const group = repeated[pos];
-      const rep = group[0]; // most recent (list is ordered by q.id DESC)
+      const rep = group[0];
       const ministries = [...new Set(group.map(g => g.ministry_name).filter(Boolean))];
       const tag = `🔁 ${group.length} বার এসেছে` + (ministries.length ? ' — ' + ministries.join(', ') : '');
       await client.query(
