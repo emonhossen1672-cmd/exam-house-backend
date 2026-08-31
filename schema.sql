@@ -232,3 +232,13 @@ ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_repeated_bank BOOLEAN NOT NULL DEF
 -- note (the "সর্বাধিক পুনরাবৃত্ত প্রশ্ন" bank), so one column serves both.
 ALTER TABLE exam_questions ADD COLUMN IF NOT EXISTS tag TEXT;
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
+
+-- ===== Feature: রিডিং লিস্ট (subject-wise question reading, replaces old প্র্যাকটিস মোড) =====
+-- Merge the old science/computer subjects into one "বিজ্ঞান ও প্রযুক্তি" subject,
+-- on both questions and exams (subject-wise model tests use exams.subject too).
+-- Plain UPDATEs are naturally idempotent — after the first run no row still has
+-- the old subject names, so re-running schema.sql on every boot is harmless.
+UPDATE questions SET subject = 'বিজ্ঞান ও প্রযুক্তি'
+  WHERE subject IN ('বিজ্ঞান', 'কম্পিউটার ও তথ্যপ্রযুক্তি', 'কম্পিউটার');
+UPDATE exams SET subject = 'বিজ্ঞান ও প্রযুক্তি'
+  WHERE subject IN ('বিজ্ঞান', 'কম্পিউটার ও তথ্যপ্রযুক্তি', 'কম্পিউটার');
