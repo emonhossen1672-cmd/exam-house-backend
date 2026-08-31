@@ -1841,7 +1841,19 @@
       return;
     }
 
-    listEl.innerHTML = PRACTICE_SUBJECTS_CACHE.map(s=>{
+    // Smart Practice — a mixed quiz auto-weighted toward this student's
+    // weakest subjects (server picks the mix). Only shown when logged in,
+    // since it needs the student's result history to know what's weak.
+    const smartCardHtml = USER_TOKEN ? `
+      <div class="smart-practice-card" onclick="startSmartPractice()">
+        <div class="sp-ic">✨</div>
+        <div>
+          <div class="sp-title">স্মার্ট প্র্যাকটিস</div>
+          <div class="sp-sub">আপনার দুর্বল বিষয়গুলো থেকে ১৫টি প্রশ্ন — স্বয়ংক্রিয়ভাবে বাছাই করা</div>
+        </div>
+      </div>` : '';
+
+    listEl.innerHTML = smartCardHtml + PRACTICE_SUBJECTS_CACHE.map(s=>{
       const pages = Math.max(1, Math.ceil(s.question_count / 30));
       return `
         <div class="group-card" onclick='openReadingList(${JSON.stringify(s.subject)})'>
@@ -1861,6 +1873,21 @@
     READING_NAV = {level:'list', subject, page:1};
     renderModelScreen();
     window.scrollTo(0,0);
+  }
+
+  async function startSmartPractice(){
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">অনুশীলন তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiGetAuth('/api/exams/public/smart-practice?count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'অনুশীলন শুরু করা যায়নি');
+    }
   }
 
   function goReadingPage(delta){
@@ -2346,13 +2373,19 @@
     history.replaceState({screen:'model'}, '', location.pathname);
   })();
   setInterval(()=>{
-    // refresh countdowns/status every 15s without a full reload feel
+    // refresh countdowns/status every 15s without a full reload feel.
+    // Only touches the ministry-browsing model screen (the one with live-exam
+    // countdown tickets) — never Reading List, Duel mode, or Subject-wise,
+    // since those have no countdowns and re-rendering them mid-session was
+    // wiping the student's scroll position / revealed answers every 15s.
     if(ALL_EXAMS.length){
       const live = ALL_EXAMS.filter(e=>e.type==='live');
       const model = ALL_EXAMS.filter(e=>e.type==='model');
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
-      renderModelScreen();
+      if(document.getElementById('screen-model').classList.contains('active') && MODEL_MODE === 'ministry'){
+        renderModelScreen();
+      }
     }
   }, 15000);
 
