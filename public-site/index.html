@@ -301,6 +301,28 @@
   .smart-practice-card .sp-title{font-size:14px; font-weight:700;}
   .smart-practice-card .sp-sub{font-size:11px; color:#F5C4B3; margin-top:3px; line-height:1.5;}
 
+  /* ---------- Reading list (subject-wise question reading) ---------- */
+  .rl-q-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 15px; margin-bottom:10px;}
+  .rl-q-top{display:flex; gap:8px; align-items:baseline; margin-bottom:6px;}
+  .rl-q-num{font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-faint); flex-shrink:0;}
+  .rl-q-text{font-size:14px; font-weight:600; line-height:1.6; color:var(--ink);}
+  .rl-q-meta{font-size:10.5px; color:var(--ink-faint); opacity:.8; margin:2px 0 10px;}
+  .rl-q-opts{display:flex; flex-direction:column; gap:6px; margin-bottom:4px;}
+  .rl-q-opt{font-size:13px; padding:8px 10px; border-radius:9px; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft); line-height:1.5;}
+  .rl-q-opt b{font-family:'Space Mono',monospace; margin-right:6px; color:var(--ink-faint);}
+  .rl-q-opt.correct{background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700;}
+  .rl-q-reveal{width:100%; background:var(--navy-deep); color:#fff; border:none; padding:9px; margin-top:4px; border-radius:9px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .rl-q-explain{font-size:12px; color:var(--ink-soft); background:var(--paper-deep); border-radius:9px; padding:9px 11px; margin-top:8px; line-height:1.6;}
+  .rl-pager{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:14px 0 18px;}
+  .rl-pager-btn{flex:1; background:var(--card); border:1.5px solid var(--line); color:var(--ink); padding:11px; border-radius:11px; font-weight:700; font-size:13px; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .rl-pager-btn:disabled{opacity:.4;}
+  .rl-pager-info{font-size:12px; color:var(--ink-faint); white-space:nowrap; font-family:'Space Mono',monospace;}
+  .rl-quiz-cta{background:var(--seal); color:#fff; border-radius:16px; padding:16px; margin:4px 0 18px; text-align:center; cursor:pointer; transition:transform .1s ease;}
+  .rl-quiz-cta:active{transform:scale(0.98);}
+  .rl-quiz-cta .rq-ic{font-size:24px; margin-bottom:6px;}
+  .rl-quiz-cta .rq-title{font-size:14px; font-weight:700;}
+  .rl-quiz-cta .rq-sub{font-size:11.5px; color:#F5C4B3; margin-top:4px; line-height:1.5;}
+
   /* ---------- Duel mode ---------- */
   .duel-guest{text-align:center; padding:34px 20px;}
   .duel-guest .dg-ic{font-size:34px; margin-bottom:10px;}
@@ -737,7 +759,7 @@
     <div class="mode-toggle" id="model-mode-toggle">
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
       <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')"><span class="mb-ic">📘</span>বিষয়ভিত্তিক</button>
-      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">🎯</span>প্র্যাকটিস মোড</button>
+      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
       <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
     </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
@@ -1705,6 +1727,12 @@
       window.scrollTo(0,0);
       return;
     }
+    if(MODEL_MODE === 'practice'){
+      READING_NAV = {level:'subjects'};
+      renderModelScreen();
+      window.scrollTo(0,0);
+      return;
+    }
     if(MODEL_NAV.level === 'exams'){ MODEL_NAV.level='posts'; MODEL_NAV.post=null; MODEL_NAV.grade=null; }
     else if(MODEL_NAV.level === 'posts'){ MODEL_NAV = {level:'ministries'}; }
     renderModelScreen();
@@ -1779,17 +1807,24 @@
     window.scrollTo(0,0);
   }
 
-  // ---------- Practice mode: instant random quiz generated from the question bank ----------
-  let PRACTICE_SUBJECTS_CACHE = null;
+  // ---------- Reading list: subject-wise question bank, read straight through ----------
+  // Replaces the old instant-random-quiz Practice Mode. Subject list (level:'subjects')
+  // -> paginated 30-question read-through (level:'list'), tap-to-reveal per question,
+  // and a 5-minute/10-question auto quiz built from just that page's 30 questions.
+  let PRACTICE_SUBJECTS_CACHE = null; // shared with Duel mode's subject dropdown — keep name
+  let READING_NAV = {level:'subjects'};
+  let READING_PAGE_QUESTIONS = []; // current page's questions, kept in memory for tap-to-reveal + the quiz CTA
 
   async function renderPracticeScreen(){
+    if(READING_NAV.level === 'list'){ renderReadingListPage(); return; }
+
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
     const listEl = document.getElementById('model-list');
     backBtn.style.display = 'none';
-    heading.textContent = 'প্র্যাকটিস মোড';
-    subtext.textContent = 'বিষয় বেছে নিন — সাথে সাথে ১৫টি এলোমেলো প্রশ্ন নিয়ে একটি অনুশীলন শুরু হবে';
+    heading.textContent = 'রিডিং লিস্ট';
+    subtext.textContent = 'বিষয় বেছে নিন — প্রশ্নগুলো সিরিয়ালি পড়তে পারবেন, প্রতি পৃষ্ঠায় ৩০টি করে';
 
     if(!PRACTICE_SUBJECTS_CACHE){
       listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
@@ -1806,43 +1841,15 @@
       return;
     }
 
-    // if logged in, highlight subjects the student is weakest in (lowest accuracy first)
-    let weakOrder = null;
-    if(USER_TOKEN){
-      try{
-        if(!SUBJ_STATS_CACHE) SUBJ_STATS_CACHE = await apiGetAuth('/api/results/me/subject-stats');
-        weakOrder = new Map(SUBJ_STATS_CACHE.map(s => [s.subject, s.total ? s.correct / s.total : 1]));
-      }catch(e){ /* not logged in or no stats yet — ignore, show plain list */ }
-    }
-
-    const list = [...PRACTICE_SUBJECTS_CACHE];
-    if(weakOrder){
-      list.sort((a,b)=>{
-        const wa = weakOrder.has(a.subject) ? weakOrder.get(a.subject) : 0.5;
-        const wb = weakOrder.has(b.subject) ? weakOrder.get(b.subject) : 0.5;
-        return wa - wb; // lowest accuracy first
-      });
-    }
-
-    const smartCard = `
-      <div class="smart-practice-card" onclick="startSmartPractice()">
-        <div class="sp-ic">✨</div>
-        <div>
-          <div class="sp-title">স্মার্ট প্র্যাকটিস</div>
-          <div class="sp-sub">আপনার দুর্বল বিষয়গুলো থেকে ১৫টি প্রশ্ন — স্বয়ংক্রিয়ভাবে বাছাই করা</div>
-        </div>
-      </div>`;
-
-    listEl.innerHTML = smartCard + list.map(s=>{
-      const acc = weakOrder && weakOrder.has(s.subject) ? Math.round(weakOrder.get(s.subject)*100) : null;
-      const weakTag = acc !== null && acc < 60 ? ' · <span style="color:var(--seal); font-weight:700;">দুর্বল জায়গা</span>' : '';
+    listEl.innerHTML = PRACTICE_SUBJECTS_CACHE.map(s=>{
+      const pages = Math.max(1, Math.ceil(s.question_count / 30));
       return `
-        <div class="group-card" onclick='startPractice(${JSON.stringify(s.subject)})'>
+        <div class="group-card" onclick='openReadingList(${JSON.stringify(s.subject)})'>
           <div class="gc-left">
-            <div class="gc-ic post">🎯</div>
+            <div class="gc-ic post">📖</div>
             <div>
               <div class="gc-name">${s.subject}</div>
-              <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন ভাণ্ডারে${acc!==null ? ` · আপনার নির্ভুলতা ${toBnDigits(acc)}%` : ''}${weakTag}</div>
+              <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন · ${toBnDigits(pages)}টি পৃষ্ঠা</div>
             </div>
           </div>
           <div class="gc-arrow">›</div>
@@ -1850,27 +1857,98 @@
     }).join('');
   }
 
-  // Smart Practice: server picks ~15 questions weighted toward the student's
-  // weakest subjects (see /api/exams/public/smart-practice). Requires login
-  // since it's based on this student's own result history.
-  async function startSmartPractice(){
-    if(!USER_TOKEN){
-      alert('স্মার্ট প্র্যাকটিসের জন্য আগে লগইন করুন — আপনার আগের ফলাফল অনুযায়ী প্রশ্ন বাছাই করা হয়।');
-      goScreen('history');
-      showAuthForm('login');
+  function openReadingList(subject){
+    READING_NAV = {level:'list', subject, page:1};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  function goReadingPage(delta){
+    READING_NAV.page = Math.max(1, READING_NAV.page + delta);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderReadingListPage(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = READING_NAV.subject;
+    subtext.textContent = 'রিডিং লিস্ট';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data;
+    try{
+      data = await apiGet('/api/questions/public/reading-list?subject=' + encodeURIComponent(READING_NAV.subject) + '&page=' + READING_NAV.page);
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
       return;
     }
+
+    READING_NAV.page = data.page;
+    READING_PAGE_QUESTIONS = data.questions;
+    const startNum = (data.page - 1) * 30 + 1;
+
+    const cards = data.questions.map((q, i)=>{
+      const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
+      const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+      const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      return `
+        <div class="rl-q-card" id="rl-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startNum + i)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="rl-q-opts">${opts}</div>
+          <button class="rl-q-reveal" onclick="toggleReadingAnswer(${q.id}, '${q.correct_option}')">উত্তর দেখুন</button>
+          ${explainHtml}
+        </div>`;
+    }).join('');
+
+    const quizCta = `
+      <div class="rl-quiz-cta" onclick="startReadingQuiz()">
+        <div class="rq-ic">⏱️</div>
+        <div class="rq-title">অটো কুইজ শুরু করুন</div>
+        <div class="rq-sub">এই ৩০টি প্রশ্নের উপর ভিত্তি করে ১০টি প্রশ্ন · ৫ মিনিট</div>
+      </div>`;
+
+    const pager = `
+      <div class="rl-pager">
+        <button class="rl-pager-btn" onclick="goReadingPage(-1)" ${data.page<=1?'disabled':''}>← আগের পৃষ্ঠা</button>
+        <span class="rl-pager-info">${toBnDigits(data.page)} / ${toBnDigits(data.total_pages)}</span>
+        <button class="rl-pager-btn" onclick="goReadingPage(1)" ${data.page>=data.total_pages?'disabled':''}>পরের পৃষ্ঠা →</button>
+      </div>`;
+
+    listEl.innerHTML = (data.questions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
+  }
+
+  function toggleReadingAnswer(qid, correctKey){
+    const card = document.getElementById('rl-q-' + qid);
+    if(!card) return;
+    card.querySelectorAll('.rl-q-opt').forEach(el=>{
+      el.classList.toggle('correct', el.getAttribute('data-key') === correctKey);
+    });
+    const explain = card.querySelector('.rl-q-explain');
+    if(explain) explain.style.display = 'block';
+    const btn = card.querySelector('.rl-q-reveal');
+    if(btn) btn.style.display = 'none';
+  }
+
+  // Auto quiz: 10 random questions from just the 30 currently on screen, 5 minutes.
+  async function startReadingQuiz(){
+    if(!READING_PAGE_QUESTIONS.length){ return; }
     const listEl = document.getElementById('model-list');
     const prevHtml = listEl.innerHTML;
-    listEl.innerHTML = '<div class="loading-note">আপনার দুর্বল জায়গা বিশ্লেষণ করা হচ্ছে...</div>';
+    listEl.innerHTML = '<div class="loading-note">কুইজ তৈরি হচ্ছে...</div>';
     try{
-      const exam = await apiGetAuth('/api/exams/public/smart-practice?count=15');
+      const exam = await apiPost('/api/exams/public/reading-quiz', { question_ids: READING_PAGE_QUESTIONS.map(q=>q.id) });
       const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
       if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
-      startExam(exam.id, USER_INFO.name, USER_INFO.phone);
+      openNameSheet(exam.id);
     }catch(err){
       listEl.innerHTML = prevHtml;
-      alert(err.message || 'স্মার্ট প্র্যাকটিস শুরু করা যায়নি');
+      alert(err.message || 'কুইজ শুরু করা যায়নি');
     }
   }
 
@@ -2057,21 +2135,6 @@
       startExam(info.exam_id, USER_INFO.name, USER_INFO.phone);
     }catch(err){
       alert(err.message || 'শুরু করা যায়নি');
-    }
-  }
-
-  async function startPractice(subject){
-    const listEl = document.getElementById('model-list');
-    const prevHtml = listEl.innerHTML;
-    listEl.innerHTML = '<div class="loading-note">অনুশীলন তৈরি হচ্ছে...</div>';
-    try{
-      const exam = await apiGet('/api/exams/public/practice?subject=' + encodeURIComponent(subject) + '&count=15');
-      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
-      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
-      openNameSheet(exam.id);
-    }catch(err){
-      listEl.innerHTML = prevHtml;
-      alert(err.message || 'অনুশীলন শুরু করা যায়নি');
     }
   }
 
