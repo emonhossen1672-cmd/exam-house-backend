@@ -356,4 +356,103 @@ router.get('/public/practice', asyncHandler(async (req, res) => {
   }
 }));
 
+// GET /api/exams/public/smart-practice?count=15 — auto-generates a MIXED
+// practice quiz weighted toward this student's weakest subjects (based on
+// their accuracy in /api/results/me/subject-stats), instead of making them
+// pick one subject. A subject they've never attempted counts as fully weak
+// (gets the most questions) so new subjects get surfaced too. Falls back to
+// a plain random mix if the student has no history yet.
+router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) => {
+  let count = parseInt(req.query.count, 10);
+  if (!Number.isFinite(count) || count < 5) count = 15;
+  if (count > 30) count = 30;
+
+  const client = await pool.connect();
+  try {
+    const statsRes = await client.query(`
+      SELECT q.subject,
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE ans.given IS NOT NULL AND UPPER(ans.given) = q.correct_option)::int AS correct
+      FROM results r
+      JOIN exam_questions eq ON eq.exam_id = r.exam_id
+      JOIN questions q ON q.id = eq.question_id
+      LEFT JOIN LATERAL (SELECT r.answers->>(eq.question_id::text) AS given) ans ON true
+      WHERE r.user_id = $1
+      GROUP BY q.subject
+    `, [req.user.id]);
+
+    const allSubjectsRes = await client.query(
+      `SELECT subject, COUNT(*)::int AS bank_count FROM questions GROUP BY subject`
+    );
+    if (!allSubjectsRes.rows.length) {
+      return res.status(404).json({ error: 'এখনো কোনো প্রশ্ন যোগ করা হয়নি' });
+    }
+
+    const accuracyBySubject = new Map(statsRes.rows.map(s => [s.subject, s.total ? s.correct / s.total : 0]));
+    // Weakness weight: never-attempted or 0% accuracy subjects get weight 1
+    // (fully weak); 100% accuracy subjects get weight ~0.1 (still included,
+    // just rarely) so a mastered subject isn't dropped entirely.
+    const weighted = allSubjectsRes.rows.map(s => {
+      const acc = accuracyBySubject.has(s.subject) ? accuracyBySubject.get(s.subject) : 0;
+      const weight = Math.max(0.1, 1 - acc);
+      return { subject: s.subject, bankCount: s.bank_count, weight };
+    });
+    const totalWeight = weighted.reduce((sum, s) => sum + s.weight, 0);
+
+    // Allocate `count` questions across subjects proportional to weakness weight
+    let remaining = count;
+    const allocation = weighted.map((s, i) => {
+      const isLast = i === weighted.length - 1;
+      const share = isLast ? remaining : Math.min(remaining, Math.max(1, Math.round((s.weight / totalWeight) * count)));
+      remaining -= share;
+      return { subject: s.subject, take: Math.min(share, s.bankCount) };
+    }).filter(a => a.take > 0);
+
+    let questionIds = [];
+    for (const a of allocation) {
+      const qRes = await client.query(
+        `SELECT id FROM questions WHERE subject=$1 ORDER BY RANDOM() LIMIT $2`,
+        [a.subject, a.take]
+      );
+      questionIds.push(...qRes.rows.map(r => r.id));
+    }
+    // Top up with random questions from anywhere if rounding left us short
+    if (questionIds.length < count) {
+      const topUp = await client.query(
+        `SELECT id FROM questions WHERE id != ALL($1::int[]) ORDER BY RANDOM() LIMIT $2`,
+        [questionIds.length ? questionIds : [0], count - questionIds.length]
+      );
+      questionIds.push(...topUp.rows.map(r => r.id));
+    }
+    // Shuffle so weak-subject questions aren't all grouped at the start
+    for (let i = questionIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [questionIds[i], questionIds[j]] = [questionIds[j], questionIds[i]];
+    }
+
+    await client.query('BEGIN');
+    const serial = 'EH-SP-' + Math.floor(1000 + Math.random() * 9000);
+    const durationMinutes = Math.max(5, questionIds.length);
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, duration_minutes, status, serial, is_practice)
+       VALUES ($1,'model',$2,'active',$3,true) RETURNING *`,
+      ['স্মার্ট প্র্যাকটিস — আপনার দুর্বল জায়গা অনুযায়ী', durationMinutes, serial]
+    );
+    const exam = examResult.rows[0];
+    for (let i = 0; i < questionIds.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, questionIds[i], i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ...exam, question_count: questionIds.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
+
 module.exports = router;
