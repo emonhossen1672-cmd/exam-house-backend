@@ -288,6 +288,62 @@
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
+  /* ---------- Smart practice card ---------- */
+  .smart-practice-card{
+    background:var(--seal); color:#fff; border-radius:16px; padding:16px;
+    margin-bottom:14px; display:flex; align-items:center; gap:12px; cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .smart-practice-card:active{transform:scale(0.98);}
+  .smart-practice-card .sp-ic{font-size:26px; flex-shrink:0;}
+  .smart-practice-card .sp-title{font-size:14px; font-weight:700;}
+  .smart-practice-card .sp-sub{font-size:11px; color:#F5C4B3; margin-top:3px; line-height:1.5;}
+
+  /* ---------- Duel mode ---------- */
+  .duel-guest{text-align:center; padding:34px 20px;}
+  .duel-guest .dg-ic{font-size:34px; margin-bottom:10px;}
+  .duel-guest p{font-size:13px; color:var(--ink-faint); margin-bottom:16px; line-height:1.7;}
+  .duel-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px;}
+  .duel-card h3{font-size:13.5px; font-weight:700; margin-bottom:12px;}
+  .duel-select, .duel-input{
+    width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:11px;
+    font-family:inherit; font-size:14px; background:var(--paper); margin-bottom:10px; color:var(--ink);
+  }
+  .duel-row{display:flex; gap:8px; align-items:flex-start;}
+  .duel-row .duel-input{flex:1; margin-bottom:0;}
+  .duel-btn{
+    width:100%; background:var(--seal); color:#fff; border:none; padding:12px;
+    border-radius:11px; font-weight:700; font-size:13.5px; cursor:pointer; font-family:'Noto Sans Bengali';
+  }
+  .duel-btn.ghost{background:var(--navy-deep);}
+  .duel-btn.small{width:auto; padding:12px 16px; flex-shrink:0;}
+  .duel-btn:active{transform:scale(0.98);}
+  .duel-code-box{
+    text-align:center; background:var(--navy-deep); color:#fff; border-radius:16px;
+    padding:22px 16px; margin-bottom:14px; position:relative; overflow:hidden;
+  }
+  .duel-code-box::before{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(circle at 15% 20%, rgba(184,144,46,0.28), transparent 45%);
+  }
+  .duel-code-eyebrow{font-size:10.5px; letter-spacing:2px; color:var(--gold-soft); font-family:'Space Mono',monospace; position:relative; z-index:2;}
+  .duel-code-num{
+    font-family:'Space Mono',monospace; font-size:26px; font-weight:700; letter-spacing:4px;
+    margin:10px 0; position:relative; z-index:2;
+  }
+  .duel-code-meta{font-size:11.5px; color:#9AA4BE; position:relative; z-index:2;}
+  .duel-list-item{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px; margin-bottom:10px;}
+  .duel-li-top{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px;}
+  .duel-li-subject{font-size:13.5px; font-weight:700;}
+  .duel-status{font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap;}
+  .duel-status.pending{background:var(--gold-soft); color:#7A5E12;}
+  .duel-status.active{background:#E9F1FA; color:#1E4F78;}
+  .duel-status.won{background:var(--success-bg); color:var(--success);}
+  .duel-status.lost{background:var(--wrong-bg); color:var(--wrong);}
+  .duel-status.draw{background:var(--paper-deep); color:var(--ink-soft);}
+  .duel-vs{display:flex; align-items:center; justify-content:space-between; font-size:12.5px; color:var(--ink-soft);}
+  .duel-vs b{font-size:15px; color:var(--ink); font-family:'Space Mono',monospace;}
+
   /* ---------- Auth (login/register) & Profile ---------- */
   .auth-label{font-size:12px; font-weight:600; color:var(--ink-soft); display:block; margin:14px 0 6px;}
   .auth-input{
@@ -675,6 +731,7 @@
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
       <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')"><span class="mb-ic">📘</span>বিষয়ভিত্তিক</button>
       <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">🎯</span>প্র্যাকটিস মোড</button>
+      <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
     </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
     <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
@@ -825,6 +882,7 @@
       <div class="score-ring" id="score-ring"><b id="score-num">০/০</b></div>
       <p id="result-exam-title">—</p>
       <div><span class="rank-badge" id="rank-badge" style="display:none;"></span></div>
+      <div id="duel-result-banner" style="display:none; margin-top:10px;"></div>
     </div>
     <div class="result-stats">
       <div class="rstat correct"><b id="stat-correct">0</b><span>সঠিক</span></div>
@@ -1422,6 +1480,7 @@
     document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
     document.getElementById('mode-btn-subject').classList.toggle('active', mode==='subject');
     document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
+    document.getElementById('mode-btn-duel').classList.toggle('active', mode==='duel');
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     renderModelScreen();
@@ -1431,6 +1490,7 @@
   function renderModelScreen(){
     if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
+    if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
     // Daily quiz (is_daily) and practice-mode quizzes (is_practice) are auto-generated
     // on the fly and have no real ministry — they belong only on the home "today's
     // quiz" card and inside the Practice Mode tab, not mixed into ministry-wise listing.
@@ -1642,7 +1702,16 @@
       });
     }
 
-    listEl.innerHTML = list.map(s=>{
+    const smartCard = `
+      <div class="smart-practice-card" onclick="startSmartPractice()">
+        <div class="sp-ic">✨</div>
+        <div>
+          <div class="sp-title">স্মার্ট প্র্যাকটিস</div>
+          <div class="sp-sub">আপনার দুর্বল বিষয়গুলো থেকে ১৫টি প্রশ্ন — স্বয়ংক্রিয়ভাবে বাছাই করা</div>
+        </div>
+      </div>`;
+
+    listEl.innerHTML = smartCard + list.map(s=>{
       const acc = weakOrder && weakOrder.has(s.subject) ? Math.round(weakOrder.get(s.subject)*100) : null;
       const weakTag = acc !== null && acc < 60 ? ' · <span style="color:var(--seal); font-weight:700;">দুর্বল জায়গা</span>' : '';
       return `
@@ -1657,6 +1726,216 @@
           <div class="gc-arrow">›</div>
         </div>`;
     }).join('');
+  }
+
+  // Smart Practice: server picks ~15 questions weighted toward the student's
+  // weakest subjects (see /api/exams/public/smart-practice). Requires login
+  // since it's based on this student's own result history.
+  async function startSmartPractice(){
+    if(!USER_TOKEN){
+      alert('স্মার্ট প্র্যাকটিসের জন্য আগে লগইন করুন — আপনার আগের ফলাফল অনুযায়ী প্রশ্ন বাছাই করা হয়।');
+      goScreen('history');
+      showAuthForm('login');
+      return;
+    }
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">আপনার দুর্বল জায়গা বিশ্লেষণ করা হচ্ছে...</div>';
+    try{
+      const exam = await apiGetAuth('/api/exams/public/smart-practice?count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      startExam(exam.id, USER_INFO.name, USER_INFO.phone);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'স্মার্ট প্র্যাকটিস শুরু করা যায়নি');
+    }
+  }
+
+  // ---------- Duel mode: challenge a friend, compare scores ----------
+  let PENDING_DUEL_CODE = null;
+
+  async function renderDuelScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'none';
+    heading.textContent = 'ডুয়েল মোড';
+    subtext.textContent = 'বন্ধুকে চ্যালেঞ্জ করুন, কে বেশি নম্বর পায় দেখা যাক';
+
+    if(!USER_TOKEN){
+      listEl.innerHTML = `
+        <div class="duel-guest">
+          <div class="dg-ic">⚔️</div>
+          <p>ডুয়েলে বন্ধুকে চ্যালেঞ্জ করতে আগে লগইন করুন — ফলাফল দুজনের প্রোফাইলেই সংরক্ষিত থাকবে।</p>
+          <button class="auth-btn" style="margin-top:0;" onclick="goScreen('history'); showAuthForm('login');">লগইন করুন</button>
+        </div>`;
+      return;
+    }
+
+    if(!PRACTICE_SUBJECTS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{ PRACTICE_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects'); }
+      catch(err){ listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`; return; }
+    }
+    if(!PRACTICE_SUBJECTS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো প্রশ্ন যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    const subjectOptions = PRACTICE_SUBJECTS_CACHE
+      .map(s => `<option value="${escapeHtml(s.subject)}">${escapeHtml(s.subject)}</option>`)
+      .join('');
+
+    listEl.innerHTML = `
+      <div class="duel-card">
+        <h3>🆕 নতুন চ্যালেঞ্জ তৈরি করুন</h3>
+        <select class="duel-select" id="duel-subject-select">${subjectOptions}</select>
+        <select class="duel-select" id="duel-count-select">
+          <option value="10">১০টি প্রশ্ন</option>
+          <option value="15" selected>১৫টি প্রশ্ন</option>
+          <option value="20">২০টি প্রশ্ন</option>
+        </select>
+        <button class="duel-btn" onclick="createDuel()">চ্যালেঞ্জ তৈরি করুন</button>
+      </div>
+
+      <div class="duel-card">
+        <h3>🔑 কোড দিয়ে যোগ দিন</h3>
+        <div class="duel-row">
+          <input class="duel-input" id="duel-join-code" placeholder="যেমনঃ a1b2c3d4" maxlength="8">
+          <button class="duel-btn ghost small" onclick="joinDuelByCode()">যোগ দিন</button>
+        </div>
+        <div class="auth-err" id="duel-join-err"></div>
+      </div>
+
+      <div class="sec-head" style="margin:20px 0 12px;"><h2>আমার চ্যালেঞ্জসমূহ</h2></div>
+      <div id="duel-my-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+    `;
+
+    if(PENDING_DUEL_CODE){
+      const inp = document.getElementById('duel-join-code');
+      if(inp) inp.value = PENDING_DUEL_CODE;
+      PENDING_DUEL_CODE = null;
+    }
+
+    loadMyDuels();
+  }
+
+  async function createDuel(){
+    const subject = document.getElementById('duel-subject-select').value;
+    const count = document.getElementById('duel-count-select').value;
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">চ্যালেঞ্জ তৈরি হচ্ছে...</div>';
+    try{
+      const duel = await apiAuth('/api/duels', 'POST', {subject, count});
+      showDuelCreated(duel);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'চ্যালেঞ্জ তৈরি করা যায়নি');
+    }
+  }
+
+  function showDuelCreated(duel){
+    const listEl = document.getElementById('model-list');
+    const shareText = `আমি Exam House-এ তোমাকে ডুয়েল চ্যালেঞ্জ করেছি — বিষয়: ${duel.subject}। কোড: ${duel.code}\nযোগ দিতে লিংকে যাও: ${location.origin}${location.pathname}?duel=${duel.code}`;
+    listEl.innerHTML = `
+      <div class="duel-code-box">
+        <div class="duel-code-eyebrow">চ্যালেঞ্জ কোড</div>
+        <div class="duel-code-num">${escapeHtml(duel.code)}</div>
+        <div class="duel-code-meta">${escapeHtml(duel.subject)} · ${toBnDigits(duel.question_count)}টি প্রশ্ন · ৭ দিন বৈধ</div>
+      </div>
+      <button class="duel-btn" onclick='shareDuel(${JSON.stringify(shareText)})'>📤 বন্ধুকে শেয়ার করুন</button>
+      <button class="duel-btn ghost" style="margin-top:10px;" onclick="startExam(${duel.exam_id}, USER_INFO.name, USER_INFO.phone)">⚔️ এখনই খেলা শুরু করুন</button>
+      <button class="model-back" style="margin-top:16px;" onclick="renderDuelScreen()">← ডুয়েল হোমে ফিরুন</button>
+    `;
+  }
+
+  function shareDuel(text){
+    if(navigator.share){
+      navigator.share({text}).catch(()=>{});
+    }else if(navigator.clipboard){
+      navigator.clipboard.writeText(text)
+        .then(()=>alert('কপি হয়েছে — এখন বন্ধুকে পাঠিয়ে দিন'))
+        .catch(()=>prompt('কপি করুন:', text));
+    }else{
+      prompt('কপি করুন:', text);
+    }
+  }
+
+  async function joinDuelByCode(){
+    const codeInput = document.getElementById('duel-join-code');
+    const errEl = document.getElementById('duel-join-err');
+    const code = codeInput.value.trim().toLowerCase();
+    errEl.textContent = '';
+    if(!code){ errEl.textContent = 'কোড লিখুন'; return; }
+    try{
+      const res = await apiAuth('/api/duels/code/'+encodeURIComponent(code)+'/join', 'POST');
+      startExam(res.exam_id, USER_INFO.name, USER_INFO.phone);
+    }catch(err){
+      errEl.textContent = err.message || 'যোগ দেওয়া যায়নি';
+    }
+  }
+
+  async function loadMyDuels(){
+    const wrap = document.getElementById('duel-my-list');
+    if(!wrap) return;
+    try{
+      const duels = await apiGetAuth('/api/duels/me');
+      if(!duels.length){
+        wrap.innerHTML = '<div class="empty-note">এখনো কোনো চ্যালেঞ্জ পাঠাননি বা গ্রহণ করেননি।</div>';
+        return;
+      }
+      wrap.innerHTML = duels.map(d=>{
+        let statusCls = 'pending', statusLabel = 'যোগদানের অপেক্ষায়';
+        if(d.status === 'active'){
+          statusCls = 'active';
+          statusLabel = d.my_score != null ? 'প্রতিপক্ষের অপেক্ষায়' : 'আপনার পালা';
+        }
+        if(d.status === 'completed'){
+          if(d.my_score != null && d.opponent_score != null){
+            if(d.my_score > d.opponent_score){ statusCls='won'; statusLabel='জয়ী 🏆'; }
+            else if(d.my_score < d.opponent_score){ statusCls='lost'; statusLabel='পরাজিত'; }
+            else { statusCls='draw'; statusLabel='ড্র'; }
+          }else{
+            statusCls = 'active'; statusLabel = 'ফলাফলের অপেক্ষায়';
+          }
+        }
+        const myScoreTxt = d.my_score != null ? toBnDigits(d.my_score) : '—';
+        const oppScoreTxt = d.opponent_score != null ? toBnDigits(d.opponent_score) : '—';
+        let actionBtn = '';
+        if(d.status === 'pending'){
+          actionBtn = `<button class="duel-btn" style="margin-top:10px;" onclick='shareDuel(${JSON.stringify('চ্যালেঞ্জ কোড: ')}+${JSON.stringify(d.code)})'>📤 আবার শেয়ার করুন</button>`;
+        }else if(d.status === 'active' && d.my_score == null){
+          actionBtn = `<button class="duel-btn" style="margin-top:10px;" onclick='resumeDuel(${JSON.stringify(d.code)})'>⚔️ এখনই খেলুন</button>`;
+        }
+        return `
+          <div class="duel-list-item">
+            <div class="duel-li-top">
+              <span class="duel-li-subject">${escapeHtml(d.subject)}</span>
+              <span class="duel-status ${statusCls}">${statusLabel}</span>
+            </div>
+            <div class="duel-vs">
+              <span>আপনি <b>${myScoreTxt}</b></span>
+              <span style="opacity:.5;">বনাম</span>
+              <span>${escapeHtml(d.opponent_name || 'অপেক্ষমাণ')} <b>${oppScoreTxt}</b></span>
+            </div>
+            ${actionBtn}
+          </div>`;
+      }).join('');
+    }catch(err){
+      wrap.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+    }
+  }
+
+  async function resumeDuel(code){
+    try{
+      const info = await apiGet('/api/duels/code/'+encodeURIComponent(code));
+      startExam(info.exam_id, USER_INFO.name, USER_INFO.phone);
+    }catch(err){
+      alert(err.message || 'শুরু করা যায়নি');
+    }
   }
 
   async function startPractice(subject){
@@ -1859,6 +2138,18 @@
     }
   }
   loadHome();
+
+  // Deep-link support: a shared duel link like /?duel=a1b2c3d4 opens straight
+  // to the Duel tab with the code pre-filled in the join box. Placed at the
+  // end of the script (after every function/state it touches is defined) so
+  // it doesn't run into a temporal-dead-zone error on page load.
+  (function handleDuelDeepLink(){
+    const code = new URLSearchParams(location.search).get('duel');
+    if(!code) return;
+    PENDING_DUEL_CODE = code.trim();
+    goScreen('model');
+    setModelMode('duel');
+  })();
   setInterval(()=>{
     // refresh countdowns/status every 15s without a full reload feel
     if(ALL_EXAMS.length){
@@ -2077,6 +2368,27 @@
       rankBadge.style.display = 'inline-flex';
     } else {
       rankBadge.style.display = 'none';
+    }
+
+    // Duel mode: the /api/results response includes `duel` whenever this
+    // submission belonged to a duel (see routes/results.routes.js). Show
+    // the outcome right here — this is the payoff moment of a duel.
+    const duelBanner = document.getElementById('duel-result-banner');
+    if(result.duel){
+      duelBanner.style.display = 'block';
+      if(result.duel.status === 'completed'){
+        const iWon = result.duel.winner_user_id && USER_INFO && result.duel.winner_user_id === USER_INFO.id;
+        const isDraw = !result.duel.winner_user_id;
+        const label = isDraw ? '🤝 ডুয়েল ড্র হয়েছে!' : (iWon ? '🏆 আপনি ডুয়েলে জিতেছেন!' : '😔 এবার ডুয়েলে হেরে গেছেন — পরেরবার হবে!');
+        const bg = isDraw ? 'var(--paper-deep)' : (iWon ? 'var(--success-bg)' : 'var(--wrong-bg)');
+        const fg = isDraw ? 'var(--ink-soft)' : (iWon ? 'var(--success)' : 'var(--wrong)');
+        duelBanner.innerHTML = `<div style="background:${bg}; color:${fg}; border-radius:12px; padding:10px 14px; font-size:13px; font-weight:700; display:inline-block;">${label}</div>`;
+      }else{
+        duelBanner.innerHTML = `<div style="background:var(--paper-deep); color:var(--ink-soft); border-radius:12px; padding:10px 14px; font-size:12.5px; font-weight:600; display:inline-block;">⏳ প্রতিপক্ষ এখনো খেলেননি — ফলাফলের জন্য অপেক্ষা করুন</div>`;
+      }
+    }else{
+      duelBanner.style.display = 'none';
+      duelBanner.innerHTML = '';
     }
 
     const reviewBtn = document.getElementById('result-review-btn');
