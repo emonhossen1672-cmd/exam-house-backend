@@ -204,3 +204,12 @@ CREATE TABLE IF NOT EXISTS user_syllabus_progress (
   completed_at TIMESTAMP DEFAULT NOW(),
   PRIMARY KEY (user_id, topic_id)
 );
+
+-- ===== Feature: Job circular calendar =====
+-- Lets an exam/post carry its application deadline, probable exam date, and
+-- a link to the original circular, so /api/exams/public/circulars can show a
+-- countdown calendar. Restored here for the same reason as the syllabus
+-- tables above — missing from a schema.sql revision handed over separately.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT;
