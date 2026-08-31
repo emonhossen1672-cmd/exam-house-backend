@@ -188,6 +188,10 @@
           <input type="text" id="q_subject" placeholder="বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান" required>
         </div>
         <div class="field">
+          <label>টপিক (ঐচ্ছিক)</label>
+          <input type="text" id="q_topic" placeholder="যেমন: সন্ধি, বাগধারা, ভগ্নাংশ — টপিকভিত্তিক জব সলুশনে দেখাবে">
+        </div>
+        <div class="field">
           <label>প্রশ্ন</label>
           <textarea id="q_text" rows="3" required></textarea>
         </div>
@@ -217,7 +221,7 @@
 
     <div class="panel" id="panel-bulk">
       <h2>CSV / Excel থেকে বাল্ক আপলোড</h2>
-      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক), year (ঐচ্ছিক)</div>
+      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক), year (ঐচ্ছিক), topic (ঐচ্ছিক — টপিকভিত্তিক জব সলুশনে দেখাবে)</div>
       <div class="err-box" id="bulkErr"></div>
       <div class="drop-zone">
         <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls">
@@ -293,6 +297,7 @@
       <div class="filters">
         <input type="text" id="f_search" placeholder="প্রশ্ন খুঁজুন...">
         <input type="text" id="f_subject" placeholder="বিষয়">
+        <input type="text" id="f_topic" placeholder="টপিক">
         <input type="number" id="f_grade" placeholder="গ্রেড">
         <button class="btn btn-ghost btn-small" id="f_go">খুঁজুন</button>
       </div>
@@ -759,6 +764,7 @@ document.getElementById('addForm').addEventListener('submit', async (e) => {
       ministry_id: document.getElementById('q_ministry').value || null,
       grade: document.getElementById('q_grade').value || null,
       subject: document.getElementById('q_subject').value.trim(),
+      topic: document.getElementById('q_topic').value.trim() || null,
       question_text: document.getElementById('q_text').value.trim(),
       explanation: document.getElementById('q_explanation').value.trim() || null,
       option_a: document.getElementById('q_a').value.trim(),
@@ -968,9 +974,11 @@ async function loadQuestions(){
     const params = new URLSearchParams();
     const search = document.getElementById('f_search').value.trim();
     const subject = document.getElementById('f_subject').value.trim();
+    const topic = document.getElementById('f_topic').value.trim();
     const grade = document.getElementById('f_grade').value.trim();
     if (search) params.set('search', search);
     if (subject) params.set('subject', subject);
+    if (topic) params.set('topic', topic);
     if (grade) params.set('grade', grade);
     const list = await api('/api/questions?' + params.toString());
     if (!list.length){
@@ -978,11 +986,12 @@ async function loadQuestions(){
       return;
     }
     wrap.innerHTML = `<table>
-      <tr><th>প্রশ্ন</th><th>বিষয়</th><th>গ্রেড</th><th>সঠিক</th><th>মন্ত্রণালয়</th><th></th></tr>
+      <tr><th>প্রশ্ন</th><th>বিষয়</th><th>টপিক</th><th>গ্রেড</th><th>সঠিক</th><th>মন্ত্রণালয়</th><th></th></tr>
       ${list.map(q => `
         <tr>
           <td class="qtext">${escapeHtml(q.question_text)}</td>
           <td><span class="pill">${escapeHtml(q.subject)}</span></td>
+          <td>${q.topic ? escapeHtml(q.topic) : '-'}</td>
           <td>${q.grade || '-'}</td>
           <td><span class="pill correct-pill">${q.correct_option}</span></td>
           <td>${q.ministry_name ? escapeHtml(q.ministry_name) : '-'}</td>
