@@ -1741,11 +1741,29 @@
 
   let SUBJECT_NAV = {level:'subjects'};
 
+  // Canonical subject grouping for the বিষয়ভিত্তিক (Subject-wise) screen only —
+  // merges near-duplicate subject values admins entered differently over time
+  // (English vs ইংরেজি, বাংলা vs বাংলা (ধ্বনি ও বর্ণ)) and hides anything outside
+  // the 5 core subjects this screen focuses on ("সব", ভূমি বিষয়ক, ইসলাম শিক্ষা, etc.).
+  // This never touches the database — exam.subject stays exactly as entered;
+  // it's purely how this one screen chooses to display/bucket it.
+  function normalizeSubjectDisplay(raw){
+    if(!raw) return null;
+    const low = raw.trim().toLowerCase();
+    if(!low || low === 'সব') return null;
+    if(low.startsWith('বাংলা')) return 'বাংলা';
+    if(low === 'english' || low.startsWith('ইংরেজি')) return 'ইংরেজি';
+    if(low.startsWith('গণিত')) return 'গণিত';
+    if(low.startsWith('সাধারণ জ্ঞান')) return 'সাধারণ জ্ঞান';
+    if(low.startsWith('বিজ্ঞান')) return 'বিজ্ঞান ও প্রযুক্তি';
+    return null; // anything else (ভূমি বিষয়ক, ইসলাম শিক্ষা, ...) — not shown here
+  }
+
   function renderSubjectModelScreen(){
     // Subject-based tab is for dedicated model tests an admin created for a subject —
     // not the throwaway quizzes practice mode generates each time a student taps a
     // subject (those are is_practice=true and live only inside the Practice Mode tab).
-    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject && !e.is_practice && !e.is_daily && !e.is_duel);
+    const model = ALL_EXAMS.filter(e=>e.type==='model' && e.subject && !e.is_practice && !e.is_daily && !e.is_duel && normalizeSubjectDisplay(e.subject));
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
@@ -1776,7 +1794,7 @@
       backBtn.style.display='none';
       heading.textContent = 'বিষয়ভিত্তিক মডেল টেস্ট';
       subtext.textContent = 'বিষয় বেছে নিন';
-      const groups = groupBy(model, e=>e.subject);
+      const groups = groupBy(model, e=>normalizeSubjectDisplay(e.subject));
       listEl.innerHTML = repeatedHtml + [...groups.entries()].map(([subject, exams])=>`
         <div class="group-card" onclick='subjectPick(${JSON.stringify(subject)})'>
           <div class="gc-left">
@@ -1795,7 +1813,7 @@
       backBtn.style.display='flex';
       heading.textContent = SUBJECT_NAV.subject;
       subtext.textContent = 'বিষয়ভিত্তিক মডেল টেস্ট';
-      const exams = model.filter(e=>e.subject===SUBJECT_NAV.subject);
+      const exams = model.filter(e=>normalizeSubjectDisplay(e.subject)===SUBJECT_NAV.subject);
       renderList('model-list', exams, 'এই বিষয়ে কোনো মডেল টেস্ট নেই।');
       return;
     }
