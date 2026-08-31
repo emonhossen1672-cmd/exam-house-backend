@@ -182,3 +182,25 @@ CREATE TABLE IF NOT EXISTS duels (
 CREATE INDEX IF NOT EXISTS idx_duels_challenger ON duels(challenger_user_id);
 CREATE INDEX IF NOT EXISTS idx_duels_opponent ON duels(opponent_user_id);
 
+-- ===== Feature: Syllabus tracker =====
+-- Admin defines a checklist of topics per ministry+grade+subject; a
+-- logged-in student checks off topics as they finish studying them and sees
+-- a completion percentage. Restored here — this table existed before but was
+-- missing from a schema.sql revision handed over during other feature work.
+CREATE TABLE IF NOT EXISTS syllabus_topics (
+  id SERIAL PRIMARY KEY,
+  ministry_id INTEGER REFERENCES ministries(id) ON DELETE CASCADE,
+  grade INTEGER,
+  subject VARCHAR(30) NOT NULL,
+  topic TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_syllabus_topics_scope ON syllabus_topics(ministry_id, grade, subject);
+
+CREATE TABLE IF NOT EXISTS user_syllabus_progress (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  topic_id INTEGER NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, topic_id)
+);
