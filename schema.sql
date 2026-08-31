@@ -242,3 +242,17 @@ UPDATE questions SET subject = 'বিজ্ঞান ও প্রযুক্�
   WHERE subject IN ('বিজ্ঞান', 'কম্পিউটার ও তথ্যপ্রযুক্তি', 'কম্পিউটার');
 UPDATE exams SET subject = 'বিজ্ঞান ও প্রযুক্তি'
   WHERE subject IN ('বিজ্ঞান', 'কম্পিউটার ও তথ্যপ্রযুক্তি', 'কম্পিউটার');
+
+-- ===== Feature: টপিকভিত্তিক জব সলুশন (Topic-wise Job Solution) =====
+-- Each question can optionally carry a `topic` (e.g. "সন্ধি", "বাগধারা",
+-- "ভগ্নাংশ") within its subject. GET /api/questions/public/topics groups a
+-- subject's question bank into topics with counts; GET
+-- /api/questions/public/topic-questions paginates one topic's questions,
+-- 30/page, reusing the same source-tag columns (post_name, exam_year,
+-- ministry_name) already shown on রিডিং লিস্ট cards. The in-topic auto quiz
+-- reuses the existing /api/exams/public/reading-quiz endpoint unchanged —
+-- it already just builds a quiz from whatever question_ids it's given.
+-- Questions with no topic set fall back to a single "অন্যান্য" bucket so old
+-- data still shows up instead of disappearing.
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS topic VARCHAR(200);
+CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic);
