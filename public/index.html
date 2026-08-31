@@ -265,6 +265,20 @@
         <label>বিষয় (সব প্রশ্নে প্রযোজ্য)</label>
         <input type="text" id="qt_subject" placeholder="বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান" required>
       </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>টপিক (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
+          <input type="text" id="qt_topic" placeholder="যেমন: সন্ধি, বাগধারা">
+        </div>
+        <div class="field">
+          <label>পদের নাম (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
+          <input type="text" id="qt_post_name" placeholder="যেমন: সহকারী শিক্ষক">
+        </div>
+      </div>
+      <div class="field" style="max-width:200px;">
+        <label>সাল (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
+        <input type="number" id="qt_year" placeholder="যেমন: 2023">
+      </div>
       <div class="field">
         <label>প্রশ্নসমূহ (নিচের ফরম্যাট মেনে লিখুন)</label>
         <textarea id="qt_text" rows="14" style="font-family:'Space Mono',monospace; font-size:12.5px;" placeholder="প্রশ্ন: বাংলা বর্ণমালায় স্বরবর্ণ কয়টি?
@@ -274,6 +288,7 @@
 ঘ) ১২টি
 উত্তর: গ
 ব্যাখ্যা: বাংলা বর্ণমালায় মোট ১১টি স্বরবর্ণ আছে।
+টপিক: বর্ণমালা
 
 প্রশ্ন: 'দর্পণ' শব্দের সমার্থক শব্দ কোনটি?
 ক) আয়না
@@ -281,7 +296,7 @@
 গ) জানালা
 ঘ) ছবি
 উত্তর: ক"></textarea>
-        <div style="font-size:12px; color:var(--ink-faint); margin-top:6px;">প্রতিটা প্রশ্ন <b>প্রশ্ন:</b> দিয়ে শুরু করুন, তারপর ক) খ) গ) ঘ) (বা A) B) C) D)) দিয়ে অপশন, তারপর <b>উত্তর:</b> এবং ঐচ্ছিকভাবে <b>ব্যাখ্যা:</b>। প্রশ্নগুলোর মাঝে একটা ফাঁকা লাইন রাখলে ভালো হয়।</div>
+        <div style="font-size:12px; color:var(--ink-faint); margin-top:6px;">প্রতিটা প্রশ্ন <b>প্রশ্ন:</b> দিয়ে শুরু করুন, তারপর ক) খ) গ) ঘ) (বা A) B) C) D)) দিয়ে অপশন, তারপর <b>উত্তর:</b> এবং ঐচ্ছিকভাবে <b>ব্যাখ্যা:</b>। কোনো একটা প্রশ্নের টপিক উপরের শেয়ার্ড টপিক থেকে আলাদা হলে সেই প্রশ্নের নিচে <b>টপিক:</b> লিখে দিন — এটা শুধু ওই একটা প্রশ্নের জন্য প্রযোজ্য হবে, বাকিদের জন্য উপরের ঘরের মান ব্যবহার হবে। প্রশ্নগুলোর মাঝে একটা ফাঁকা লাইন রাখলে ভালো হয়।</div>
       </div>
       <button type="button" class="btn btn-ghost" id="qtPreviewBtn" style="width:auto; padding-left:22px; padding-right:22px;">প্রিভিউ দেখুন</button>
       <div id="qtPreviewWrap" style="margin-top:16px; display:none;">
@@ -865,7 +880,7 @@ function parseQuickText(raw){
 
   blocks.forEach((block, idx) => {
     const lines = block.split('\n').map(l => l.trim()).filter(l => l.length);
-    let question_text = '', option_a = '', option_b = '', option_c = '', option_d = '', correct_option = '', explanation = '';
+    let question_text = '', option_a = '', option_b = '', option_c = '', option_d = '', correct_option = '', explanation = '', topic = '';
     let optCount = 0, capturingExplanation = false;
 
     lines.forEach(line => {
@@ -888,6 +903,9 @@ function parseQuickText(raw){
       if ((m = line.match(/^ব্যাখ্যা\s*[:ঃ]\s*(.*)$/))) {
         explanation = m[1].trim(); capturingExplanation = true; return;
       }
+      if ((m = line.match(/^টপিক\s*[:ঃ]\s*(.*)$/))) {
+        topic = m[1].trim(); capturingExplanation = false; return;
+      }
       if (capturingExplanation) explanation += ' ' + line;
       else if (question_text && optCount === 0) question_text += ' ' + line;
     });
@@ -896,7 +914,7 @@ function parseQuickText(raw){
       errors.push({ idx: idx + 1, reason: 'তথ্য অসম্পূর্ণ বা ফরম্যাট ভুল', raw: block.slice(0, 80) });
       return;
     }
-    questions.push({ question_text, option_a, option_b, option_c, option_d, correct_option, explanation: explanation || null });
+    questions.push({ question_text, option_a, option_b, option_c, option_d, correct_option, explanation: explanation || null, topic: topic || null });
   });
 
   return { questions, errors };
@@ -925,7 +943,7 @@ document.getElementById('qtPreviewBtn').addEventListener('click', () => {
   questions.forEach((q, i) => {
     html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;">
       <b>${i+1}.</b> ${escapeHtml(q.question_text)}
-      <div style="color:var(--ink-faint); margin-top:2px;">ক) ${escapeHtml(q.option_a)} · খ) ${escapeHtml(q.option_b)} · গ) ${escapeHtml(q.option_c)} · ঘ) ${escapeHtml(q.option_d)} — <span class="pill correct-pill">উত্তর: ${q.correct_option}</span></div>
+      <div style="color:var(--ink-faint); margin-top:2px;">ক) ${escapeHtml(q.option_a)} · খ) ${escapeHtml(q.option_b)} · গ) ${escapeHtml(q.option_c)} · ঘ) ${escapeHtml(q.option_d)} — <span class="pill correct-pill">উত্তর: ${q.correct_option}</span>${q.topic ? ` · <span class="pill">টপিক: ${escapeHtml(q.topic)}</span>` : ''}</div>
     </div>`;
   });
   errors.forEach(e => {
@@ -946,8 +964,16 @@ document.getElementById('qtSubmitBtn').addEventListener('click', async () => {
   const ministry_id = document.getElementById('qt_ministry').value || null;
   const grade = document.getElementById('qt_grade').value || null;
   const subject = document.getElementById('qt_subject').value.trim();
+  const sharedTopic = document.getElementById('qt_topic').value.trim() || null;
+  const sharedPostName = document.getElementById('qt_post_name').value.trim() || null;
+  const sharedYear = document.getElementById('qt_year').value || null;
 
-  const payload = QT_PARSED.map(q => ({ ...q, ministry_id, grade, subject }));
+  const payload = QT_PARSED.map(q => ({
+    ...q, ministry_id, grade, subject,
+    topic: q.topic || sharedTopic || null,
+    post_name: sharedPostName,
+    exam_year: sharedYear
+  }));
 
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try{
