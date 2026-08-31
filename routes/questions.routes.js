@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
+const { normalizeSubject } = require('../utils/subjectMap');
 
 // GET /api/questions?ministry_id=&grade=&subject=&search=  (admin only — includes correct answer)
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
@@ -122,12 +123,23 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
 // window has closed. Ordered by id so pagination is stable across requests.
 const READING_PAGE_SIZE = 30;
 router.get('/public/reading-list', asyncHandler(async (req, res) => {
-  const subject = (req.query.subject || '').trim();
+  const canonicalSubject = (req.query.subject || '').trim();
   let page = parseInt(req.query.page, 10);
   if (!Number.isFinite(page) || page < 1) page = 1;
-  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+  if (!canonicalSubject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
 
-  const countRes = await pool.query('SELECT COUNT(*)::int AS total FROM questions WHERE subject=$1', [subject]);
+  // The subject passed in is a canonical name (বাংলা, ইংরেজি, ...) — find every
+  // raw subject value in the database that normalizes to it (e.g. বাংলা also
+  // covers বাংলা (ধ্বনি ও বর্ণ), ইংরেজি also covers English) and match against all of them.
+  const distinctRes = await pool.query('SELECT DISTINCT subject FROM questions');
+  const matchingRawSubjects = distinctRes.rows
+    .map(r => r.subject)
+    .filter(s => normalizeSubject(s) === canonicalSubject);
+  if (!matchingRawSubjects.length) {
+    return res.json({ subject: canonicalSubject, page: 1, total_pages: 1, total_count: 0, questions: [] });
+  }
+
+  const countRes = await pool.query('SELECT COUNT(*)::int AS total FROM questions WHERE subject = ANY($1)', [matchingRawSubjects]);
   const total = countRes.rows[0].total;
   const totalPages = Math.max(1, Math.ceil(total / READING_PAGE_SIZE));
   if (page > totalPages) page = totalPages;
@@ -138,13 +150,13 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
             q.correct_option, q.explanation, q.post_name, q.exam_year,
             m.name AS ministry_name
      FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
-     WHERE q.subject = $1
+     WHERE q.subject = ANY($1)
      ORDER BY q.id ASC
      LIMIT $2 OFFSET $3`,
-    [subject, READING_PAGE_SIZE, offset]
+    [matchingRawSubjects, READING_PAGE_SIZE, offset]
   );
 
-  res.json({ subject, page, total_pages: totalPages, total_count: total, questions: rows });
+  res.json({ subject: canonicalSubject, page, total_pages: totalPages, total_count: total, questions: rows });
 }));
 
 module.exports = router;
