@@ -356,6 +356,48 @@ router.get('/public/practice', asyncHandler(async (req, res) => {
   }
 }));
 
+// POST /api/exams/public/reading-quiz  body: { question_ids: [...] } — after a student
+// reads a 30-question রিডিং লিস্ট page, this builds a 5-minute, 10-question quiz
+// drawn only from that page's questions (not the whole subject bank), wrapped in the
+// same is_practice 'model' exam machinery as /public/practice so taking/submitting/
+// results all work through the existing exam flow with no separate code path.
+router.post('/public/reading-quiz', asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body.question_ids) ? req.body.question_ids.map(Number).filter(Number.isFinite) : [];
+  if (!ids.length) return res.status(400).json({ error: 'প্রশ্ন নির্বাচন করা যায়নি' });
+
+  const client = await pool.connect();
+  try {
+    const qRes = await client.query(
+      `SELECT id, subject FROM questions WHERE id = ANY($1::int[]) ORDER BY RANDOM() LIMIT 10`,
+      [ids]
+    );
+    if (!qRes.rows.length) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
+
+    await client.query('BEGIN');
+    const subject = qRes.rows[0].subject;
+    const serial = 'EH-RQ-' + Math.floor(1000 + Math.random() * 9000);
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, subject, duration_minutes, status, serial, is_practice)
+       VALUES ($1,'model',$2,5,'active',$3,true) RETURNING *`,
+      [`রিডিং কুইজ: ${subject}`, subject, serial]
+    );
+    const exam = examResult.rows[0];
+    for (let i = 0; i < qRes.rows.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, qRes.rows[i].id, i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ...exam, question_count: qRes.rows.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
+
 // GET /api/exams/public/smart-practice?count=15 — auto-generates a MIXED
 // practice quiz weighted toward this student's weakest subjects (based on
 // their accuracy in /api/results/me/subject-stats), instead of making them
