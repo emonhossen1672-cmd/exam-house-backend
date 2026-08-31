@@ -213,3 +213,22 @@ CREATE TABLE IF NOT EXISTS user_syllabus_progress (
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS application_deadline TIMESTAMP;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_probable_date DATE;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS circular_url TEXT;
+
+-- ===== Feature: Auto-generated বিষয়ভিত্তিক model tests + সর্বাধিক পুনরাবৃত্ত প্রশ্ন =====
+-- Every question already carries its own subject (and ministry_id + grade).
+-- Instead of an admin manually re-picking questions into a subject-wise
+-- exam, POST /api/exams/sync-subject-tests groups the whole question bank
+-- by subject and (re)builds "model" exams flagged is_auto_subject — so a
+-- ministry CSV upload is automatically also usable from বিষয়ভিত্তিক.
+-- post_name/exam_year on questions let each auto-generated card show a
+-- small "কোন সার্কুলার থেকে এসেছে" source tag; older rows uploaded before
+-- this existed just show a shorter tag (whatever's available).
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS post_name VARCHAR(200);
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS exam_year INTEGER;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_auto_subject BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_repeated_bank BOOLEAN NOT NULL DEFAULT false;
+-- Per-question annotation shown under the question on the exam screen —
+-- reused for both the source tag (auto subject tests) and the repeat-count
+-- note (the "সর্বাধিক পুনরাবৃত্ত প্রশ্ন" bank), so one column serves both.
+ALTER TABLE exam_questions ADD COLUMN IF NOT EXISTS tag TEXT;
+CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
