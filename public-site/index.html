@@ -425,6 +425,12 @@
   .profile-stats-strip{display:flex; background:var(--card); border:1px solid var(--line); border-radius:16px; margin-top:10px; overflow:hidden;}
   .profile-stats-strip>div{flex:1; text-align:center; padding:14px 8px;}
   .profile-stats-strip>div:first-child{border-right:1px solid var(--line);}
+  .switch{position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch .slider{position:absolute; cursor:pointer; inset:0; background:#d9dde5; transition:.2s; border-radius:24px;}
+  .switch .slider::before{position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,0.2);}
+  .switch input:checked + .slider{background:var(--seal, #1f6feb);}
+  .switch input:checked + .slider::before{transform:translateX(18px);}
   .profile-stats-strip b{display:block; font-family:'Space Mono',monospace; font-size:17px; color:var(--ink); margin-bottom:2px;}
   .profile-stats-strip span{font-size:10.5px; color:var(--ink-faint);}
   .streak-card{
@@ -930,6 +936,10 @@
         🎖️ <span id="achievements-trigger-label">অর্জন দেখুন</span>
       </button>
 
+      <button class="revision-trigger" id="notify-trigger-btn" style="background:#3a4a6b;" onclick="openNotifySettings()">
+        🔔 <span>নোটিফিকেশন সেটিংস</span>
+      </button>
+
       <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
       <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
       <div id="subject-stats-list"></div>
@@ -1071,6 +1081,16 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="bookmark-body" style="padding-bottom:40px;"></div>
+  </div>
+
+  <!-- ============ NOTIFICATION SETTINGS OVERLAY ============ -->
+  <div class="exam-overlay" id="notify-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeNotifySettings()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">নোটিফিকেশন সেটিংস</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="notify-body" style="padding:14px 18px 40px;"></div>
   </div>
 
   <!-- ============ ARCHIVE OVERLAY ============ -->
@@ -1705,7 +1725,7 @@
   // the whole site. We just watch each overlay's "active" class rather
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
-    'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay'];
+    'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -2652,11 +2672,158 @@
       exam.reminder_set = turningOn;
       btnEl.classList.toggle('active', turningOn);
       btnEl.innerHTML = turningOn ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন';
+      // First time a student turns a reminder on, also offer to enable push —
+      // that's the channel that actually delivers it without a paid SMS
+      // gateway. Best-effort: if they decline the browser prompt, the SMS
+      // side (if/when configured) still works on its own.
+      if(turningOn && 'PushManager' in window){
+        const reg = SW_REGISTRATION || await navigator.serviceWorker.getRegistration();
+        const already = reg && await reg.pushManager.getSubscription();
+        if(!already) enablePushNotifications();
+      }
     }catch(e){
       alert(e.message || 'রিমাইন্ডার সেট করা যায়নি');
     }finally{
       btnEl.disabled = false;
     }
+  }
+
+  // ---------- Web Push notifications ----------
+  // Service worker registers on every load (silent — no permission prompt
+  // yet). Actual subscription (which DOES prompt for permission) only
+  // happens when the student explicitly asks for it: via the 🔔 exam
+  // reminder button, or the notification settings sheet.
+  let SW_REGISTRATION = null;
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').then(reg => { SW_REGISTRATION = reg; }).catch(()=>{});
+  }
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+  }
+
+  // Subscribes this browser to push and saves it server-side. Returns true
+  // on success. Silently no-ops (returns false) if push isn't supported,
+  // VAPID isn't configured yet, or the student declines the permission prompt.
+  async function enablePushNotifications(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      alert('এই ব্রাউজারে পুশ নোটিফিকেশন সমর্থিত নয়।');
+      return false;
+    }
+    if(!USER_TOKEN){ alert('নোটিফিকেশন চালু করতে আগে লগইন করুন।'); return false; }
+    try{
+      const { publicKey } = await apiGet('/api/push/public/vapid-key');
+      const reg = SW_REGISTRATION || await navigator.serviceWorker.register('/sw.js');
+      let sub = await reg.pushManager.getSubscription();
+      if(!sub){
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+      }
+      await apiPost('/api/push/subscribe', sub.toJSON(), true);
+      return true;
+    }catch(err){
+      if(Notification.permission === 'denied'){
+        alert('নোটিফিকেশনের অনুমতি বন্ধ আছে — ব্রাউজার সেটিংস থেকে চালু করুন।');
+      } else if(err.message && err.message.includes('চালু করা')){
+        alert('এই মুহূর্তে পুশ নোটিফিকেশন চালু নেই — পরে চেষ্টা করুন।');
+      } else {
+        alert('নোটিফিকেশন চালু করা যায়নি: ' + (err.message || ''));
+      }
+      return false;
+    }
+  }
+
+  async function disablePushNotifications(){
+    try{
+      const reg = SW_REGISTRATION || await navigator.serviceWorker.getRegistration();
+      const sub = reg && await reg.pushManager.getSubscription();
+      if(sub){
+        await apiPost('/api/push/unsubscribe', { endpoint: sub.endpoint }, true);
+        await sub.unsubscribe();
+      }
+    }catch(err){ /* best-effort */ }
+  }
+
+  function openNotifySettings(){
+    document.getElementById('notify-overlay').classList.add('active');
+    loadNotifySettings();
+  }
+  function closeNotifySettings(){
+    document.getElementById('notify-overlay').classList.remove('active');
+  }
+
+  async function loadNotifySettings(){
+    const body = document.getElementById('notify-body');
+    body.innerHTML = '<p style="color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    let settings;
+    try{
+      settings = await apiGetAuth('/api/push/settings');
+    }catch(err){
+      body.innerHTML = '<p style="color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + escapeHtml(err.message) + '</p>';
+      return;
+    }
+    const subscribed = settings.subscribed_devices > 0;
+    body.innerHTML = `
+      <p style="font-size:12.5px; color:var(--ink-faint,#888); margin-bottom:18px;">লাইভ পরীক্ষা শুরুর আগে ও দৈনিক কুইজের সময় এই ব্রাউজারে নোটিফিকেশন পেতে চালু করুন।</p>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line,#eee);">
+        <div>
+          <div style="font-weight:700; font-size:13.5px;">এই ডিভাইসে নোটিফিকেশন</div>
+          <div style="font-size:11.5px; color:var(--ink-faint,#888); margin-top:2px;">${subscribed ? `চালু আছে (${toBnDigits(settings.subscribed_devices)}টি ডিভাইস)` : 'বন্ধ আছে'}</div>
+        </div>
+        <button class="btn-enter" style="padding:8px 16px; font-size:12px;" id="notify-toggle-btn" onclick="onNotifyToggleClick(${subscribed})">${subscribed ? 'বন্ধ করুন' : 'চালু করুন'}</button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line,#eee);">
+        <div>
+          <div style="font-weight:700; font-size:13.5px;">দৈনিক কুইজ রিমাইন্ডার</div>
+          <div style="font-size:11.5px; color:var(--ink-faint,#888); margin-top:2px;">প্রতিদিন সকালে "আজকের কুইজ" রেডি হলে জানাবে</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="daily-quiz-toggle" ${settings.daily_quiz_opt_in ? 'checked' : ''} onchange="toggleDailyQuizOptIn(this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      ${subscribed ? `<button class="btn btn-ghost" style="margin-top:16px; width:100%;" onclick="sendTestPush()">টেস্ট নোটিফিকেশন পাঠান</button>` : ''}
+    `;
+  }
+
+  async function onNotifyToggleClick(currentlySubscribed){
+    const btn = document.getElementById('notify-toggle-btn');
+    if(btn) btn.disabled = true;
+    if(currentlySubscribed){
+      await disablePushNotifications();
+    } else {
+      await enablePushNotifications();
+    }
+    loadNotifySettings();
+  }
+
+  async function toggleDailyQuizOptIn(checked){
+    try{
+      if(checked){
+        const reg = SW_REGISTRATION || await navigator.serviceWorker.getRegistration();
+        const sub = reg && await reg.pushManager.getSubscription();
+        if(!sub){ const ok = await enablePushNotifications(); if(!ok){ document.getElementById('daily-quiz-toggle').checked = false; return; } }
+      }
+      await apiAuth('/api/push/daily-quiz-opt-in', 'PUT', { opt_in: checked });
+    }catch(err){
+      alert(err.message || 'সংরক্ষণ করা যায়নি');
+      loadNotifySettings();
+    }
+  }
+
+  async function sendTestPush(){
+    try{
+      await apiPost('/api/push/test', {}, true);
+      alert('টেস্ট নোটিফিকেশন পাঠানো হয়েছে — কিছুক্ষণের মধ্যে দেখতে পাবেন।');
+    }catch(err){ alert(err.message || 'পাঠানো যায়নি'); }
   }
 
   function renderList(containerId, exams, emptyMsg){
