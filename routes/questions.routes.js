@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { normalizeSubject } = require('../utils/subjectMap');
 
@@ -235,6 +235,109 @@ router.get('/public/topic-questions', asyncHandler(async (req, res) => {
   );
 
   res.json({ subject: canonicalSubject, topic, page, total_pages: totalPages, total_count: total, questions: rows });
+}));
+
+// GET /api/questions/public/topic-job-subjects — subject-card summary for the
+// টপিকভিত্তিক জব সলুশন home screen: per canonical subject, total question
+// count, distinct subtopic (topic) count, subject-level ❤️ count, and — for a
+// logged-in student — how many of that subject's questions they've read so
+// far (question_reads) and whether they've liked the subject. Guests get
+// counts but no personal read progress.
+router.get('/public/topic-job-subjects', optionalUser, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT subject, COALESCE(NULLIF(TRIM(topic), ''), $1) AS topic, COUNT(*)::int AS question_count
+     FROM questions GROUP BY subject, 2`,
+    [UNTAGGED_TOPIC]
+  );
+
+  const bySubject = new Map(); // canonical subject -> { question_count, topics:Set }
+  for (const row of rows) {
+    const canonical = normalizeSubject(row.subject);
+    if (!canonical) continue;
+    if (!bySubject.has(canonical)) bySubject.set(canonical, { question_count: 0, topics: new Set() });
+    const entry = bySubject.get(canonical);
+    entry.question_count += row.question_count;
+    entry.topics.add(row.topic);
+  }
+
+  const subjects = [...bySubject.entries()].map(([subject, v]) => ({
+    subject, question_count: v.question_count, subtopic_count: v.topics.size
+  }));
+  if (!subjects.length) return res.json([]);
+  const subjectNames = subjects.map(s => s.subject);
+
+  const likeRes = await pool.query(
+    'SELECT subject, COUNT(*)::int AS like_count FROM subject_likes WHERE subject = ANY($1) GROUP BY subject',
+    [subjectNames]
+  );
+  const likeMap = new Map(likeRes.rows.map(r => [r.subject, r.like_count]));
+
+  let readMap = new Map();
+  let likedSet = new Set();
+  if (req.user) {
+    const readRes = await pool.query(
+      `SELECT q.subject, COUNT(*)::int AS read_count
+       FROM question_reads qr JOIN questions q ON q.id = qr.question_id
+       WHERE qr.user_id = $1 GROUP BY q.subject`,
+      [req.user.id]
+    );
+    for (const r of readRes.rows) {
+      const canonical = normalizeSubject(r.subject);
+      if (!canonical) continue;
+      readMap.set(canonical, (readMap.get(canonical) || 0) + r.read_count);
+    }
+    const likedRes = await pool.query('SELECT subject FROM subject_likes WHERE user_id=$1 AND subject = ANY($2)', [req.user.id, subjectNames]);
+    likedSet = new Set(likedRes.rows.map(r => r.subject));
+  }
+
+  const result = subjects
+    .map(s => ({
+      subject: s.subject,
+      question_count: s.question_count,
+      subtopic_count: s.subtopic_count,
+      like_count: likeMap.get(s.subject) || 0,
+      liked: likedSet.has(s.subject),
+      read_count: Math.min(readMap.get(s.subject) || 0, s.question_count)
+    }))
+    .sort((a, b) => b.question_count - a.question_count);
+
+  res.json(result);
+}));
+
+// POST /api/questions/public/topic-job-like  body: { subject } — toggles the
+// logged-in student's ❤️ on a subject (subject_likes) and returns the new
+// state + total count, for the টপিকভিত্তিক জব সলুশন subject card.
+router.post('/public/topic-job-like', requireUser, asyncHandler(async (req, res) => {
+  const subject = (req.body.subject || '').trim();
+  if (!subject) return res.status(400).json({ error: 'বিষয় প্রয়োজন' });
+
+  const existing = await pool.query('SELECT 1 FROM subject_likes WHERE user_id=$1 AND subject=$2', [req.user.id, subject]);
+  if (existing.rows.length) {
+    await pool.query('DELETE FROM subject_likes WHERE user_id=$1 AND subject=$2', [req.user.id, subject]);
+  } else {
+    await pool.query('INSERT INTO subject_likes (user_id, subject) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.user.id, subject]);
+  }
+  const countRes = await pool.query('SELECT COUNT(*)::int AS c FROM subject_likes WHERE subject=$1', [subject]);
+  res.json({ liked: !existing.rows.length, like_count: countRes.rows[0].c });
+}));
+
+// POST /api/questions/public/mark-read  body: { question_ids: [...] } —
+// best-effort: records that the logged-in student has opened/revealed these
+// questions (question_reads), so their subject card's "পড়া হয়েছে" progress
+// ring advances. Silently a no-op for guests on the client side — this
+// endpoint itself still requires login since there's nothing to track otherwise.
+router.post('/public/mark-read', requireUser, asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body.question_ids)
+    ? req.body.question_ids.map(Number).filter(Number.isFinite)
+    : [];
+  if (!ids.length) return res.status(400).json({ error: 'question_ids প্রয়োজন' });
+
+  const values = ids.map((_, i) => `($1, $${i + 2})`).join(',');
+  await pool.query(
+    `INSERT INTO question_reads (user_id, question_id) VALUES ${values} ON CONFLICT DO NOTHING`,
+    [req.user.id, ...ids]
+  );
+  res.json({ ok: true, marked: ids.length });
 }));
 
 module.exports = router;
