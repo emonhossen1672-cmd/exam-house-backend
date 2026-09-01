@@ -16,7 +16,7 @@ function genSerial(type) {
 // body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks,
-          application_deadline, exam_probable_date, circular_url } = req.body;
+          application_deadline, exam_probable_date, circular_url, routine_category } = req.body;
   if (!title || !type || !question_ids || !question_ids.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
   }
@@ -30,11 +30,11 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     const serial = genSerial(type);
     const examResult = await client.query(
       `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks,
-         application_deadline, exam_probable_date, circular_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+         application_deadline, exam_probable_date, circular_url, routine_category)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
       [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
        type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
-       application_deadline || null, exam_probable_date || null, circular_url || null]
+       application_deadline || null, exam_probable_date || null, circular_url || null, routine_category || null]
     );
     const exam = examResult.rows[0];
 
@@ -72,7 +72,7 @@ router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
 // subject/grade/start_time like it used to.
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { title, ministry_id, post_name, subject, grade, duration_minutes, start_time, negative_marks,
-          application_deadline, exam_probable_date, circular_url } = req.body;
+          application_deadline, exam_probable_date, circular_url, routine_category } = req.body;
   const { rows } = await pool.query(
     `UPDATE exams SET
       title = COALESCE($1, title),
@@ -85,12 +85,13 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
       negative_marks = COALESCE($9, negative_marks),
       application_deadline = COALESCE($10, application_deadline),
       exam_probable_date = COALESCE($11, exam_probable_date),
-      circular_url = COALESCE($12, circular_url)
+      circular_url = COALESCE($12, circular_url),
+      routine_category = COALESCE($13, routine_category)
      WHERE id=$8 RETURNING *`,
     [title || null, ministry_id || null, post_name || null, subject || null, grade || null,
      duration_minutes || null, start_time || null, req.params.id,
      negative_marks === undefined ? null : negative_marks,
-     application_deadline || null, exam_probable_date || null, circular_url || null]
+     application_deadline || null, exam_probable_date || null, circular_url || null, routine_category || null]
   );
   if (!rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -117,15 +118,17 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
 // reminder_set flag showing whether *this* student has a pending 🔔
 // reminder for it (so the button can render already-toggled-on).
 router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
-  const { type } = req.query;
+  const { type, routine_category } = req.query;
   const params = [];
-  let where = '';
-  if (type) { params.push(type); where = 'WHERE e.type = $1'; }
+  const clauses = [];
+  if (type) { params.push(type); clauses.push(`e.type = $${params.length}`); }
+  if (routine_category) { params.push(routine_category); clauses.push(`e.routine_category = $${params.length}`); }
+  const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
   params.push(req.user ? req.user.id : null);
   const userParamIdx = params.length;
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
-      e.is_daily, e.is_practice, e.is_duel, e.is_auto_subject, e.is_repeated_bank, e.ministry_id,
+      e.is_daily, e.is_practice, e.is_duel, e.is_auto_subject, e.is_repeated_bank, e.ministry_id, e.routine_category,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
       EXISTS(
