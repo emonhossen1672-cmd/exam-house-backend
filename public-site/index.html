@@ -347,6 +347,10 @@
   .live-cat-tabs::-webkit-scrollbar{display:none;}
   .lct-pill{flex:0 0 auto; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:12px; font-weight:700; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
   .lct-pill.active{background:var(--seal); border-color:var(--seal); color:#fff;}
+  /* লাইভ পরীক্ষা category cards — vertically stacked (matches লাইভ রুটিন list) */
+  #live-cat-list .group-card{margin-bottom:10px;}
+  #live-cat-list .group-card.active-cat{border-color:var(--seal); background:var(--gold-soft); opacity:0.92;}
+  #live-cat-list .group-card.active-cat .gc-name{color:#7A5E12;}
 
   /* ---------- লাইভ রুটিন day cards ---------- */
   .routine-progress-bar-wrap{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px;}
@@ -1038,14 +1042,7 @@
   <!-- ============ LIVE EXAM SCREEN ============ -->
   <div class="screen" id="screen-live">
     <div class="sec-head" style="margin-top:4px;"><h2>লাইভ পরীক্ষাসমূহ</h2></div>
-    <div class="live-cat-tabs" id="live-cat-tabs">
-      <div class="lct-pill active" data-cat="" onclick="setLiveCategory('')">সব</div>
-      <div class="lct-pill" data-cat="grade-syllabus" onclick="setLiveCategory('grade-syllabus')">📚 গ্রেড সিলেবাস</div>
-      <div class="lct-pill" data-cat="bcs-200" onclick="setLiveCategory('bcs-200')">🏛️ বিসিএস ২০০ দিন</div>
-      <div class="lct-pill" data-cat="subject-wise" onclick="setLiveCategory('subject-wise')">📘 সাবজেক্ট ভিত্তিক</div>
-      <div class="lct-pill" data-cat="topic-wise" onclick="setLiveCategory('topic-wise')">🗂️ টপিকভিত্তিক</div>
-      <div class="lct-pill" data-cat="job-solution" onclick="setLiveCategory('job-solution')">✅ জব সলুশন</div>
-    </div>
+    <div id="live-cat-list" style="margin-bottom:16px;"></div>
     <div id="live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
@@ -3389,6 +3386,7 @@
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderLiveList();
+      loadLiveCategoryList();
       renderModelScreen();
       loadCirculars();
       loadHomeTopicChips();
@@ -3424,12 +3422,45 @@
     if(subject) openTopicSubject(subject);
   }
 
-  // ---------- লাইভ পরীক্ষা category tabs ----------
+  // ---------- লাইভ পরীক্ষা category cards (vertically stacked, same style
+  // and same 5 categories as লাইভ রুটিন) — clicking one filters the live
+  // exam list below to just that routine's exams. ----------
   let LIVE_CATEGORY_FILTER = '';
+  async function loadLiveCategoryList(){
+    const wrap = document.getElementById('live-cat-list');
+    try{
+      const categories = await apiGet('/api/routines/public/categories');
+      const allCard = `
+        <div class="group-card${LIVE_CATEGORY_FILTER===''?' active-cat':''}" data-cat="" onclick="setLiveCategory('')">
+          <div class="gc-left">
+            <div class="gc-ic post">📋</div>
+            <div>
+              <div class="gc-name">সব লাইভ পরীক্ষা</div>
+              <div class="gc-meta">সকল ক্যাটাগরির পরীক্ষা একসাথে</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`;
+      const catCards = categories.map(c => `
+        <div class="group-card${LIVE_CATEGORY_FILTER===c.slug?' active-cat':''}" data-cat="${c.slug}" onclick='setLiveCategory(${JSON.stringify(c.slug)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">${c.icon}</div>
+            <div>
+              <div class="gc-name">${escapeHtml(c.title)}</div>
+              <div class="gc-meta">${escapeHtml(c.subtitle)}</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`).join('');
+      wrap.innerHTML = allCard + catCards;
+    }catch(err){
+      wrap.innerHTML = '';
+    }
+  }
   function setLiveCategory(cat){
     LIVE_CATEGORY_FILTER = cat;
-    document.querySelectorAll('#live-cat-tabs .lct-pill').forEach(el=>{
-      el.classList.toggle('active', el.dataset.cat === cat);
+    document.querySelectorAll('#live-cat-list .group-card').forEach(el=>{
+      el.classList.toggle('active-cat', el.dataset.cat === cat);
     });
     renderLiveList();
   }
