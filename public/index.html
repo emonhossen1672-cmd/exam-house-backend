@@ -162,6 +162,7 @@
     <button class="tab-btn" data-tab="list">প্রশ্ন তালিকা</button>
     <button class="tab-btn" data-tab="ministries">মন্ত্রণালয়</button>
     <button class="tab-btn" data-tab="exams">পরীক্ষা তৈরি করুন</button>
+    <button class="tab-btn" data-tab="results">ফলাফল ও মেরিট লিস্ট</button>
     <button class="tab-btn" data-tab="routines">লাইভ রুটিন</button>
     <button class="tab-btn" data-tab="reports">রিপোর্ট</button>
   </div>
@@ -431,6 +432,17 @@
       <div id="examListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
     </div>
 
+    <div class="panel" id="panel-results">
+      <h2>ফলাফল ও মেরিট লিস্ট</h2>
+      <div class="desc">যেকোনো পরীক্ষা বাছাই করে সব পরীক্ষার্থীর ফলাফল, র‍্যাংক ও মোবাইল নম্বরসহ সম্পূর্ণ মেরিট লিস্ট দেখুন। লাইভ পরীক্ষা শেষ হওয়ার পরও এখান থেকেই ফলাফল যাচাই করা যাবে — এটা আলাদা করে কোথাও জমা রাখতে হয় না, `results` টেবিলে জমা থাকে এবং পরীক্ষা মুছে না ফেলা পর্যন্ত সবসময় এখানে পাওয়া যাবে।</div>
+      <div class="field">
+        <label>পরীক্ষা বাছাই করুন</label>
+        <select id="r_exam_select"><option value="">— লোড হচ্ছে... —</option></select>
+      </div>
+      <div id="resultsSummary"></div>
+      <div id="resultsListWrap"><div class="empty-state">উপরে থেকে একটি পরীক্ষা বাছাই করুন</div></div>
+    </div>
+
     <div class="panel" id="panel-routines">
       <h2>লাইভ রুটিন — দিন সাজান</h2>
       <div class="desc">প্রতিটা ক্যাটাগরিতে দিনভিত্তিক প্ল্যান তৈরি করুন — শিক্ষার্থীরা "লাইভ রুটিন" থেকে দিন ধরে ধরে অনুসরণ করবে। প্রতিটা দিনে চাইলে একটা পরীক্ষার আইডি জুড়ে দিতে পারেন, তাহলে সেই দিনে ট্যাপ করলে সরাসরি পরীক্ষা শুরু হবে।</div>
@@ -563,6 +575,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'list') loadQuestions();
     if (btn.dataset.tab === 'ministries') loadMinistries();
     if (btn.dataset.tab === 'exams') { loadExamMinistries(); loadExamQuestionPicker(); loadExamsList(); }
+    if (btn.dataset.tab === 'results') { loadResultsExamList(); }
     if (btn.dataset.tab === 'quicktext') { loadQuickTextMinistries(); }
     if (btn.dataset.tab === 'routines') { loadRoutineDaysList(); }
     if (btn.dataset.tab === 'reports') { loadReports(); }
@@ -699,13 +712,14 @@ async function loadExamsList(){
       return;
     }
     wrap.innerHTML = `<table>
-      <tr><th>টাইটেল</th><th>টাইপ</th><th>বিষয়</th><th>প্রশ্ন</th><th>স্ট্যাটাস</th><th>সিরিয়াল</th><th></th></tr>
+      <tr><th>টাইটেল</th><th>টাইপ</th><th>বিষয়</th><th>প্রশ্ন</th><th>অংশগ্রহণ</th><th>স্ট্যাটাস</th><th>সিরিয়াল</th><th></th></tr>
       ${list.map(ex => `
         <tr>
           <td class="qtext">${escapeHtml(ex.title)}</td>
           <td><span class="pill">${ex.type === 'live' ? 'লাইভ' : 'মডেল'}</span></td>
           <td>${ex.subject ? escapeHtml(ex.subject) : '-'}</td>
           <td>${ex.question_count}</td>
+          <td>${ex.attempt_count > 0 ? `<button class="btn btn-ghost btn-small" onclick="openResultsFor(${ex.id})">${ex.attempt_count} জন · ফলাফল</button>` : '<span class="pill">০ জন</span>'}</td>
           <td>
             <select onchange="updateExamStatus(${ex.id}, this.value)" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); font-size:12.5px;">
               <option value="scheduled" ${ex.status === 'scheduled' ? 'selected' : ''}>নির্ধারিত</option>
@@ -726,6 +740,121 @@ async function loadExamsList(){
   } catch(err){
     wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
   }
+}
+
+// ---- Results & Merit List ----
+let RESULTS_EXAM_CACHE = [];
+
+async function loadResultsExamList(preselectId){
+  const sel = document.getElementById('r_exam_select');
+  sel.innerHTML = '<option value="">— লোড হচ্ছে... —</option>';
+  try{
+    const list = await api('/api/exams/admin/list');
+    RESULTS_EXAM_CACHE = list;
+    if (!list.length){
+      sel.innerHTML = '<option value="">এখনো কোনো পরীক্ষা নেই</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— নির্বাচন করুন —</option>' + list.map(ex => `
+      <option value="${ex.id}">${ex.type === 'live' ? 'লাইভ' : 'মডেল'} · ${escapeHtml(ex.title)} (${ex.attempt_count} জন অংশ নিয়েছে)</option>
+    `).join('');
+    if (preselectId){ sel.value = preselectId; loadExamResults(preselectId); }
+  } catch(err){
+    sel.innerHTML = `<option value="">${escapeHtml(err.message)}</option>`;
+  }
+}
+
+document.getElementById('r_exam_select').addEventListener('change', (e) => {
+  if (e.target.value) loadExamResults(e.target.value);
+  else {
+    document.getElementById('resultsSummary').innerHTML = '';
+    document.getElementById('resultsListWrap').innerHTML = '<div class="empty-state">উপরে থেকে একটি পরীক্ষা বাছাই করুন</div>';
+  }
+});
+
+// Jump here from the "সব পরীক্ষা" table's ফলাফল button.
+function openResultsFor(examId){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="results"]').classList.add('active');
+  document.getElementById('panel-results').classList.add('active');
+  loadResultsExamList(examId);
+}
+
+let LAST_RESULTS_ROWS = [];
+let LAST_RESULTS_EXAM_TITLE = '';
+
+async function loadExamResults(examId){
+  const summaryBox = document.getElementById('resultsSummary');
+  const wrap = document.getElementById('resultsListWrap');
+  summaryBox.innerHTML = '';
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const rows = await api('/api/results/admin/exam/' + examId);
+    const exam = RESULTS_EXAM_CACHE.find(e => String(e.id) === String(examId));
+    LAST_RESULTS_ROWS = rows;
+    LAST_RESULTS_EXAM_TITLE = exam ? exam.title : ('exam-' + examId);
+
+    if (!rows.length){
+      summaryBox.innerHTML = '';
+      wrap.innerHTML = '<div class="empty-state">এই পরীক্ষায় এখনো কেউ অংশ নেয়নি</div>';
+      return;
+    }
+
+    const avg = (rows.reduce((s, r) => s + Number(r.score), 0) / rows.length).toFixed(2);
+    const top = rows[0];
+    summaryBox.innerHTML = `
+      <div class="grid-2" style="margin-bottom:6px;">
+        <div class="field"><label>মোট অংশগ্রহণকারী</label><div style="font-size:20px; font-weight:700;">${rows.length}</div></div>
+        <div class="field"><label>গড় স্কোর</label><div style="font-size:20px; font-weight:700;">${avg}%</div></div>
+      </div>
+      <div style="font-size:13px; color:var(--ink-soft); margin-bottom:10px;">🏆 সর্বোচ্চ স্কোর: <b>${escapeHtml(top.participant_name)}</b> — ${top.score}%</div>
+      <button class="btn btn-ghost btn-small" id="exportResultsCsvBtn" type="button">CSV ডাউনলোড করুন</button>
+    `;
+    document.getElementById('exportResultsCsvBtn').addEventListener('click', exportResultsCsv);
+
+    wrap.innerHTML = `<table>
+      <tr><th>র‍্যাংক</th><th>নাম</th><th>মোবাইল</th><th>সঠিক</th><th>ভুল</th><th>বাদ</th><th>স্কোর</th><th>জমার সময়</th></tr>
+      ${rows.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td class="qtext">${escapeHtml(r.participant_name)}</td>
+          <td class="mono">${r.participant_phone ? escapeHtml(r.participant_phone) : '-'}</td>
+          <td><span class="pill correct-pill">${r.correct_count}</span></td>
+          <td><span class="pill">${r.wrong_count}</span></td>
+          <td><span class="pill">${r.skipped_count}</span></td>
+          <td><b>${r.score}%</b></td>
+          <td style="font-size:12px; color:var(--ink-soft);">${new Date(r.submitted_at).toLocaleString('bn-BD')}</td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function exportResultsCsv(){
+  if (!LAST_RESULTS_ROWS.length) return;
+  const header = ['Rank','Name','Phone','Correct','Wrong','Skipped','Score','SubmittedAt'];
+  const lines = [header.join(',')];
+  LAST_RESULTS_ROWS.forEach((r, i) => {
+    lines.push([
+      i + 1,
+      '"' + String(r.participant_name).replace(/"/g, '""') + '"',
+      r.participant_phone || '',
+      r.correct_count, r.wrong_count, r.skipped_count, r.score,
+      new Date(r.submitted_at).toISOString()
+    ].join(','));
+  });
+  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'merit-list-' + LAST_RESULTS_EXAM_TITLE.replace(/[^a-zA-Z0-9\u0980-\u09FF]+/g, '-') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // Quick-edit to set/change an exam's ministry after creation. The create-exam
