@@ -342,6 +342,33 @@
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
+  /* ---------- Topic job solution — subject card (redesigned) ---------- */
+  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
+  .tj-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .tj-name{font-size:15px; font-weight:700; color:var(--ink);}
+  .tj-like{display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink-faint); cursor:pointer; padding:4px; font-family:'Space Mono',monospace;}
+  .tj-like .tj-heart{font-size:15px; line-height:1; transition:transform .15s ease;}
+  .tj-like.on .tj-heart{transform:scale(1.12);}
+  .tj-like:active .tj-heart{transform:scale(0.85);}
+  .tj-mid{display:flex; align-items:center; gap:14px; margin-bottom:14px;}
+  .tj-ring{flex-shrink:0; width:64px; height:64px; position:relative;}
+  .tj-ring svg{width:64px; height:64px; transform:rotate(-90deg);}
+  .tj-ring circle{fill:none; stroke-width:6;}
+  .tj-ring .tj-ring-bg{stroke:var(--paper-deep);}
+  .tj-ring .tj-ring-fg{stroke:var(--seal); stroke-linecap:round; transition:stroke-dashoffset .4s ease;}
+  .tj-ring-label{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:var(--ink-soft); font-family:'Space Mono',monospace; text-align:center; line-height:1.25;}
+  .tj-stats{flex:1; min-width:0;}
+  .tj-stat-row{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0;}
+  .tj-stat-row span:first-child{color:var(--ink-faint);}
+  .tj-stat-row span:last-child{color:var(--ink); font-weight:700; font-family:'Space Mono',monospace;}
+  .tj-actions{display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px;}
+  .tj-action-btn{
+    background:var(--paper-deep); border:none; border-radius:10px; padding:9px 4px;
+    font-size:11px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali'; text-align:center; line-height:1.35;
+  }
+  .tj-action-btn:active{transform:scale(0.96);}
+  .tj-action-btn.primary{background:var(--seal); color:#fff;}
+
   /* ---------- Smart practice card ---------- */
   .smart-practice-card{
     background:var(--seal); color:#fff; border-radius:16px; padding:16px;
@@ -2175,7 +2202,8 @@
     }
     if(MODEL_MODE === 'topic'){
       if(TOPIC_NAV.level === 'questions'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
-      else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; }
+      else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
+      else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -2457,6 +2485,7 @@
   async function renderTopicScreen(){
     if(TOPIC_NAV.level === 'topics'){ renderTopicListScreen(); return; }
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
+    if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
 
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -2469,7 +2498,7 @@
     if(!TOPIC_SUBJECTS_CACHE){
       listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
       try{
-        TOPIC_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects');
+        TOPIC_SUBJECTS_CACHE = await apiGetAuth('/api/questions/public/topic-job-subjects');
       }catch(err){
         listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
         return;
@@ -2481,17 +2510,161 @@
       return;
     }
 
-    listEl.innerHTML = TOPIC_SUBJECTS_CACHE.map(s=>`
-      <div class="group-card" onclick='openTopicSubject(${JSON.stringify(s.subject)})'>
-        <div class="gc-left">
-          <div class="gc-ic post">🗂️</div>
-          <div>
-            <div class="gc-name">${s.subject}</div>
-            <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন</div>
+    listEl.innerHTML = TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
+  }
+
+  // One subject card: ❤️ like, circular "পড়া হয়েছে" progress ring, subtopic/
+  // question counts, and the three actions (all questions / all subtopics /
+  // random quiz) from the reference design.
+  function renderTjCard(s){
+    const pct = s.question_count ? s.read_count / s.question_count : 0;
+    const pctLabel = toBnDigits(Math.round(pct * 100)) + '%';
+    const subjArg = JSON.stringify(s.subject);
+    return `
+      <div class="tj-card">
+        <div class="tj-top">
+          <div class="tj-name">${escapeHtml(s.subject)}</div>
+          <div class="tj-like${s.liked ? ' on' : ''}" id="tj-like-${cssId(s.subject)}" onclick='toggleTopicLike(${subjArg}, event)'>
+            <span class="tj-heart">${s.liked ? '❤️' : '🤍'}</span>
+            <span class="tj-like-count">${toBnDigits(s.like_count)}</span>
           </div>
         </div>
-        <div class="gc-arrow">›</div>
-      </div>`).join('');
+        <div class="tj-mid">
+          <div class="tj-ring">
+            ${tjRingSvg(pct)}
+            <div class="tj-ring-label">${toBnDigits(s.read_count)}/${toBnDigits(s.question_count)}<br>${pctLabel}</div>
+          </div>
+          <div class="tj-stats">
+            <div class="tj-stat-row"><span>Subtopics</span><span>${toBnDigits(s.subtopic_count)}</span></div>
+            <div class="tj-stat-row"><span>Questions</span><span>${toBnDigits(s.question_count)}</span></div>
+          </div>
+        </div>
+        <div class="tj-actions">
+          <button class="tj-action-btn" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
+          <button class="tj-action-btn" onclick='openTopicSubject(${subjArg})'>সব সাবটপিক</button>
+          <button class="tj-action-btn primary" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
+        </div>
+      </div>`;
+  }
+
+  // Turns a subject name into a safe DOM-id fragment (subjects are Bengali
+  // text, not identifier-safe on their own).
+  function cssId(str){
+    return String(str).split('').map(c=>c.charCodeAt(0)).join('');
+  }
+
+  function tjRingSvg(pct){
+    const r = 26, c = 2 * Math.PI * r;
+    const dash = c * Math.min(1, Math.max(0, pct || 0));
+    return `<svg viewBox="0 0 64 64">
+      <circle class="tj-ring-bg" cx="32" cy="32" r="${r}"></circle>
+      <circle class="tj-ring-fg" cx="32" cy="32" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c - dash).toFixed(2)}"></circle>
+    </svg>`;
+  }
+
+  async function toggleTopicLike(subject, ev){
+    if(ev) ev.stopPropagation();
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    const wrap = document.getElementById('tj-like-' + cssId(subject));
+    try{
+      const data = await apiAuth('/api/questions/public/topic-job-like', 'POST', { subject });
+      if(TOPIC_SUBJECTS_CACHE){
+        const row = TOPIC_SUBJECTS_CACHE.find(s=>s.subject===subject);
+        if(row){ row.liked = data.liked; row.like_count = data.like_count; }
+      }
+      if(wrap){
+        wrap.classList.toggle('on', data.liked);
+        wrap.innerHTML = `<span class="tj-heart">${data.liked ? '❤️' : '🤍'}</span><span class="tj-like-count">${toBnDigits(data.like_count)}</span>`;
+      }
+    }catch(err){
+      alert(err.message || 'করা যায়নি');
+    }
+  }
+
+  // Random Quiz action on a subject card — reuses the same instant-quiz
+  // endpoint as Reading List's "স্মার্ট প্র্যাকটিস"/subject practice.
+  async function startTopicSubjectQuiz(subject){
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">কুইজ তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiGet('/api/exams/public/practice?subject=' + encodeURIComponent(subject) + '&count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'কুইজ শুরু করা যায়নি');
+    }
+  }
+
+  function openTopicAllQuestions(subject){
+    TOPIC_NAV = {level:'all', subject, page:1};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  function goTopicAllPage(delta){
+    TOPIC_NAV.page = Math.max(1, TOPIC_NAV.page + delta);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  // "সব প্রশ্ন" — every question in the subject, ungrouped by subtopic.
+  // Reuses রিডিং লিস্ট's pagination endpoint since the payload shape (and
+  // page size) already matches what the topic question-card renderer needs.
+  async function renderTopicAllQuestionsPage(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = TOPIC_NAV.subject;
+    subtext.textContent = 'সব প্রশ্ন · টপিকভিত্তিক জব সলুশন';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data;
+    try{
+      data = await apiGet('/api/questions/public/reading-list?subject=' + encodeURIComponent(TOPIC_NAV.subject) + '&page=' + TOPIC_NAV.page);
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+      return;
+    }
+
+    TOPIC_NAV.page = data.page;
+    TOPIC_PAGE_QUESTIONS = data.questions;
+    const startNum = (data.page - 1) * 30 + 1;
+
+    const cards = data.questions.map((q, i)=>{
+      const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
+      const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+      const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      return `
+        <div class="rl-q-card" id="tp-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startNum + i)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="rl-q-opts">${opts}</div>
+          <button class="rl-q-reveal" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর দেখুন</button>
+          ${explainHtml}
+        </div>`;
+    }).join('');
+
+    const quizCta = `
+      <div class="rl-quiz-cta" onclick="startTopicQuiz()">
+        <div class="rq-ic">⏱️</div>
+        <div class="rq-title">অটো কুইজ শুরু করুন</div>
+        <div class="rq-sub">এই পৃষ্ঠার প্রশ্নের উপর ভিত্তি করে ১০টি প্রশ্ন · ৫ মিনিট</div>
+      </div>`;
+
+    const pager = `
+      <div class="rl-pager">
+        <button class="rl-pager-btn" onclick="goTopicAllPage(-1)" ${data.page<=1?'disabled':''}>← আগের পৃষ্ঠা</button>
+        <span class="rl-pager-info">${toBnDigits(data.page)} / ${toBnDigits(data.total_pages)}</span>
+        <button class="rl-pager-btn" onclick="goTopicAllPage(1)" ${data.page>=data.total_pages?'disabled':''}>পরের পৃষ্ঠা →</button>
+      </div>`;
+
+    listEl.innerHTML = (data.questions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
   }
 
   function openTopicSubject(subject){
@@ -2619,6 +2792,18 @@
     if(explain) explain.style.display = 'block';
     const btn = card.querySelector('.rl-q-reveal');
     if(btn) btn.style.display = 'none';
+    markTopicQuestionRead(qid);
+  }
+
+  // Best-effort progress tracking for the subject card's ring — fires once
+  // per revealed question, silently ignored for guests or on network error.
+  // The cached subject list is cleared so the ring reflects the new count
+  // next time the subject list screen is shown.
+  function markTopicQuestionRead(qid){
+    if(!USER_TOKEN) return;
+    apiAuth('/api/questions/public/mark-read', 'POST', { question_ids: [qid] })
+      .then(()=>{ TOPIC_SUBJECTS_CACHE = null; })
+      .catch(()=>{});
   }
 
   // Auto quiz: 10 random questions from just this topic's current page, 5 minutes.
