@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applied before the stylesheet paints anything, so switching between
+  // sessions never shows a flash of the wrong theme. Reads the same
+  // localStorage key the in-app toggle button (further down) writes to.
+  (function(){
+    var saved = localStorage.getItem('eh_theme');
+    if(saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
 <title>Exam House — লাইভ পরীক্ষা ও মডেল টেস্ট</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -26,6 +37,23 @@
     --navy-deep:#10182C;
     --radius:18px;
   }
+  /* ---------- Dark mode ---------- */
+  /* Only the "surface" tokens (page/card backgrounds, borders, body text)
+     flip here — the accent/badge tokens (--seal, --gold, --gold-soft,
+     --success-bg, --wrong-bg, --navy-deep...) stay as-is on purpose: they're
+     always paired with their own matching text color (e.g. .tag.grade uses
+     --gold-soft with a hardcoded #7A5E12 text), so they already read fine as
+     colored chips against a dark card — recoloring them would break that pairing. */
+  html[data-theme="dark"]{
+    --paper:#131A2C;
+    --paper-deep:#0B0F1C;
+    --card:#1B2338;
+    --line:#2C3552;
+    --ink:#EDEFF6;
+    --ink-soft:#AEB6CC;
+    --ink-faint:#7C87A3;
+  }
+  html[data-theme="dark"] .device{ box-shadow:0 0 60px rgba(0,0,0,0.6); }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
     font-family:'Noto Sans Bengali', sans-serif;
@@ -759,7 +787,10 @@
         <div class="sub">কঠিন প্রস্তুতি · সহজ জয়</div>
       </div>
     </div>
-    <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
+      <button id="theme-toggle-btn" onclick="toggleTheme()" style="background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; line-height:1;" title="ডার্ক/লাইট মোড">🌙</button>
+    </div>
   </div>
 
   <!-- ============ HOME SCREEN ============ -->
@@ -1120,6 +1151,26 @@
     const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
     return String(str).replace(/[0-9]/g, d=>bn[d]);
   }
+
+  // ---------- Dark mode ----------
+  // The actual attribute is already set (or not) by the tiny blocking script
+  // in <head>, before first paint — this just keeps the toggle button's icon
+  // in sync and handles the click.
+  function currentTheme(){
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+  function syncThemeButton(){
+    const btn = document.getElementById('theme-toggle-btn');
+    if(btn) btn.textContent = currentTheme() === 'dark' ? '☀️' : '🌙';
+  }
+  function toggleTheme(){
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    if(next === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('eh_theme', next);
+    syncThemeButton();
+  }
+  syncThemeButton();
   // Escapes text before it's inserted via innerHTML, so a user-entered name,
   // question, or explanation can never be interpreted as HTML/script (XSS fix).
   function escapeHtml(str){
