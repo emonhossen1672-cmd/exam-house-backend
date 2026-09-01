@@ -321,3 +321,35 @@ CREATE TABLE IF NOT EXISTS question_reads (
   PRIMARY KEY (user_id, question_id)
 );
 CREATE INDEX IF NOT EXISTS idx_question_reads_user ON question_reads(user_id);
+
+-- ===== Feature: লাইভ রুটিন (structured day-by-day exam prep plans) =====
+-- Five fixed plan categories (kept as a plain string, not a lookup table, to
+-- match the syllabus_topics convention above): grade-syllabus, bcs-200,
+-- subject-wise, topic-wise, job-solution. Each category is just a flat,
+-- ordered list of days — one row per day — so admin content entry can reuse
+-- the same "paste a block of text" bulk pattern already used for questions.
+-- A day can optionally point at a live/model exam (exam_id) so tapping that
+-- day's card can jump straight into taking that exam.
+CREATE TABLE IF NOT EXISTS routine_days (
+  id SERIAL PRIMARY KEY,
+  category VARCHAR(40) NOT NULL,
+  day_number INTEGER NOT NULL,
+  title VARCHAR(250) NOT NULL,
+  tasks TEXT,
+  exam_id INTEGER REFERENCES exams(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_routine_days_category ON routine_days(category, day_number);
+
+CREATE TABLE IF NOT EXISTS user_routine_progress (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  routine_day_id INTEGER NOT NULL REFERENCES routine_days(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, routine_day_id)
+);
+
+-- লাইভ পরীক্ষা tagged into the same 5 categories, so the লাইভ পরীক্ষা screen
+-- can offer the identical category tabs as লাইভ রুটিন — an exam created for
+-- e.g. "২০০ দিনে বিসিএস প্রস্তুতি" shows up under that tab there too.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS routine_category VARCHAR(40);
+CREATE INDEX IF NOT EXISTS idx_exams_routine_category ON exams(routine_category);
