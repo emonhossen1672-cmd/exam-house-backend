@@ -342,6 +342,28 @@
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
+  /* ---------- Live category tabs (used on লাইভ পরীক্ষা screen) ---------- */
+  .live-cat-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; -webkit-overflow-scrolling:touch;}
+  .live-cat-tabs::-webkit-scrollbar{display:none;}
+  .lct-pill{flex:0 0 auto; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:12px; font-weight:700; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+  .lct-pill.active{background:var(--seal); border-color:var(--seal); color:#fff;}
+
+  /* ---------- লাইভ রুটিন day cards ---------- */
+  .routine-progress-bar-wrap{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px;}
+  .routine-progress-top{display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:var(--ink); margin-bottom:8px;}
+  .routine-progress-track{background:var(--paper-deep); border-radius:20px; height:8px; overflow:hidden;}
+  .routine-progress-fill{background:var(--success); height:100%; border-radius:20px;}
+  .routine-day-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 14px; margin-bottom:9px;}
+  .routine-day-card.done{background:var(--success-bg); border-color:var(--success);}
+  .rd-top{display:flex; align-items:flex-start; gap:10px;}
+  .rd-check{background:none; border:none; font-size:19px; cursor:pointer; flex-shrink:0; padding:0; line-height:1.4;}
+  .rd-title{font-size:13.5px; color:var(--ink); line-height:1.4;}
+  .rd-tasks{font-size:12px; color:var(--ink-soft); margin-top:6px; margin-left:29px; line-height:1.5;}
+  .rd-exam-btn{
+    display:block; width:calc(100% - 29px); margin:10px 0 0 29px; background:var(--paper-deep); border:1px solid var(--line);
+    border-radius:10px; padding:9px 12px; font-size:12px; font-weight:700; color:var(--seal); cursor:pointer; text-align:left; font-family:'Noto Sans Bengali';
+  }
+
   /* ---------- Topic job solution — subject card (redesigned) ---------- */
   .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
   .tj-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
@@ -972,6 +994,7 @@
     <div class="cat-section-bar">Exam Section</div>
     <div class="cat-grid">
       <div class="cat-tile" onclick="goScreen('live')"><span class="ct-ic">🎯</span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goRoutineScreen()"><span class="ct-ic">🗓️</span><span>লাইভ রুটিন</span></div>
       <div class="cat-tile" onclick="startDailyQuiz()"><span class="ct-ic">🎁</span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
       <div class="cat-tile" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic">🏛️</span><span>মন্ত্রণালয় অনুযায়ী পরীক্ষা</span></div>
       <div class="cat-tile" onclick="goScreen('model'); setModelMode('subject');"><span class="ct-ic">📘</span><span>বিষয়ভিত্তিক মডেল টেস্ট</span></div>
@@ -1015,7 +1038,31 @@
   <!-- ============ LIVE EXAM SCREEN ============ -->
   <div class="screen" id="screen-live">
     <div class="sec-head" style="margin-top:4px;"><h2>লাইভ পরীক্ষাসমূহ</h2></div>
+    <div class="live-cat-tabs" id="live-cat-tabs">
+      <div class="lct-pill active" data-cat="" onclick="setLiveCategory('')">সব</div>
+      <div class="lct-pill" data-cat="grade-syllabus" onclick="setLiveCategory('grade-syllabus')">📚 গ্রেড সিলেবাস</div>
+      <div class="lct-pill" data-cat="bcs-200" onclick="setLiveCategory('bcs-200')">🏛️ বিসিএস ২০০ দিন</div>
+      <div class="lct-pill" data-cat="subject-wise" onclick="setLiveCategory('subject-wise')">📘 সাবজেক্ট ভিত্তিক</div>
+      <div class="lct-pill" data-cat="topic-wise" onclick="setLiveCategory('topic-wise')">🗂️ টপিকভিত্তিক</div>
+      <div class="lct-pill" data-cat="job-solution" onclick="setLiveCategory('job-solution')">✅ জব সলুশন</div>
+    </div>
     <div id="live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ LIVE ROUTINE SCREEN ============ -->
+  <div class="screen" id="screen-routine">
+    <button class="model-back" onclick="goScreen('home')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2>লাইভ রুটিন</h2></div>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">পরিকল্পিত প্ল্যান অনুযায়ী দিন ধরে ধরে প্রস্তুতি নিন</p>
+    <div id="routine-cat-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ LIVE ROUTINE — DAY LIST SCREEN ============ -->
+  <div class="screen" id="screen-routine-days">
+    <button class="model-back" onclick="goScreen('routine')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2 id="routine-days-title">রুটিন</h2></div>
+    <p id="routine-days-subtitle" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;"></p>
+    <div id="routine-days-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
   <!-- ============ MODEL TEST SCREEN ============ -->
@@ -3341,7 +3388,7 @@
       document.getElementById('stat-total').textContent = toBnDigits(uploadedExams.length);
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
-      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+      renderLiveList();
       renderModelScreen();
       loadCirculars();
       loadHomeTopicChips();
@@ -3377,6 +3424,106 @@
     if(subject) openTopicSubject(subject);
   }
 
+  // ---------- লাইভ পরীক্ষা category tabs ----------
+  let LIVE_CATEGORY_FILTER = '';
+  function setLiveCategory(cat){
+    LIVE_CATEGORY_FILTER = cat;
+    document.querySelectorAll('#live-cat-tabs .lct-pill').forEach(el=>{
+      el.classList.toggle('active', el.dataset.cat === cat);
+    });
+    renderLiveList();
+  }
+  function renderLiveList(){
+    const live = ALL_EXAMS.filter(e => e.type==='live' && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
+    renderList('live-list', live, LIVE_CATEGORY_FILTER ? 'এই ক্যাটাগরিতে এখন কোনো লাইভ পরীক্ষা নেই।' : 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+  }
+
+  // ---------- লাইভ রুটিন (structured day-by-day prep plans) ----------
+  function goRoutineScreen(){
+    goScreen('routine');
+    loadRoutineCategories();
+  }
+
+  async function loadRoutineCategories(){
+    const wrap = document.getElementById('routine-cat-list');
+    wrap.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    try{
+      const categories = await apiGet('/api/routines/public/categories');
+      wrap.innerHTML = categories.map(c => `
+        <div class="group-card" onclick='openRoutineCategory(${JSON.stringify(c.slug)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">${c.icon}</div>
+            <div>
+              <div class="gc-name">${escapeHtml(c.title)}</div>
+              <div class="gc-meta">${escapeHtml(c.subtitle)} · ${c.day_count ? toBnDigits(c.day_count) + 'টি দিন প্রস্তুত' : 'শীঘ্রই আসছে'}</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`).join('');
+    }catch(err){
+      wrap.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
+  }
+
+  let CURRENT_ROUTINE_DAYS = [];
+  async function openRoutineCategory(slug){
+    goScreen('routine-days');
+    const list = document.getElementById('routine-days-list');
+    list.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    try{
+      const data = await apiGetAuth('/api/routines/public/' + slug);
+      document.getElementById('routine-days-title').textContent = data.category.title;
+      document.getElementById('routine-days-subtitle').textContent = data.category.subtitle;
+      CURRENT_ROUTINE_DAYS = data.days;
+      renderRoutineDaysList();
+    }catch(err){
+      list.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
+  }
+
+  function renderRoutineDaysList(){
+    const list = document.getElementById('routine-days-list');
+    if(!CURRENT_ROUTINE_DAYS.length){
+      list.innerHTML = '<div class="empty-note">এই রুটিনের দিন এখনো যোগ করা হয়নি — শীঘ্রই আসছে।</div>';
+      return;
+    }
+    const done = CURRENT_ROUTINE_DAYS.filter(d=>d.completed).length;
+    const pct = Math.round((done / CURRENT_ROUTINE_DAYS.length) * 100);
+    list.innerHTML = `
+      <div class="routine-progress-bar-wrap">
+        <div class="routine-progress-top"><span>${toBnDigits(done)}/${toBnDigits(CURRENT_ROUTINE_DAYS.length)} দিন সম্পন্ন</span><span>${toBnDigits(pct)}%</span></div>
+        <div class="routine-progress-track"><div class="routine-progress-fill" style="width:${pct}%;"></div></div>
+      </div>` +
+      CURRENT_ROUTINE_DAYS.map(d => `
+        <div class="routine-day-card ${d.completed ? 'done' : ''}">
+          <div class="rd-top">
+            <button class="rd-check" onclick="toggleRoutineDay(${d.id})">${d.completed ? '✅' : '⬜'}</button>
+            <div class="rd-title"><b>দিন ${toBnDigits(d.day_number)}:</b> ${escapeHtml(d.title)}</div>
+          </div>
+          ${d.tasks ? `<div class="rd-tasks">${escapeHtml(d.tasks)}</div>` : ''}
+          ${d.exam_id ? `<button class="rd-exam-btn" onclick="openExamFromRoutine(${d.exam_id})">${d.exam_type==='live' ? '🔴' : '📘'} ${escapeHtml(d.exam_title || 'পরীক্ষা শুরু করুন')} →</button>` : ''}
+        </div>`).join('');
+  }
+
+  async function toggleRoutineDay(dayId){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    const day = CURRENT_ROUTINE_DAYS.find(d=>d.id===dayId);
+    if(!day) return;
+    const newState = !day.completed;
+    day.completed = newState; // optimistic update
+    renderRoutineDaysList();
+    try{
+      await apiAuth('/api/routines/progress/' + dayId, 'POST', { completed: newState });
+    }catch(err){
+      day.completed = !newState; // revert on failure
+      renderRoutineDaysList();
+    }
+  }
+
+  function openExamFromRoutine(examId){
+    openNameSheet(examId);
+  }
+
   // Deep-link support: a shared duel link like /?duel=a1b2c3d4 opens straight
   // to the Duel tab with the code pre-filled in the join box. Placed at the
   // end of the script (after every function/state it touches is defined) so
@@ -3402,7 +3549,7 @@
       const live = ALL_EXAMS.filter(e=>e.type==='live');
       const model = ALL_EXAMS.filter(e=>e.type==='model');
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
-      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+      renderLiveList();
       if(document.getElementById('screen-model').classList.contains('active') && MODEL_MODE === 'ministry'){
         renderModelScreen();
       }
