@@ -297,3 +297,27 @@ ALTER TABLE questions ALTER COLUMN subject TYPE VARCHAR(100);
 ALTER TABLE exams ALTER COLUMN subject TYPE VARCHAR(100);
 ALTER TABLE syllabus_topics ALTER COLUMN subject TYPE VARCHAR(100);
 ALTER TABLE duels ALTER COLUMN subject TYPE VARCHAR(100);
+
+-- ===== Feature: টপিকভিত্তিক জব সলুশন — subject card ❤️ + read progress =====
+-- Powers the redesigned subject cards on the টপিকভিত্তিক জব সলুশন home
+-- screen: a logged-in student can ❤️ a subject (subject_likes, shown as a
+-- count on the card) and every question they open/reveal the answer for is
+-- logged in question_reads, so the card's circular progress ring can show
+-- "X/Y প্রশ্ন পড়া হয়েছে". Both are best-effort/opt-in and only apply to
+-- logged-in students — guests still see the aggregate counts, just no
+-- personal ring progress or like state.
+CREATE TABLE IF NOT EXISTS subject_likes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, subject)
+);
+CREATE INDEX IF NOT EXISTS idx_subject_likes_subject ON subject_likes(subject);
+
+CREATE TABLE IF NOT EXISTS question_reads (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  read_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, question_id)
+);
+CREATE INDEX IF NOT EXISTS idx_question_reads_user ON question_reads(user_id);
