@@ -156,18 +156,19 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="quicktext">দ্রুত টেক্সট থেকে যোগ</button>
+    <button class="tab-btn active" data-tab="add">প্রশ্ন যোগ করুন</button>
     <button class="tab-btn" data-tab="bulk">বাল্ক আপলোড</button>
-    <button class="tab-btn" data-tab="add">প্রশ্ন যোগ করুন</button>
+    <button class="tab-btn" data-tab="quicktext">দ্রুত টেক্সট থেকে যোগ</button>
     <button class="tab-btn" data-tab="list">প্রশ্ন তালিকা</button>
     <button class="tab-btn" data-tab="ministries">মন্ত্রণালয়</button>
     <button class="tab-btn" data-tab="exams">পরীক্ষা তৈরি করুন</button>
+    <button class="tab-btn" data-tab="routines">লাইভ রুটিন</button>
     <button class="tab-btn" data-tab="reports">রিপোর্ট</button>
   </div>
 
   <div class="panel-wrap">
 
-    <div class="panel" id="panel-add">
+    <div class="panel active" id="panel-add">
       <h2>নতুন প্রশ্ন যোগ করুন</h2>
       <div class="desc">সব ঘর পূরণ করে জমা দিন।</div>
       <div class="err-box" id="addErr"></div>
@@ -248,7 +249,7 @@
       <div id="syncRepeatedResult" style="margin-top:10px; font-size:13px;"></div>
     </div>
 
-    <div class="panel active" id="panel-quicktext">
+    <div class="panel" id="panel-quicktext">
       <h2>দ্রুত টেক্সট থেকে প্রশ্ন যোগ করুন</h2>
       <div class="desc">নিচের ফরম্যাটে একসাথে অনেকগুলো প্রশ্ন লিখে বা পেস্ট করে দিন — একবারে সব যোগ হয়ে যাবে।</div>
       <div class="grid-2">
@@ -298,7 +299,6 @@
 উত্তর: ক"></textarea>
         <div style="font-size:12px; color:var(--ink-faint); margin-top:6px;">প্রতিটা প্রশ্ন <b>প্রশ্ন:</b> দিয়ে শুরু করুন, তারপর ক) খ) গ) ঘ) (বা A) B) C) D)) দিয়ে অপশন, তারপর <b>উত্তর:</b> এবং ঐচ্ছিকভাবে <b>ব্যাখ্যা:</b>। কোনো একটা প্রশ্নের টপিক উপরের শেয়ার্ড টপিক থেকে আলাদা হলে সেই প্রশ্নের নিচে <b>টপিক:</b> লিখে দিন — এটা শুধু ওই একটা প্রশ্নের জন্য প্রযোজ্য হবে, বাকিদের জন্য উপরের ঘরের মান ব্যবহার হবে। প্রশ্নগুলোর মাঝে একটা ফাঁকা লাইন রাখলে ভালো হয়।</div>
       </div>
-      <button type="button" class="btn btn-ghost" id="qtSampleBtn" style="width:auto; padding-left:22px; padding-right:22px; margin-right:8px;">📋 নমুনা বসিয়ে দিন</button>
       <button type="button" class="btn btn-ghost" id="qtPreviewBtn" style="width:auto; padding-left:22px; padding-right:22px;">প্রিভিউ দেখুন</button>
       <div id="qtPreviewWrap" style="margin-top:16px; display:none;">
         <div id="qtPreviewSummary" style="font-size:13px; margin-bottom:10px;"></div>
@@ -400,6 +400,18 @@
         </div>
 
         <div class="field">
+          <label>রুটিন ক্যাটাগরি (ঐচ্ছিক — এই পরীক্ষা লাইভ রুটিনের কোন ক্যাটাগরিতে দেখাবে)</label>
+          <select id="e_routine_category">
+            <option value="">— কোনো রুটিনের অংশ না —</option>
+            <option value="grade-syllabus">১১-২০ গ্রেড প্রস্তুতির সিলেবাস (৬ মাসে পূর্ণাঙ্গ প্রস্তুতি)</option>
+            <option value="bcs-200">২০০ দিনে বিসিএস প্রস্তুতি</option>
+            <option value="subject-wise">সাবজেক্ট ভিত্তিক রুটিন</option>
+            <option value="topic-wise">টপিকভিত্তিক রুটিন</option>
+            <option value="job-solution">জব সলুশন শেষ করার রুটিন</option>
+          </select>
+        </div>
+
+        <div class="field">
           <label>প্রশ্ন বাছাই করুন</label>
           <div class="filters" style="margin-bottom:8px;">
             <input type="text" id="e_q_subject" placeholder="বিষয় দিয়ে ফিল্টার">
@@ -417,6 +429,48 @@
 
       <h2 style="margin-top:32px;">সব পরীক্ষা</h2>
       <div id="examListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
+    </div>
+
+    <div class="panel" id="panel-routines">
+      <h2>লাইভ রুটিন — দিন সাজান</h2>
+      <div class="desc">প্রতিটা ক্যাটাগরিতে দিনভিত্তিক প্ল্যান তৈরি করুন — শিক্ষার্থীরা "লাইভ রুটিন" থেকে দিন ধরে ধরে অনুসরণ করবে। প্রতিটা দিনে চাইলে একটা পরীক্ষার আইডি জুড়ে দিতে পারেন, তাহলে সেই দিনে ট্যাপ করলে সরাসরি পরীক্ষা শুরু হবে।</div>
+
+      <div class="field">
+        <label>ক্যাটাগরি</label>
+        <select id="rt_category">
+          <option value="grade-syllabus">১১-২০ গ্রেড প্রস্তুতির সিলেবাস (৬ মাসে পূর্ণাঙ্গ প্রস্তুতি)</option>
+          <option value="bcs-200">২০০ দিনে বিসিএস প্রস্তুতি</option>
+          <option value="subject-wise">সাবজেক্ট ভিত্তিক রুটিন</option>
+          <option value="topic-wise">টপিকভিত্তিক রুটিন</option>
+          <option value="job-solution">জব সলুশন শেষ করার রুটিন</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>দিনসমূহ (নিচের ফরম্যাট মেনে লিখুন)</label>
+        <textarea id="rt_text" rows="12" style="font-family:'Space Mono',monospace; font-size:12.5px;" placeholder="দিন: ১
+শিরোনাম: রুটিন পরিচিতি ও বাংলা ব্যাকরণ শুরু
+কাজ: বাংলা ব্যাকরণের সন্ধি অধ্যায় পড়ুন, রিডিং লিস্ট থেকে ১৫টি প্রশ্ন সমাধান করুন
+পরীক্ষা আইডি: 
+
+দিন: ২
+শিরোনাম: ইংরেজি Tense + গণিত ঐকিক নিয়ম
+কাজ: Tense-এর নিয়ম রিভিশন দিন, গণিতে ঐকিক নিয়মের ১০টি অংক করুন
+পরীক্ষা আইডি: 42"></textarea>
+        <div style="font-size:12px; color:var(--ink-faint); margin-top:6px;">প্রতিটা দিন <b>দিন:</b>, <b>শিরোনাম:</b>, <b>কাজ:</b> দিয়ে লিখুন। <b>পরীক্ষা আইডি:</b> ঐচ্ছিক — খালি রাখলে শুধু পড়াশোনার নির্দেশনা দেখাবে, পরীক্ষা লিংক থাকবে না। দুইটা দিনের মাঝে একটা ফাঁকা লাইন রাখুন।</div>
+      </div>
+
+      <button type="button" class="btn btn-ghost" id="rtPreviewBtn" onclick="previewRoutineText()">প্রিভিউ দেখুন</button>
+      <div id="rtPreviewWrap" style="display:none; margin-top:14px;">
+        <div class="desc" id="rtPreviewSummary"></div>
+        <div id="rtPreviewList" style="max-height:280px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--paper); margin-bottom:10px;"></div>
+        <button type="button" class="btn btn-primary" id="rtSubmitBtn" onclick="submitRoutineDays()">সব যোগ করুন</button>
+      </div>
+      <div class="err-box" id="rtErr"></div>
+      <div class="ok-box" id="rtOk"></div>
+
+      <h2 style="margin-top:32px;">এই ক্যাটাগরির দিনসমূহ</h2>
+      <div id="rtListWrap"><div class="empty-state">একটা ক্যাটাগরি নির্বাচন করুন</div></div>
     </div>
 
     <div class="panel" id="panel-reports">
@@ -447,7 +501,6 @@ function showApp(){
   document.getElementById('whoUser').textContent = USERNAME;
   loadMinistries();
   loadQuestions();
-  loadQuickTextMinistries();
 }
 
 async function api(path, opts = {}){
@@ -511,6 +564,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'ministries') loadMinistries();
     if (btn.dataset.tab === 'exams') { loadExamMinistries(); loadExamQuestionPicker(); loadExamsList(); }
     if (btn.dataset.tab === 'quicktext') { loadQuickTextMinistries(); }
+    if (btn.dataset.tab === 'routines') { loadRoutineDaysList(); }
     if (btn.dataset.tab === 'reports') { loadReports(); }
   });
 });
@@ -614,6 +668,7 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
       application_deadline: document.getElementById('e_application_deadline').value || null,
       exam_probable_date: document.getElementById('e_exam_probable_date').value || null,
       circular_url: document.getElementById('e_circular_url').value.trim() || null,
+      routine_category: document.getElementById('e_routine_category').value || null,
       question_ids: Array.from(examSelectedQuestions)
     };
     await api('/api/exams', { method: 'POST', body: JSON.stringify(payload) });
@@ -924,29 +979,6 @@ function parseQuickText(raw){
 
 let QT_PARSED = [];
 
-const QT_SAMPLE_TEXT = `প্রশ্ন: বাংলা বর্ণমালায় স্বরবর্ণ কয়টি?
-ক) ৯টি
-খ) ১০টি
-গ) ১১টি
-ঘ) ১২টি
-উত্তর: গ
-ব্যাখ্যা: বাংলা বর্ণমালায় মোট ১১টি স্বরবর্ণ আছে।
-টপিক: বর্ণমালা
-
-প্রশ্ন: 'দর্পণ' শব্দের সমার্থক শব্দ কোনটি?
-ক) আয়না
-খ) কাচ
-গ) জানালা
-ঘ) ছবি
-উত্তর: ক`;
-
-document.getElementById('qtSampleBtn').addEventListener('click', () => {
-  const box = document.getElementById('qt_text');
-  if (box.value.trim() && !confirm('টেক্সটবক্সে আগে থেকে লেখা আছে। নমুনা বসালে আগের লেখার নিচে যোগ হবে, ঠিক আছে?')) return;
-  box.value = box.value.trim() ? box.value.trim() + '\n\n' + QT_SAMPLE_TEXT : QT_SAMPLE_TEXT;
-  box.focus();
-});
-
 document.getElementById('qtPreviewBtn').addEventListener('click', () => {
   const subject = document.getElementById('qt_subject').value.trim();
   const raw = document.getElementById('qt_text').value;
@@ -1017,6 +1049,123 @@ document.getElementById('qtSubmitBtn').addEventListener('click', async () => {
     btn.disabled = false; btn.textContent = 'সব যোগ করুন';
   }
 });
+
+// ---------- লাইভ রুটিন: bulk day entry (admin) ----------
+function parseRoutineText(raw){
+  const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length);
+  const days = [];
+  const errors = [];
+  blocks.forEach((block, idx) => {
+    const lines = block.split('\n').map(l => l.trim()).filter(l => l.length);
+    let day_number = null, title = '', tasks = '', exam_id = null;
+    lines.forEach(line => {
+      let m;
+      if ((m = line.match(/^দিন\s*[:ঃ]\s*(.*)$/))) { day_number = parseInt(m[1].trim(), 10) || null; return; }
+      if ((m = line.match(/^শিরোনাম\s*[:ঃ]\s*(.*)$/))) { title = m[1].trim(); return; }
+      if ((m = line.match(/^কাজ\s*[:ঃ]\s*(.*)$/))) { tasks = m[1].trim(); return; }
+      if ((m = line.match(/^পরীক্ষা\s*আইডি\s*[:ঃ]\s*(.*)$/))) { exam_id = m[1].trim() ? (parseInt(m[1].trim(), 10) || null) : null; return; }
+    });
+    if (!day_number || !title) {
+      errors.push({ idx: idx + 1, reason: 'দিন নম্বর বা শিরোনাম অনুপস্থিত', raw: block.slice(0, 60) });
+      return;
+    }
+    days.push({ day_number, title, tasks: tasks || null, exam_id });
+  });
+  return { days, errors };
+}
+
+let RT_PARSED = [];
+
+function previewRoutineText(){
+  const raw = document.getElementById('rt_text').value;
+  const wrap = document.getElementById('rtPreviewWrap');
+  const summary = document.getElementById('rtPreviewSummary');
+  const list = document.getElementById('rtPreviewList');
+  if (!raw.trim()) { alert('দিনের তথ্য লিখুন বা পেস্ট করুন'); return; }
+
+  const { days, errors } = parseRoutineText(raw);
+  RT_PARSED = days;
+  wrap.style.display = 'block';
+
+  summary.innerHTML = `<span style="color:var(--success); font-weight:700;">${days.length}টি দিন সঠিকভাবে পাওয়া গেছে</span>` +
+    (errors.length ? ` · <span style="color:var(--wrong); font-weight:700;">${errors.length}টি স্কিপ হয়েছে</span>` : '');
+
+  let html = '';
+  days.forEach(d => {
+    html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;">
+      <b>দিন ${d.day_number}:</b> ${escapeHtml(d.title)}
+      ${d.tasks ? `<div style="color:var(--ink-faint); margin-top:2px;">${escapeHtml(d.tasks)}</div>` : ''}
+      ${d.exam_id ? `<span class="pill">পরীক্ষা আইডি: ${d.exam_id}</span>` : ''}
+    </div>`;
+  });
+  errors.forEach(e => {
+    html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px; color:var(--wrong);">
+      ⚠ ব্লক ${e.idx}: ${e.reason} — "${escapeHtml(e.raw)}..."
+    </div>`;
+  });
+  list.innerHTML = html || '<div class="empty-state">কোনো দিন পাওয়া যায়নি</div>';
+}
+
+async function submitRoutineDays(){
+  if (!RT_PARSED.length) return;
+  const category = document.getElementById('rt_category').value;
+  const errBox = document.getElementById('rtErr');
+  const okBox = document.getElementById('rtOk');
+  errBox.style.display = 'none'; okBox.style.display = 'none';
+  const btn = document.getElementById('rtSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const data = await api('/api/routines/bulk', { method: 'POST', body: JSON.stringify({ category, days: RT_PARSED }) });
+    let msg = `${data.added} টি দিন যোগ হয়েছে।`;
+    if (data.failed) msg += ` ${data.failed} টি ব্যর্থ হয়েছে।`;
+    okBox.textContent = msg;
+    okBox.style.display = 'block';
+    document.getElementById('rt_text').value = '';
+    document.getElementById('rtPreviewWrap').style.display = 'none';
+    RT_PARSED = [];
+    loadRoutineDaysList();
+  } catch(err){
+    errBox.textContent = 'ত্রুটি: ' + err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'সব যোগ করুন';
+  }
+}
+
+async function loadRoutineDaysList(){
+  const category = document.getElementById('rt_category').value;
+  const wrap = document.getElementById('rtListWrap');
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const days = await api('/api/routines/admin/' + category);
+    if (!days.length) { wrap.innerHTML = '<div class="empty-state">এখনো কোনো দিন যোগ হয়নি</div>'; return; }
+    wrap.innerHTML = `<table>
+      <tr><th>দিন</th><th>শিরোনাম</th><th>পরীক্ষা</th><th></th></tr>
+      ${days.map(d => `
+        <tr>
+          <td>${d.day_number}</td>
+          <td class="qtext">${escapeHtml(d.title)}</td>
+          <td>${d.exam_title ? escapeHtml(d.exam_title) : '-'}</td>
+          <td class="row-actions"><button class="btn btn-ghost btn-small danger" onclick="deleteRoutineDay(${d.id})">মুছুন</button></td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">লোড করা যায়নি: ${err.message}</div>`;
+  }
+}
+
+async function deleteRoutineDay(id){
+  if (!confirm('এই দিনটি মুছে ফেলতে চান?')) return;
+  try{
+    await api('/api/routines/' + id, { method: 'DELETE' });
+    loadRoutineDaysList();
+  } catch(err){
+    alert('মুছা যায়নি: ' + err.message);
+  }
+}
+
+document.getElementById('rt_category').addEventListener('change', loadRoutineDaysList);
 
 async function loadQuestions(){
   const wrap = document.getElementById('listWrap');
