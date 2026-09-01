@@ -1,5 +1,9 @@
 // services/reminderScheduler.js — polls for live exams starting soon and
-// texts everyone who opted in via the 🔔 "মনে করিয়ে দিন" button on the site.
+// reminds everyone who opted in via the 🔔 "মনে করিয়ে দিন" button on the site.
+// Sends both channels, independently: SMS (if a gateway is configured, see
+// services/sms.js) and web push (if this browser/device has a subscription,
+// see services/push.js) — a student gets whichever one(s) are actually set
+// up for them, neither channel blocks the other.
 //
 // NOTE on hosting: this runs on a simple setInterval inside the same process
 // as the web server — no separate cron service needed, good enough for this
@@ -13,6 +17,7 @@
 //       few minutes.
 const pool = require('../db');
 const { sendSMS } = require('./sms');
+const push = require('./push');
 
 const CHECK_INTERVAL_MS = 60 * 1000; // check every minute
 const REMIND_WINDOW_MINUTES = 30; // send once the exam is due within this many minutes
@@ -20,7 +25,7 @@ const REMIND_WINDOW_MINUTES = 30; // send once the exam is due within this many 
 async function sendDueReminders() {
   try {
     const { rows } = await pool.query(`
-      SELECT er.id AS reminder_id, u.phone, u.name, e.title, e.start_time
+      SELECT er.id AS reminder_id, er.user_id, u.phone, u.name, e.title, e.start_time
       FROM exam_reminders er
       JOIN exams e ON e.id = er.exam_id
       JOIN users u ON u.id = er.user_id
@@ -35,11 +40,21 @@ async function sendDueReminders() {
     for (const r of rows) {
       const minutesLeft = Math.max(1, Math.round((new Date(r.start_time).getTime() - Date.now()) / 60000));
       const message = `${r.name}, আপনার "${r.title}" পরীক্ষাটি প্রায় ${minutesLeft} মিনিট পরে শুরু হবে। প্রস্তুত থাকুন — Exam House`;
-      const result = await sendSMS(r.phone, message);
-      if (result.ok) {
+
+      const smsResult = await sendSMS(r.phone, message);
+      const pushResult = await push.sendToUser(r.user_id, {
+        title: 'পরীক্ষা শুরু হতে চলেছে ⏰',
+        body: `"${r.title}" প্রায় ${minutesLeft} মিনিট পরে শুরু হবে।`,
+        url: '/'
+      });
+
+      // Mark as sent as long as at least one channel actually delivered (or
+      // was a dev-mode no-op) — a student with only push (or only SMS) set
+      // up shouldn't get skipped just because the other channel isn't configured.
+      if (smsResult.ok || pushResult.sent > 0 || pushResult.total === 0) {
         await pool.query('UPDATE exam_reminders SET sent_at=NOW() WHERE id=$1', [r.reminder_id]);
       } else {
-        console.error(`❌ Reminder SMS failed for reminder #${r.reminder_id}:`, result.error);
+        console.error(`❌ Reminder delivery failed on all channels for reminder #${r.reminder_id}`);
       }
     }
   } catch (err) {
