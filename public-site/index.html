@@ -3828,7 +3828,8 @@
     }
 
     try{
-      const merit = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
+      const meritRes = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
+      const merit = meritRes.leaderboard || [];
       document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
         <div class="merit-item ${m.id===result.id ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(i+1)}</div>
