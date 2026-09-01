@@ -4,6 +4,7 @@ const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const { submitLimiter } = require('../middleware/rateLimit');
 const asyncHandler = require('../utils/asyncHandler');
+const { normalizeSubject } = require('../utils/subjectMap');
 
 // POST /api/results — submitted when a participant finishes an exam.
 // Works for guests (participant_name/phone in body) AND logged-in users
@@ -190,6 +191,7 @@ async function updateStreak(userId) {
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT r.id, r.exam_id, e.title AS exam_title, e.type AS exam_type,
+      e.is_duel, e.is_daily, e.is_practice, e.is_auto_subject, e.is_repeated_bank,
       r.correct_count, r.wrong_count, r.skipped_count, r.score, r.submitted_at
     FROM results r JOIN exams e ON e.id = r.exam_id
     WHERE r.user_id = $1 ORDER BY r.submitted_at DESC
@@ -199,6 +201,11 @@ router.get('/me', requireUser, asyncHandler(async (req, res) => {
 
 // GET /api/results/me/subject-stats — subject-wise accuracy across ALL of this
 // user's submitted exams, so they can see which subjects need more work.
+// Grouped by canonical subject (same mapping as Reading List / Duel / Smart
+// Practice use) instead of the raw `questions.subject` value — otherwise
+// admin-entered variants like "বাংলা" vs "বাংলা (ধ্বনি ও বর্ণ)" show up as
+// separate rows, and stray non-subject values (e.g. a literal "সব") leak
+// through as their own confusing row.
 router.get('/me/subject-stats', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT q.subject,
@@ -212,9 +219,21 @@ router.get('/me/subject-stats', requireUser, asyncHandler(async (req, res) => {
     LEFT JOIN LATERAL (SELECT r.answers->>(eq.question_id::text) AS given) ans ON true
     WHERE r.user_id = $1
     GROUP BY q.subject
-    ORDER BY total DESC
   `, [req.user.id]);
-  res.json(rows);
+
+  const merged = new Map();
+  for (const row of rows) {
+    const canonical = normalizeSubject(row.subject);
+    if (!canonical) continue;
+    const acc = merged.get(canonical) || { subject: canonical, total: 0, correct: 0, wrong: 0, skipped: 0 };
+    acc.total += row.total;
+    acc.correct += row.correct;
+    acc.wrong += row.wrong;
+    acc.skipped += row.skipped;
+    merged.set(canonical, acc);
+  }
+  const result = [...merged.values()].sort((a, b) => b.total - a.total);
+  res.json(result);
 }));
 
 // GET /api/results/me/wrong-questions — every question this user has ever
