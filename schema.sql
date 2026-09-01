@@ -286,3 +286,14 @@ CREATE TABLE IF NOT EXISTS daily_push_log (
   quiz_date DATE PRIMARY KEY,
   sent_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Fix: "value too long for type character varying(30)" — admins increasingly
+-- type longer, more specific subject names (e.g. a GK sub-category like
+-- "সাধারণ জ্ঞান (আন্তর্জাতিক বিষয়াবলি)") which the original 30-character cap
+-- on `subject` couldn't hold, breaking বাল্ক/দ্রুত টেক্সট question uploads.
+-- Widened to 100 everywhere `subject` is stored. ALTER COLUMN ... TYPE is
+-- itself idempotent (re-running it when already VARCHAR(100) is a no-op).
+ALTER TABLE questions ALTER COLUMN subject TYPE VARCHAR(100);
+ALTER TABLE exams ALTER COLUMN subject TYPE VARCHAR(100);
+ALTER TABLE syllabus_topics ALTER COLUMN subject TYPE VARCHAR(100);
+ALTER TABLE duels ALTER COLUMN subject TYPE VARCHAR(100);
