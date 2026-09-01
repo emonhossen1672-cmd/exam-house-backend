@@ -875,7 +875,7 @@
       </div>
       <div class="sm-group">
         <button class="sm-item" onclick="closeSideMenu(); goScreen('history');"><span class="sm-ic">👤</span>প্রোফাইল</button>
-        <button class="sm-item" onclick="closeSideMenu(); goScreen('history');"><span class="sm-ic">📊</span>পারফরম্যান্স স্ট্যাটিসটিক্স</button>
+        <button class="sm-item" onclick="closeSideMenu(); goScreen('perf-stats');"><span class="sm-ic">📊</span>পারফরম্যান্স স্ট্যাটিসটিক্স</button>
         <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">➕</span>রেফারেল<span class="sm-soon">শীঘ্রই</span></button>
         <button class="sm-item" onclick="closeSideMenu(); goScreen('packages');"><span class="sm-ic">📦</span>প্যাকেজসমূহ</button>
         <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">🏪</span>বুক স্টোর<span class="sm-soon">শীঘ্রই</span></button>
@@ -958,7 +958,7 @@
     <div class="cat-grid">
       <div class="cat-tile" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">⭐</span><span>বুকমার্ক</span></div>
       <div class="cat-tile" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-ic">❌</span><span>ভুল প্রশ্ন রিভিশন</span></div>
-      <div class="cat-tile" onclick="goScreen('history')"><span class="ct-ic">📊</span><span>পারফরম্যান্স স্ট্যাটিসটিক্স</span></div>
+      <div class="cat-tile" onclick="goScreen('perf-stats')"><span class="ct-ic">📊</span><span>পারফরম্যান্স স্ট্যাটিসটিক্স</span></div>
       <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">▶️</span><span>ভিডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
       <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">📄</span><span>পিডিএফ সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
       <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔊</span><span>অডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
@@ -978,15 +978,6 @@
     <div id="home-circulars-wrap" style="display:none;">
       <div class="sec-head"><h2>সার্কুলার ক্যালেন্ডার</h2></div>
       <div class="circular-scroll" id="home-circulars-list"><div class="loading-note">লোড হচ্ছে...</div></div>
-    </div>
-
-    <div id="home-perf-widget" style="display:none;">
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>আপনার পারফরম্যান্স</h2><a onclick="goScreen('history')">বিস্তারিত →</a></div>
-      <div id="home-perf-empty" class="empty-note" style="display:none;">একটি পরীক্ষা দিলে এখানে আপনার বিষয়ভিত্তিক ফলাফল দেখাবে।</div>
-      <div id="home-perf-list"></div>
-      <button class="revision-trigger" id="home-revision-trigger-btn" style="display:none;" onclick="openRevision()">
-        🎯 <span id="home-revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
-      </button>
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
@@ -1077,10 +1068,6 @@
         </div>
       </div>
 
-      <button class="revision-trigger" id="revision-trigger-btn" style="display:none;" onclick="openRevision()">
-        🎯 <span id="revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
-      </button>
-
       <button class="revision-trigger" id="bookmark-trigger-btn" style="display:none; background:var(--gold);" onclick="openBookmarks()">
         ⭐ <span id="bookmark-trigger-label">আমার বুকমার্ক</span>
       </button>
@@ -1097,15 +1084,31 @@
         🔔 <span>নোটিফিকেশন সেটিংস</span>
       </button>
 
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
-      <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
-      <div id="subject-stats-list"></div>
+      <button class="revision-trigger" style="background:#3a4a6b;" onclick="goScreen('perf-stats')">
+        📊 <span>পারফরম্যান্স স্ট্যাটিসটিক্স দেখুন</span>
+      </button>
 
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার ফলাফল</h2></div>
-      <div id="profile-trend-chart-wrap" style="display:none; margin-bottom:16px;"></div>
+      <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার পরীক্ষার তালিকা</h2></div>
       <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
       <div id="profile-history-list"></div>
     </div>
+  </div>
+
+  <!-- ============ PERFORMANCE STATISTICS SCREEN ============ -->
+  <div class="screen" id="screen-perf-stats">
+    <button class="model-back" onclick="goScreen('history')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2>পারফরম্যান্স স্ট্যাটিসটিক্স</h2></div>
+
+    <button class="revision-trigger" id="revision-trigger-btn" style="display:none;" onclick="openRevision()">
+      🎯 <span id="revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
+    </button>
+
+    <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
+    <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
+    <div id="subject-stats-list"></div>
+
+    <div class="sec-head" style="margin:22px 0 12px;"><h2>পরীক্ষার প্রবণতা</h2></div>
+    <div id="profile-trend-chart-wrap" style="display:none; margin-bottom:16px;"></div>
   </div>
 
   <!-- ============ PACKAGES SCREEN ============ -->
@@ -1500,10 +1503,8 @@
     document.getElementById('bookmark-trigger-btn').style.display = 'none';
     document.getElementById('auth-guest').style.display = 'block';
     document.getElementById('auth-profile').style.display = 'none';
-    document.getElementById('home-perf-widget').style.display = 'none';
     document.getElementById('home-streak-pill').style.display = 'none';
     document.getElementById('revision-trigger-btn').style.display = 'none';
-    document.getElementById('home-revision-trigger-btn').style.display = 'none';
     showAuthForm('login');
   }
 
@@ -1575,11 +1576,6 @@
       await renderSubjectStats([
         {listId:'subject-stats-list', emptyId:'subject-stats-empty'}
       ]);
-
-      document.getElementById('home-perf-widget').style.display = 'block';
-      await renderSubjectStats([
-        {listId:'home-perf-list', emptyId:'home-perf-empty', limit:2}
-      ], true);
 
       refreshRevisionTrigger();
       refreshBookmarkTrigger();
@@ -1858,9 +1854,9 @@
       WRONG_QUESTIONS_CACHE = await apiGetAuth('/api/results/me/wrong-questions');
       const count = WRONG_QUESTIONS_CACHE.length;
       const label = count ? `ভুল প্রশ্ন থেকে প্র্যাকটিস করুন (${toBnDigits(count)}টি)` : '';
-      ['revision-trigger-btn','home-revision-trigger-btn'].forEach((btnId, idx)=>{
+      ['revision-trigger-btn'].forEach((btnId, idx)=>{
         const btn = document.getElementById(btnId);
-        const labelEl = document.getElementById(idx===0 ? 'revision-trigger-label' : 'home-revision-trigger-label');
+        const labelEl = document.getElementById('revision-trigger-label');
         if(count){ btn.style.display = 'flex'; labelEl.textContent = label; }
         else { btn.style.display = 'none'; }
       });
@@ -1958,6 +1954,7 @@
       document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
     }
     if(name === 'history') renderProfile();
+    if(name === 'perf-stats') renderProfile();
     if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
     window.scrollTo(0,0);
     if(!SUPPRESS_HISTORY_PUSH){
