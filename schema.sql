@@ -256,3 +256,33 @@ UPDATE exams SET subject = 'বিজ্ঞান ও প্রযুক্ত�
 -- data still shows up instead of disappearing.
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS topic VARCHAR(200);
 CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic);
+
+-- ===== Feature: Web Push notifications =====
+-- Browser push (via the Web Push API + VAPID, see services/push.js) — works
+-- even without a paid SMS gateway, so it's the primary channel for the 🔔
+-- live-exam reminder (routes/exams.routes.js) going forward; SMS still fires
+-- too wherever it's configured, the two are independent and best-effort.
+-- One row per subscribed browser/device; a user can have several (phone +
+-- laptop etc.), so this is NOT unique per user, only per endpoint.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT UNIQUE NOT NULL,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+-- Opt-in flag for the daily "আজকের কুইজ" push blast (services/dailyQuizPush.js).
+-- Separate from the per-exam 🔔 reminder above — that one is per-exam,
+-- this one is a single always-on daily nudge.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS push_daily_quiz_opt_in BOOLEAN NOT NULL DEFAULT false;
+
+-- Guards against sending the daily quiz push more than once on the same day
+-- (services/dailyQuizPush.js checks/inserts this before blasting). One row
+-- per calendar date it was actually sent on.
+CREATE TABLE IF NOT EXISTS daily_push_log (
+  quiz_date DATE PRIMARY KEY,
+  sent_at TIMESTAMP DEFAULT NOW()
+);
