@@ -338,8 +338,11 @@ router.get('/me/achievements', requireUser, asyncHandler(async (req, res) => {
 // GET /api/results/leaderboard/overall — site-wide ranking across ALL exams,
 // so users can see how they compare beyond a single exam. Ranked by total
 // score summed across every exam they've taken (rewards both accuracy and
-// consistency). Public — no login required to view.
-router.get('/leaderboard/overall', asyncHandler(async (req, res) => {
+// consistency). Public — no login required to view. If the caller is a
+// logged-in user, also returns their own rank/score even when it falls
+// outside the returned page, plus the score of whoever sits one rank above
+// them, so the client can show a "X marks to climb one rank" nudge.
+router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
   const { rows } = await pool.query(`
     SELECT
@@ -356,7 +359,35 @@ router.get('/leaderboard/overall', asyncHandler(async (req, res) => {
     ORDER BY total_score DESC
     LIMIT $1
   `, [limit]);
-  res.json(rows);
+
+  let me = null;
+  if (req.user) {
+    const already = rows.find(r => r.user_id === req.user.id);
+    if (already) {
+      me = already;
+    } else {
+      const meRes = await pool.query(`
+        WITH totals AS (
+          SELECT
+            u.id AS user_id, u.name,
+            COUNT(r.id)::int AS exams_taken,
+            SUM(r.score)::numeric(10,2) AS total_score,
+            ROUND(AVG(r.score)::numeric, 2) AS avg_score,
+            SUM(r.correct_count)::int AS total_correct,
+            RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank
+          FROM results r
+          JOIN users u ON u.id = r.user_id
+          WHERE r.user_id IS NOT NULL
+          GROUP BY u.id, u.name
+        )
+        SELECT t.*, (SELECT MIN(total_score) FROM totals WHERE rank = t.rank - 1) AS next_rank_score
+        FROM totals t WHERE t.user_id = $1
+      `, [req.user.id]);
+      if (meRes.rows.length) me = meRes.rows[0];
+    }
+  }
+
+  res.json({ leaderboard: rows, me });
 }));
 
 // GET /api/results/exam/:examId — merit list for ONE exam, public. Ties share
