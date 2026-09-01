@@ -448,6 +448,11 @@
   .ph-item .title{font-size:13.5px; color:var(--ink); font-weight:600;}
   .ph-item .score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700; flex-shrink:0;}
   .ph-item .meta{font-size:11px; color:var(--ink-faint); margin-top:5px;}
+  .ph-hint{font-size:11px; color:var(--ink-faint); margin-bottom:8px;}
+  .ph-more-btn{
+    width:100%; background:var(--paper-deep); border:1px solid var(--line); color:var(--ink-soft);
+    border-radius:12px; padding:11px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';
+  }
 
   .subj-stat{
     background:var(--card); border:1px solid var(--line); border-radius:13px;
@@ -1329,19 +1334,9 @@
       renderTrendChart(history);
       document.getElementById('profile-stat-exams').textContent = toBnDigits(history.length);
       document.getElementById('profile-stat-correct').textContent = toBnDigits(history.reduce((sum, h) => sum + h.correct_count, 0));
-      const empty = document.getElementById('profile-history-empty');
-      const list = document.getElementById('profile-history-list');
-      if(!history.length){ empty.style.display='block'; list.innerHTML=''; }
-      else{
-        empty.style.display='none';
-        list.innerHTML = history.map(h=>{
-          const total = h.correct_count + h.wrong_count + h.skipped_count;
-          return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
-            <div class="top"><span class="title">${escapeHtml(h.exam_title)}</span><span class="score">${h.score}%</span></div>
-            <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')} · উত্তরপত্র দেখতে চাপুন</div>
-          </div>`;
-        }).join('');
-      }
+      HISTORY_FULL_CACHE = history;
+      HISTORY_SHOWN_COUNT = HISTORY_PAGE_SIZE;
+      renderHistoryList();
 
       await renderSubjectStats([
         {listId:'subject-stats-list', emptyId:'subject-stats-empty'}
@@ -1359,6 +1354,47 @@
       // token expired/invalid — log out silently
       doUserLogout();
     }
+  }
+
+  // ---------- Result history list: type icon + colour-coded score + "আরও দেখুন" paging ----------
+  // Kept separate from renderProfile so "আরও দেখুন" can re-render without refetching.
+  let HISTORY_FULL_CACHE = [];
+  let HISTORY_SHOWN_COUNT = 0;
+  const HISTORY_PAGE_SIZE = 6;
+
+  function historyTypeInfo(h){
+    if(h.is_duel) return { icon:'⚔️', label:'ডুয়েল চ্যালেঞ্জ' };
+    if(h.is_daily) return { icon:'🎯', label:'আজকের কুইজ' };
+    if(h.is_practice) return { icon:'📖', label:'রিডিং/স্মার্ট প্র্যাকটিস' };
+    if(h.is_auto_subject || h.is_repeated_bank) return { icon:'📘', label:'বিষয়ভিত্তিক মডেল টেস্ট' };
+    if(h.exam_type === 'live') return { icon:'🔴', label:'লাইভ পরীক্ষা' };
+    return { icon:'📘', label:'মডেল টেস্ট' };
+  }
+
+  function renderHistoryList(){
+    const empty = document.getElementById('profile-history-empty');
+    const list = document.getElementById('profile-history-list');
+    const history = HISTORY_FULL_CACHE;
+    if(!history.length){ empty.style.display='block'; list.innerHTML=''; return; }
+    empty.style.display='none';
+
+    const shown = history.slice(0, HISTORY_SHOWN_COUNT);
+    const cards = shown.map(h=>{
+      const total = h.correct_count + h.wrong_count + h.skipped_count;
+      const pct = parseFloat(h.score);
+      const scoreColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
+      const type = historyTypeInfo(h);
+      return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
+        <div class="top"><span class="title">${type.icon} ${escapeHtml(h.exam_title)}</span><span class="score" style="color:${scoreColor};">${h.score}%</span></div>
+        <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${type.label} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')}</div>
+      </div>`;
+    }).join('');
+
+    const moreBtn = history.length > HISTORY_SHOWN_COUNT
+      ? `<button class="ph-more-btn" onclick="HISTORY_SHOWN_COUNT += HISTORY_PAGE_SIZE; renderHistoryList();">আরও ${toBnDigits(Math.min(HISTORY_PAGE_SIZE, history.length - HISTORY_SHOWN_COUNT))}টি দেখুন</button>`
+      : '';
+
+    list.innerHTML = '<div class="ph-hint">যেকোনো ফলাফলে চাপলে উত্তরপত্র দেখা যাবে</div>' + cards + moreBtn;
   }
 
   // ---------- Bookmarks (save a question for later revision) ----------
@@ -1619,20 +1655,23 @@
   async function renderSubjectStats(targets, useCache){
     try{
       if(!useCache || !SUBJ_STATS_CACHE) SUBJ_STATS_CACHE = await apiGetAuth('/api/results/me/subject-stats');
-      const subjStats = SUBJ_STATS_CACHE;
+      // Weakest subject first — this is the "where should I focus" view, so
+      // the subject needing the most work should be the first thing seen.
+      const withPct = SUBJ_STATS_CACHE.map(s => {
+        const answered = s.correct + s.wrong;
+        return { ...s, pct: answered ? Math.round((s.correct/answered)*100) : 0 };
+      }).sort((a, b) => a.pct - b.pct);
       targets.forEach(t=>{
         const sEmpty = document.getElementById(t.emptyId);
         const sList = document.getElementById(t.listId);
-        const rows = t.limit ? subjStats.slice(0, t.limit) : subjStats;
+        const rows = t.limit ? withPct.slice(0, t.limit) : withPct;
         if(!rows.length){ sEmpty.style.display='block'; sList.innerHTML=''; return; }
         sEmpty.style.display='none';
         sList.innerHTML = rows.map(s=>{
-          const answered = s.correct + s.wrong;
-          const pct = answered ? Math.round((s.correct/answered)*100) : 0;
-          const barColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
+          const barColor = s.pct>=70 ? 'var(--success)' : (s.pct>=40 ? 'var(--gold)' : 'var(--wrong)');
           return `<div class="subj-stat">
-            <div class="subj-stat-top"><span>${s.subject}</span><span>${toBnDigits(pct)}% সঠিক</span></div>
-            <div class="subj-stat-bar"><div class="subj-stat-fill" style="width:${pct}%; background:${barColor};"></div></div>
+            <div class="subj-stat-top"><span>${s.subject}</span><span style="color:${barColor};">${toBnDigits(s.pct)}% সঠিক</span></div>
+            <div class="subj-stat-bar"><div class="subj-stat-fill" style="width:${s.pct}%; background:${barColor};"></div></div>
             <div class="subj-stat-meta">মোট ${toBnDigits(s.total)}টি প্রশ্ন · সঠিক ${toBnDigits(s.correct)} · ভুল ${toBnDigits(s.wrong)} · বাদ ${toBnDigits(s.skipped)}</div>
           </div>`;
         }).join('');
