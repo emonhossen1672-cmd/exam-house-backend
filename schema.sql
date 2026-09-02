@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   id SERIAL PRIMARY KEY,
   phone VARCHAR(30) NOT NULL,
   code_hash TEXT NOT NULL,
-  purpose VARCHAR(20) NOT NULL DEFAULT 'register', -- register | reset_password
+  purpose VARCHAR(20) NOT NULL DEFAULT 'register', -- register | reset_password | login
   attempts INTEGER NOT NULL DEFAULT 0,
   expires_at TIMESTAMP NOT NULL,
   verified_at TIMESTAMP,
@@ -131,6 +131,19 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_otp_phone_purpose ON otp_codes(phone, purpose, created_at DESC);
+
+-- ===== Feature: OTP login + Google sign-in =====
+-- OTP login re-uses otp_codes with purpose='login' (no schema change needed there).
+-- Google sign-in accounts have no password and, at signup time, no phone number yet —
+-- both columns are relaxed to nullable. A partial unique index (rather than a plain
+-- UNIQUE column) is used for phone/google_id so multiple NULLs are allowed without
+-- surprises on databases where that behavior might differ.
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+ALTER TABLE users ALTER COLUMN phone DROP NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(64);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(150);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL;
 
 -- ===== Feature: Subject-wise practice mode =====
 -- Marks exams that were auto-generated on-demand by practice mode (as opposed
@@ -256,3 +269,100 @@ UPDATE exams SET subject = 'বিজ্ঞান ও প্রযুক্ত�
 -- data still shows up instead of disappearing.
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS topic VARCHAR(200);
 CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic);
+
+-- ===== Feature: Web Push notifications =====
+-- Browser push (via the Web Push API + VAPID, see services/push.js) — works
+-- even without a paid SMS gateway, so it's the primary channel for the 🔔
+-- live-exam reminder (routes/exams.routes.js) going forward; SMS still fires
+-- too wherever it's configured, the two are independent and best-effort.
+-- One row per subscribed browser/device; a user can have several (phone +
+-- laptop etc.), so this is NOT unique per user, only per endpoint.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT UNIQUE NOT NULL,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+-- Opt-in flag for the daily "আজকের কুইজ" push blast (services/dailyQuizPush.js).
+-- Separate from the per-exam 🔔 reminder above — that one is per-exam,
+-- this one is a single always-on daily nudge.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS push_daily_quiz_opt_in BOOLEAN NOT NULL DEFAULT false;
+
+-- Guards against sending the daily quiz push more than once on the same day
+-- (services/dailyQuizPush.js checks/inserts this before blasting). One row
+-- per calendar date it was actually sent on.
+CREATE TABLE IF NOT EXISTS daily_push_log (
+  quiz_date DATE PRIMARY KEY,
+  sent_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Fix: "value too long for type character varying(30)" — admins increasingly
+-- type longer, more specific subject names (e.g. a GK sub-category like
+-- "সাধারণ জ্ঞান (আন্তর্জাতিক বিষয়াবলি)") which the original 30-character cap
+-- on `subject` couldn't hold, breaking বাল্ক/দ্রুত টেক্সট question uploads.
+-- Widened to 100 everywhere `subject` is stored. ALTER COLUMN ... TYPE is
+-- itself idempotent (re-running it when already VARCHAR(100) is a no-op).
+ALTER TABLE questions ALTER COLUMN subject TYPE VARCHAR(100);
+ALTER TABLE exams ALTER COLUMN subject TYPE VARCHAR(100);
+ALTER TABLE syllabus_topics ALTER COLUMN subject TYPE VARCHAR(100);
+ALTER TABLE duels ALTER COLUMN subject TYPE VARCHAR(100);
+
+-- ===== Feature: টপিকভিত্তিক জব সলুশন — subject card ❤️ + read progress =====
+-- Powers the redesigned subject cards on the টপিকভিত্তিক জব সলুশন home
+-- screen: a logged-in student can ❤️ a subject (subject_likes, shown as a
+-- count on the card) and every question they open/reveal the answer for is
+-- logged in question_reads, so the card's circular progress ring can show
+-- "X/Y প্রশ্ন পড়া হয়েছে". Both are best-effort/opt-in and only apply to
+-- logged-in students — guests still see the aggregate counts, just no
+-- personal ring progress or like state.
+CREATE TABLE IF NOT EXISTS subject_likes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, subject)
+);
+CREATE INDEX IF NOT EXISTS idx_subject_likes_subject ON subject_likes(subject);
+
+CREATE TABLE IF NOT EXISTS question_reads (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  read_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, question_id)
+);
+CREATE INDEX IF NOT EXISTS idx_question_reads_user ON question_reads(user_id);
+
+-- ===== Feature: লাইভ রুটিন (structured day-by-day exam prep plans) =====
+-- Five fixed plan categories (kept as a plain string, not a lookup table, to
+-- match the syllabus_topics convention above): grade-syllabus, bcs-200,
+-- subject-wise, topic-wise, job-solution. Each category is just a flat,
+-- ordered list of days — one row per day — so admin content entry can reuse
+-- the same "paste a block of text" bulk pattern already used for questions.
+-- A day can optionally point at a live/model exam (exam_id) so tapping that
+-- day's card can jump straight into taking that exam.
+CREATE TABLE IF NOT EXISTS routine_days (
+  id SERIAL PRIMARY KEY,
+  category VARCHAR(40) NOT NULL,
+  day_number INTEGER NOT NULL,
+  title VARCHAR(250) NOT NULL,
+  tasks TEXT,
+  exam_id INTEGER REFERENCES exams(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_routine_days_category ON routine_days(category, day_number);
+
+CREATE TABLE IF NOT EXISTS user_routine_progress (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  routine_day_id INTEGER NOT NULL REFERENCES routine_days(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, routine_day_id)
+);
+
+-- লাইভ পরীক্ষা tagged into the same 5 categories, so the লাইভ পরীক্ষা screen
+-- can offer the identical category tabs as লাইভ রুটিন — an exam created for
+-- e.g. "২০০ দিনে বিসিএস প্রস্তুতি" shows up under that tab there too.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS routine_category VARCHAR(40);
+CREATE INDEX IF NOT EXISTS idx_exams_routine_category ON exams(routine_category);
