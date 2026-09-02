@@ -27,4 +27,12 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = required('ADMIN_PASSWORD');
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-module.exports = { JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION };
+// Optional — "Sign in with Google" only works once this is set (Google Cloud
+// Console → APIs & Services → Credentials → OAuth client ID → Web application).
+// Left optional (not `required()`) so the server still starts for sites that
+// don't want Google sign-in; the /api/auth/google route just returns a clear
+// error until it's configured. The same value must also be pasted into
+// public-site/index.html (GOOGLE_CLIENT_ID near the top of the <script>).
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+
+module.exports = { JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID };
