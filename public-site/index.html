@@ -877,18 +877,19 @@
   .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .cat-tile{
     position:relative; display:flex; align-items:center; gap:10px;
-    background:var(--card); border:1px solid var(--line); border-radius:10px;
-    padding:12px 11px; font-size:12.5px; font-weight:600; color:var(--ink);
+    background:var(--t-bg,var(--card)); border:1px solid var(--t-bd,var(--line)); border-radius:10px;
+    padding:12px 11px; font-size:12.5px; font-weight:600; color:var(--t-fg,var(--ink));
     cursor:pointer; min-height:48px;
   }
-  .cat-tile:active{background:var(--paper-deep);}
+  .cat-tile:active{filter:brightness(0.97);}
   .cat-tile .ct-ic{
     width:32px; height:32px; border-radius:8px; flex-shrink:0;
-    background:var(--paper-deep); color:var(--navy-deep);
+    background:var(--t-bd,var(--paper-deep)); color:var(--t-fg,var(--navy-deep));
     display:flex; align-items:center; justify-content:center;
   }
   .cat-tile .ct-ic .ic{width:16px; height:16px;}
-  .cat-tile .ct-badge{position:absolute; top:8px; right:8px; font-size:8.5px; background:var(--paper-deep); color:var(--ink-faint); padding:1px 6px; border-radius:20px; font-weight:700;}
+  .cat-tile .ct-badge{position:absolute; top:8px; right:8px; font-size:8.5px; background:rgba(255,255,255,0.75); color:var(--t-fg,var(--ink-faint)); padding:1px 6px; border-radius:20px; font-weight:700;}
+  .cat-tile .ct-emoji{position:absolute; top:6px; left:6px; font-size:13px; line-height:1;}
 
 
   /* ---------- Packages screen ---------- */
@@ -1044,30 +1045,29 @@
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" onclick="goScreen('live')"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
-      <div class="cat-tile" onclick="goRoutineScreen()"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
-      <div class="cat-tile" onclick="startDailyQuiz()"><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
-      <div class="cat-tile" onclick="openLeaderboard()" style="grid-column:1/2;"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>র‍্যাংকিং</span></div>
+      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="goScreen('live')"><span class="ct-emoji">🎯</span><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="goRoutineScreen()"><span class="ct-emoji">📅</span><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
+      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="startDailyQuiz()"><span class="ct-emoji">🎁</span><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-emoji">⚔️</span><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
+      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="goScreen('history')"><span class="ct-emoji">✅</span><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>সেন্ট্রাল রেজাল্ট</span></div>
+      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
     </div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পড়াশোনা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
-      <div class="cat-tile" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>১১-২০ জব সলুশন চর্চা</span></div>
-      <div class="cat-tile" onclick="goHomeTopicSolution()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('practice');" style="grid-column:1/2;"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
+      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">⭐</span><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
+      <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-emoji">❌</span><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
+      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">🏛️</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>১১-২০ জব সলুশন চর্চা</span></div>
+      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
+      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12; grid-column:1/2;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
     </div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>প্রিমিয়াম বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
-      <div class="cat-tile" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
-      <div class="cat-tile" onclick="goScreen('history')"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>সেন্ট্রাল রেজাল্ট</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
+      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-emoji">📂</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
+      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">❤️</span><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
+      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🔍</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
+      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">💡</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
     </div>
 
     <div id="home-circulars-wrap" style="display:none;">
