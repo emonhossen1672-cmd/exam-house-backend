@@ -1052,7 +1052,7 @@
       <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
       <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openCategoryHub('grade-syllabus','৯ম-২০তম গ্রেডের প্রস্তুতি')"><span class="ct-emoji">🎓</span><span class="ct-ic"><svg class="ic"><use href="#i-chart"/></svg></span><span>৯ম-২০তম গ্রেডের প্রস্তুতি</span></div>
       <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
-      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="goScreen('model'); setModelMode('subject');"><span class="ct-emoji">📚</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>সাবজেক্ট কেয়ার</span></div>
+      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="openSubjectPrepList()"><span class="ct-emoji">📚</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>সাবজেক্ট অনুযায়ী প্রস্তুতি</span></div>
       <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📜</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>৫১তম বিসিএস প্রস্তুতি</span></div>
       <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🌱</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>নতুনদের বিসিএস প্রস্তুতি</span></div>
       <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📝</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>প্রিলি ও লিখিত সমন্বিত প্রস্তুতি</span></div>
@@ -1113,6 +1113,44 @@
       <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>Syllabus</span></div>
       <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openCatMeritList()"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>Merit List</span></div>
       <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E; grid-column:1/3;" onclick="openCatWrongQuestions()"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>Wrong &amp; Unanswered</span></div>
+    </div>
+  </div>
+
+  <!-- ============ SUBJECT-WISE PREP: SUBJECT LIST SCREEN ============ -->
+  <div class="screen" id="screen-subject-prep">
+    <button class="model-back" onclick="goScreen('home')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2>সাবজেক্ট অনুযায়ী প্রস্তুতি</h2></div>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">যে বিষয়ে প্রস্তুতি নিতে চান সেটি বেছে নিন</p>
+    <div id="subject-prep-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ SUBJECT-WISE PREP: SUBJECT HUB SCREEN (e.g. Math Master) ============ -->
+  <div class="screen" id="screen-subject-hub">
+    <button class="model-back" onclick="goScreen('subject-prep')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2 id="subject-hub-title">বিষয়</h2></div>
+
+    <div class="profile-stats-strip" id="subject-hub-stats-strip" style="text-align:center; margin-bottom:10px;">
+      <div><b id="subj-stat-attended">০</b><span>Exam Attended</span></div>
+      <div><b id="subj-stat-passed">০</b><span>Exam Passed</span></div>
+      <div><b id="subj-stat-faced">০</b><span>Question Faced</span></div>
+      <div><b id="subj-stat-correct">০</b><span>Answers Correct</span></div>
+    </div>
+    <button class="revision-trigger" style="background:var(--seal);" onclick="openSubjMeritList()">📊 <span>See Performance Report</span></button>
+
+    <div class="sec-head" style="margin:22px 0 10px;"><h2>Today's Activities</h2></div>
+    <div id="subject-hub-today"><div class="loading-note">লোড হচ্ছে...</div></div>
+
+    <div class="sec-head" style="margin:22px 0 10px;"><h2>দ্রুত অ্যাক্সেস</h2></div>
+    <div class="cat-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openRoutineCategory('subject-wise')"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
+      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="openSubjResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
+      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="openSubjArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
+      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="openSubjFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
+      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>Syllabus</span></div>
+      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openSubjMeritList()"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>Merit List</span></div>
+      <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="openSubjWrongQuestions()"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>Wrong &amp; Unans...</span></div>
+      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-play"/></svg></span><span>Videos</span></div>
+      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>PDFs</span></div>
     </div>
   </div>
 
@@ -1983,21 +2021,23 @@
     }catch(e){ alert('রিপোর্ট পাঠানো যায়নি: ' + e.message); }
   }
 
-  function openBookmarks(category){
+  function openBookmarks(category, subject){
     CURRENT_BOOKMARK_CATEGORY = category || null;
-    document.getElementById('bookmark-overlay-title').textContent = category ? 'ফেভারিট প্রশ্ন' : 'আমার বুকমার্ক করা প্রশ্ন';
+    CURRENT_BOOKMARK_SUBJECT = subject || null;
+    document.getElementById('bookmark-overlay-title').textContent = subject ? (subject + ' — ফেভারিট') : (category ? 'ফেভারিট প্রশ্ন' : 'আমার বুকমার্ক করা প্রশ্ন');
     document.getElementById('bookmark-overlay').classList.add('active');
-    loadBookmarksList(category);
+    loadBookmarksList(category, subject);
   }
 
-  async function loadBookmarksList(category){
+  async function loadBookmarksList(category, subject){
     const body = document.getElementById('bookmark-body');
     body.innerHTML = '<p style="padding:20px 18px; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
     try{
-      const list = await apiGetAuth('/api/bookmarks' + (category ? ('?category=' + encodeURIComponent(category)) : ''));
+      const qs = category ? ('?category=' + encodeURIComponent(category)) : (subject ? ('?subject=' + encodeURIComponent(subject)) : '');
+      const list = await apiGetAuth('/api/bookmarks' + qs);
       if(!list.length){
-        body.innerHTML = category
-          ? '<p style="padding:20px 18px; color:var(--ink-faint,#888);">এই ক্যাটাগরির কোনো প্রশ্ন এখনো বুকমার্ক করা হয়নি।</p>'
+        body.innerHTML = (category || subject)
+          ? '<p style="padding:20px 18px; color:var(--ink-faint,#888);">এখানে এখনো কোনো প্রশ্ন বুকমার্ক করা হয়নি।</p>'
           : '<p style="padding:20px 18px; color:var(--ink-faint,#888);">এখনো কোনো প্রশ্ন বুকমার্ক করা হয়নি। পরীক্ষা দেওয়ার সময় ⭐ আইকনে চেপে প্রশ্ন বুকমার্ক করতে পারবেন।</p>';
         return;
       }
@@ -2028,32 +2068,34 @@
     try{
       await apiAuth('/api/bookmarks/'+qid, 'DELETE');
       BOOKMARK_IDS.delete(qid);
-      loadBookmarksList(CURRENT_BOOKMARK_CATEGORY);
+      loadBookmarksList(CURRENT_BOOKMARK_CATEGORY, CURRENT_BOOKMARK_SUBJECT);
       refreshBookmarkTrigger();
     }catch(e){ alert('সরানো যায়নি: ' + e.message); }
   }
   let CURRENT_BOOKMARK_CATEGORY = null;
+  let CURRENT_BOOKMARK_SUBJECT = null;
 
   function closeBookmarks(){
     document.getElementById('bookmark-overlay').classList.remove('active');
   }
 
   // ---------- Overall (site-wide) leaderboard ----------
-  function openLeaderboard(category){
-    document.getElementById('leaderboard-overlay-title').textContent = category ? 'মেধা তালিকা' : 'সার্বিক র‍্যাংকিং';
+  function openLeaderboard(category, subject){
+    document.getElementById('leaderboard-overlay-title').textContent = subject ? (subject + ' — মেধা তালিকা') : (category ? 'মেধা তালিকা' : 'সার্বিক র‍্যাংকিং');
     document.getElementById('leaderboard-overlay').classList.add('active');
-    loadOverallLeaderboard(category);
+    loadOverallLeaderboard(category, subject);
   }
 
   function lbInitial(name){
     return (name || '?').trim().charAt(0) || '?';
   }
 
-  async function loadOverallLeaderboard(category){
+  async function loadOverallLeaderboard(category, subject){
     const body = document.getElementById('leaderboard-body');
     body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
     try{
-      const data = await apiGetAuth('/api/results/leaderboard/overall' + (category ? ('?category=' + encodeURIComponent(category)) : ''));
+      const qs = category ? ('?category=' + encodeURIComponent(category)) : (subject ? ('?subject=' + encodeURIComponent(subject)) : '');
+      const data = await apiGetAuth('/api/results/leaderboard/overall' + qs);
       const rows = data.leaderboard || [];
       const me = data.me || null;
       if(!rows.length){
@@ -4321,6 +4363,166 @@
       const list = await apiGetAuth('/api/results/me/wrong-questions?category=' + encodeURIComponent(CURRENT_CAT_SLUG));
       if(!list.length){
         document.getElementById('revision-body').innerHTML = '<p style="padding:20px 18px; color:var(--ink-faint,#888);">এই ক্যাটাগরিতে এখনো কোনো ভুল উত্তর নেই।</p>';
+        return;
+      }
+      renderRevisionBody(list);
+    }catch(e){
+      document.getElementById('revision-body').innerHTML = '<p style="padding:20px 18px; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
+  // ---------- সাবজেক্ট অনুযায়ী প্রস্তুতি (subject-wise prep) ----------
+  // Same idea as the category hub above, but scoped by the exam's raw
+  // `subject` value instead of routine_category — one hub page per admin-
+  // named subject (e.g. "Math Master", "GKPedia - বাংলাদেশ বিষয়াবলি"),
+  // reusing the same overlay elements the category hub already set up
+  // (cat-result-overlay / cat-archive-overlay / bookmark-overlay /
+  // leaderboard-overlay / revision-overlay) since only one can be open
+  // at a time anyway.
+  let CURRENT_SUBJECT = '';
+
+  function openSubjectPrepList(){
+    goScreen('subject-prep');
+    loadSubjectPrepList();
+  }
+
+  async function loadSubjectPrepList(){
+    const wrap = document.getElementById('subject-prep-list');
+    wrap.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    try{
+      const subjects = await apiGet('/api/exams/public/subject-list');
+      if(!subjects.length){
+        wrap.innerHTML = '<div class="empty-note">এখনো কোনো বিষয় যুক্ত হয়নি।</div>';
+        return;
+      }
+      wrap.innerHTML = subjects.map(s => `
+        <div class="group-card" onclick='openSubjectHub(${JSON.stringify(s.subject)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">📘</div>
+            <div>
+              <div class="gc-name">${escapeHtml(s.subject)}</div>
+              <div class="gc-meta">${toBnDigits(s.exam_count)}টি পরীক্ষা</div>
+            </div>
+          </div>
+          ${s.is_live ? '<span class="tag live" style="margin-right:6px;">Live</span>' : ''}
+          <div class="gc-arrow">›</div>
+        </div>`).join('');
+    }catch(err){
+      wrap.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
+  }
+
+  function openSubjectHub(subject){
+    CURRENT_SUBJECT = subject;
+    document.getElementById('subject-hub-title').textContent = subject;
+    goScreen('subject-hub');
+    loadSubjectHub();
+  }
+
+  async function loadSubjectHub(){
+    renderSubjTodayCard();
+
+    const statIds = ['subj-stat-attended','subj-stat-passed','subj-stat-faced','subj-stat-correct'];
+    if(!USER_TOKEN){
+      statIds.forEach(id => document.getElementById(id).textContent = '—');
+      return;
+    }
+    statIds.forEach(id => document.getElementById(id).textContent = '০');
+    try{
+      const s = await apiGetAuth('/api/results/me/category-stats?subject=' + encodeURIComponent(CURRENT_SUBJECT));
+      document.getElementById('subj-stat-attended').textContent = toBnDigits(s.exams_attended);
+      document.getElementById('subj-stat-passed').textContent = toBnDigits(s.exams_passed);
+      document.getElementById('subj-stat-faced').textContent = toBnDigits(s.questions_faced);
+      document.getElementById('subj-stat-correct').textContent = toBnDigits(s.answers_correct);
+    }catch(err){ /* stats just stay at ০ */ }
+  }
+
+  function pickSubjectTodayExam(){
+    const subjExams = ALL_EXAMS.filter(e => e.subject === CURRENT_SUBJECT);
+    const now = Date.now();
+    const ongoing = subjExams.find(e => e.type === 'live' && examStatus(e).live);
+    if(ongoing) return ongoing;
+    const upcoming = subjExams
+      .filter(e => e.type === 'live' && e.start_time && new Date(e.start_time).getTime() > now)
+      .sort((a,b) => new Date(a.start_time) - new Date(b.start_time))[0];
+    if(upcoming) return upcoming;
+    return subjExams.find(e => e.type === 'model') || subjExams[0] || null;
+  }
+
+  function renderSubjTodayCard(){
+    const wrap = document.getElementById('subject-hub-today');
+    const exam = pickSubjectTodayExam();
+    if(!exam){
+      wrap.innerHTML = '<div class="empty-note">এই বিষয়ে এখনো কোনো পরীক্ষা যোগ করা হয়নি।</div>';
+      return;
+    }
+    wrap.innerHTML = ticketHtml(exam);
+  }
+
+  // ---- Result ----
+  function openSubjResults(){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    document.getElementById('cat-result-overlay-title').textContent = CURRENT_SUBJECT + ' — ফলাফল';
+    document.getElementById('cat-result-overlay').classList.add('active');
+    loadSubjResults();
+  }
+  async function loadSubjResults(){
+    const body = document.getElementById('cat-result-body');
+    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const history = await apiGetAuth('/api/results/me?subject=' + encodeURIComponent(CURRENT_SUBJECT));
+      if(!history.length){
+        body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">এই বিষয়ে এখনো কোনো পরীক্ষা দেননি।</p>';
+        return;
+      }
+      body.innerHTML = '<div class="ph-hint">যেকোনো ফলাফলে চাপলে উত্তরপত্র দেখা যাবে</div>' + history.map(h=>{
+        const total = h.correct_count + h.wrong_count + h.skipped_count;
+        const pct = parseFloat(h.score);
+        const scoreColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
+        return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
+          <div class="top"><span class="title">${escapeHtml(h.exam_title)}</span><span class="score" style="color:${scoreColor};">${h.score}%</span></div>
+          <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')}</div>
+        </div>`;
+      }).join('');
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
+  // ---- Archive ----
+  function openSubjArchive(){
+    document.getElementById('cat-archive-overlay-title').textContent = CURRENT_SUBJECT + ' — আর্কাইভ';
+    document.getElementById('cat-archive-overlay').classList.add('active');
+    const subjExams = ALL_EXAMS.filter(e => e.subject === CURRENT_SUBJECT);
+    const body = document.getElementById('cat-archive-body');
+    body.innerHTML = subjExams.length
+      ? subjExams.map(ticketHtml).join('')
+      : '<div class="empty-note">এই বিষয়ে এখনো কোনো পরীক্ষা যোগ করা হয়নি।</div>';
+  }
+
+  // ---- Favorite ----
+  function openSubjFavorites(){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    openBookmarks(null, CURRENT_SUBJECT); // category=null so it hits the ?subject= branch below
+  }
+
+  // ---- Merit List ----
+  function openSubjMeritList(){
+    document.getElementById('leaderboard-overlay-title').textContent = CURRENT_SUBJECT + ' — মেধা তালিকা';
+    document.getElementById('leaderboard-overlay').classList.add('active');
+    loadOverallLeaderboard(null, CURRENT_SUBJECT);
+  }
+
+  // ---- Wrong & Unanswered ----
+  async function openSubjWrongQuestions(){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    document.getElementById('revision-overlay-title').textContent = CURRENT_SUBJECT + ' — ভুল প্রশ্ন থেকে প্র্যাকটিস';
+    document.getElementById('revision-body').innerHTML = '<p style="padding:20px 18px; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    document.getElementById('revision-overlay').classList.add('active');
+    try{
+      const list = await apiGetAuth('/api/results/me/wrong-questions?subject=' + encodeURIComponent(CURRENT_SUBJECT));
+      if(!list.length){
+        document.getElementById('revision-body').innerHTML = '<p style="padding:20px 18px; color:var(--ink-faint,#888);">এই বিষয়ে এখনো কোনো ভুল উত্তর নেই।</p>';
         return;
       }
       renderRevisionBody(list);
