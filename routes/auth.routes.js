@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { requireUser } = require('../middleware/auth');
 const { sendSMS } = require('../services/sms');
+const { verifyGoogleToken, isConfigured: googleConfigured } = require('../services/google');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimit');
 const { JWT_SECRET, IS_PRODUCTION } = require('../config');
 const asyncHandler = require('../utils/asyncHandler');
@@ -21,9 +22,11 @@ function genOtp() {
 }
 
 // POST /api/auth/otp/send — body: { phone, purpose? }  purpose defaults to 'register'
+const OTP_PURPOSES = ['register', 'reset_password', 'login'];
+
 router.post('/otp/send', otpLimiter, asyncHandler(async (req, res) => {
   const { phone } = req.body;
-  const purpose = req.body.purpose === 'reset_password' ? 'reset_password' : 'register';
+  const purpose = OTP_PURPOSES.includes(req.body.purpose) ? req.body.purpose : 'register';
 
   if (!phone || !PHONE_RE.test(phone)) {
     return res.status(400).json({ error: 'সঠিক মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)' });
@@ -62,11 +65,6 @@ router.post('/otp/send', otpLimiter, asyncHandler(async (req, res) => {
   const smsResult = await sendSMS(phone, `আপনার Exam House ভেরিফিকেশন কোড: ${code} — এটি ${OTP_TTL_MINUTES} মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`);
 
   const response = { ok: true, expires_in_minutes: OTP_TTL_MINUTES };
-  // Dev-mode convenience only: when no real SMS gateway is configured AND
-  // we're not running in production, echo the code back so the flow can be
-  // tested without an actual phone. Gated on NODE_ENV so a forgotten
-  // SMS_API_URL in production fails loudly (broken OTP flow) instead of
-  // silently leaking every OTP code in the API response.
   if (smsResult.dev && !IS_PRODUCTION) response.dev_code = code;
   res.json(response);
 }));
@@ -74,7 +72,7 @@ router.post('/otp/send', otpLimiter, asyncHandler(async (req, res) => {
 // POST /api/auth/otp/verify — body: { phone, code, purpose? }
 router.post('/otp/verify', asyncHandler(async (req, res) => {
   const { phone, code } = req.body;
-  const purpose = req.body.purpose === 'reset_password' ? 'reset_password' : 'register';
+  const purpose = OTP_PURPOSES.includes(req.body.purpose) ? req.body.purpose : 'register';
   if (!phone || !code) return res.status(400).json({ error: 'মোবাইল নম্বর ও কোড দিন' });
 
   const { rows } = await pool.query(
@@ -164,9 +162,91 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   res.json({ token, user: { id: rows[0].id, name: rows[0].name, phone: rows[0].phone } });
 }));
 
+// POST /api/auth/login-otp — passwordless login. Call /api/auth/otp/send with
+// purpose:'login' first to get a code, then this to exchange it for a token.
+router.post('/login-otp', loginLimiter, asyncHandler(async (req, res) => {
+  const { phone, code } = req.body;
+  if (!phone || !code) return res.status(400).json({ error: 'মোবাইল নম্বর ও কোড দিন' });
+
+  const { rows } = await pool.query(
+    `SELECT * FROM otp_codes
+     WHERE phone=$1 AND purpose='login' AND expires_at > NOW() AND consumed_at IS NULL
+     ORDER BY created_at DESC LIMIT 1`,
+    [phone]
+  );
+  if (!rows.length) return res.status(400).json({ error: 'কোডের মেয়াদ শেষ হয়ে গেছে — নতুন কোড চান' });
+  const otp = rows[0];
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+    return res.status(429).json({ error: 'অনেকবার ভুল চেষ্টা — নতুন কোড চান' });
+  }
+
+  const match = await bcrypt.compare(String(code), otp.code_hash);
+  if (!match) {
+    await pool.query('UPDATE otp_codes SET attempts = attempts + 1 WHERE id=$1', [otp.id]);
+    return res.status(400).json({ error: 'ভুল কোড' });
+  }
+
+  const userRes = await pool.query('SELECT id, name, phone FROM users WHERE phone=$1', [phone]);
+  if (!userRes.rows.length) return res.status(404).json({ error: 'এই মোবাইল নম্বরে কোনো অ্যাকাউন্ট নেই' });
+  const user = userRes.rows[0];
+
+  await pool.query('UPDATE otp_codes SET verified_at = NOW(), consumed_at = NOW() WHERE id=$1', [otp.id]);
+  await pool.query('UPDATE users SET phone_verified = true WHERE id=$1', [user.id]);
+
+  const token = jwt.sign({ id: user.id, name: user.name, phone: user.phone, role: 'user' }, JWT_SECRET, { expiresIn: '90d' });
+  res.json({ token, user });
+}));
+
+// POST /api/auth/google — body: { credential }  (the ID token Google's Sign
+// In button hands back on the frontend). Verifies it against Google's own
+// keys, then finds a matching account by google_id, links an existing
+// account with the same email, or creates a brand-new one. New Google
+// accounts have no phone number yet — that's fine, phone stays nullable
+// (see schema.sql) and the person can add it later from their profile.
+router.post('/google', asyncHandler(async (req, res) => {
+  if (!googleConfigured) {
+    return res.status(500).json({ error: 'গুগল সাইন-ইন এখনো সেটআপ করা হয়নি — কিছুক্ষণ পর আবার চেষ্টা করুন' });
+  }
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: 'গুগল টোকেন পাওয়া যায়নি' });
+
+  let payload;
+  try {
+    payload = await verifyGoogleToken(credential);
+  } catch (err) {
+    return res.status(401).json({ error: 'গুগল সাইন-ইন যাচাই ব্যর্থ হয়েছে' });
+  }
+
+  const { sub: googleId, email, name, picture } = payload;
+  if (!email) return res.status(400).json({ error: 'গুগল অ্যাকাউন্টে ইমেইল পাওয়া যায়নি' });
+
+  let user;
+  const byGoogleId = await pool.query('SELECT * FROM users WHERE google_id=$1', [googleId]);
+  if (byGoogleId.rows.length) {
+    user = byGoogleId.rows[0];
+  } else {
+    const byEmail = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+    if (byEmail.rows.length) {
+      const updated = await pool.query(
+        'UPDATE users SET google_id=$1, avatar_url=COALESCE(avatar_url,$2) WHERE id=$3 RETURNING *',
+        [googleId, picture || null, byEmail.rows[0].id]
+      );
+      user = updated.rows[0];
+    } else {
+      const inserted = await pool.query(
+        `INSERT INTO users (name, email, google_id, avatar_url, phone_verified)
+         VALUES ($1,$2,$3,$4,false) RETURNING *`,
+        [name || 'শিক্ষার্থী', email, googleId, picture || null]
+      );
+      user = inserted.rows[0];
+    }
+  }
+
+  const token = jwt.sign({ id: user.id, name: user.name, phone: user.phone, role: 'user' }, JWT_SECRET, { expiresIn: '90d' });
+  res.json({ token, user: { id: user.id, name: user.name, phone: user.phone, email: user.email, avatar_url: user.avatar_url } });
+}));
+
 // POST /api/auth/reset-password — body: { phone, code, new_password }
-// Requires a fresh, correct OTP for purpose 'reset_password' (checked directly
-// here, same as /otp/verify, so this can be a single-step flow from the app).
 router.post('/reset-password', asyncHandler(async (req, res) => {
   const { phone, code, new_password } = req.body;
   if (!phone || !code || !new_password) {
@@ -207,13 +287,14 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
 // GET /api/auth/me — current logged-in student's profile
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT current_streak, longest_streak FROM users WHERE id=$1',
+    'SELECT current_streak, longest_streak, email, avatar_url FROM users WHERE id=$1',
     [req.user.id]
   );
-  const streak = rows[0] || { current_streak: 0, longest_streak: 0 };
+  const info = rows[0] || {};
   res.json({
     id: req.user.id, name: req.user.name, phone: req.user.phone,
-    current_streak: streak.current_streak, longest_streak: streak.longest_streak
+    email: info.email || null, avatar_url: info.avatar_url || null,
+    current_streak: info.current_streak || 0, longest_streak: info.longest_streak || 0
   });
 }));
 
