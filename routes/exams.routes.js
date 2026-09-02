@@ -325,7 +325,31 @@ router.get('/public/subjects', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 
-// GET /api/exams/public/practice?subject=X&count=15 — instantly generates a
+// GET /api/exams/public/subject-list — every distinct raw subject that has
+// at least one exam, for the সাবজেক্ট অনুযায়ী প্রস্তুতি (subject-wise prep)
+// landing screen. Unlike /public/subjects (which merges everything down to
+// the 5 canonical buckets for Reading List/Duel/Smart Practice), this keeps
+// each admin-entered subject exactly as typed — e.g. "Bank Math Master" and
+// "গণিত" stay separate rows — since this screen is meant to show the
+// admin's own named subject programs, not a generic bucket.
+router.get('/public/subject-list', asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT e.subject,
+      COUNT(*)::int AS exam_count,
+      BOOL_OR(
+        e.type = 'live' AND e.start_time IS NOT NULL
+        AND e.start_time <= NOW()
+        AND e.start_time + (e.duration_minutes || ' minutes')::interval >= NOW()
+      ) AS is_live
+    FROM exams e
+    WHERE e.subject IS NOT NULL AND TRIM(e.subject) <> '' AND e.subject <> 'সব'
+    GROUP BY e.subject
+    ORDER BY e.subject
+  `);
+  res.json(rows);
+}));
+
+
 // fresh practice quiz: picks random questions for the chosen subject and wraps
 // them in a real (but is_practice=true) 'model' exam row, so the rest of the
 // app (taking it, submitting, subject-stats, streak, wrong-questions revision)
