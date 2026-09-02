@@ -340,4 +340,30 @@ router.post('/public/mark-read', requireUser, asyncHandler(async (req, res) => {
   res.json({ ok: true, marked: ids.length });
 }));
 
+// GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
+// in the bank with its question count and which canonical subject (if any)
+// it maps to. Diagnostic tool: when a bulk upload's questions don't show up
+// under বিষয়ভিত্তিক, it's almost always because their subject text doesn't
+// start with one of the 5 recognized prefixes (see utils/subjectMap.js) —
+// this view makes that visible instead of the count silently not moving.
+router.get('/admin/subjects-raw', requireAdmin, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT subject, COUNT(*)::int AS question_count
+    FROM questions GROUP BY subject ORDER BY question_count DESC
+  `);
+  res.json(rows.map(r => ({ ...r, canonical: normalizeSubject(r.subject) })));
+}));
+
+// PUT /api/questions/admin/rename-subject — bulk-relabels every question
+// currently tagged with one raw subject string to another, so an admin can
+// fix a mismatched spelling (e.g. "কম্পিউটার" -> "বিজ্ঞান ও প্রযুক্তি") for
+// every affected question at once, without re-uploading anything.
+router.put('/admin/rename-subject', requireAdmin, asyncHandler(async (req, res) => {
+  const from = (req.body.from || '').trim();
+  const to = (req.body.to || '').trim();
+  if (!from || !to) return res.status(400).json({ error: 'from ও to দুটোই দিতে হবে' });
+  const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE subject=$2', [to, from]);
+  res.json({ updated: rowCount });
+}));
+
 module.exports = router;
