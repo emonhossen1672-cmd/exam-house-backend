@@ -188,29 +188,34 @@ async function updateStreak(userId) {
 }
 
 // GET /api/results/me — logged-in student's own exam history, across all exams.
-// ?category= optionally restricts this to results from exams tagged with
-// that routine_category (used by the per-category "ফলাফল" button).
+// ?category= optionally restricts this to results from exams tagged with that
+// routine_category (per-category "ফলাফল" button). ?subject= does the same but
+// keyed on the exam's raw subject value (per-subject "ফলাফল" button, used by
+// সাবজেক্ট অনুযায়ী প্রস্তুতি). Only one of the two is expected at a time.
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
-  const { category } = req.query;
+  const { category, subject } = req.query;
   const params = [req.user.id];
-  let categoryClause = '';
-  if (category) { params.push(category); categoryClause = `AND e.routine_category = $${params.length}`; }
+  let extraClause = '';
+  if (category) { params.push(category); extraClause = `AND e.routine_category = $${params.length}`; }
+  else if (subject) { params.push(subject); extraClause = `AND e.subject = $${params.length}`; }
   const { rows } = await pool.query(`
     SELECT r.id, r.exam_id, e.title AS exam_title, e.type AS exam_type,
       e.is_duel, e.is_daily, e.is_practice, e.is_auto_subject, e.is_repeated_bank,
       r.correct_count, r.wrong_count, r.skipped_count, r.score, r.submitted_at
     FROM results r JOIN exams e ON e.id = r.exam_id
-    WHERE r.user_id = $1 ${categoryClause} ORDER BY r.submitted_at DESC
+    WHERE r.user_id = $1 ${extraClause} ORDER BY r.submitted_at DESC
   `, params);
   res.json(rows);
 }));
 
-// GET /api/results/me/category-stats?category=slug — the small stats strip
-// (Exam Attended / Exam Passed / Question Faced / Answers Correct) shown at
-// the top of a category hub page. "Passed" = score >= 40%.
+// GET /api/results/me/category-stats?category=slug OR ?subject=name — the
+// small stats strip (Exam Attended / Exam Passed / Question Faced / Answers
+// Correct) shown at the top of a category or subject hub page.
+// "Passed" = score >= 40%.
 router.get('/me/category-stats', requireUser, asyncHandler(async (req, res) => {
-  const { category } = req.query;
-  if (!category) return res.status(400).json({ error: 'category প্রয়োজন' });
+  const { category, subject } = req.query;
+  if (!category && !subject) return res.status(400).json({ error: 'category অথবা subject প্রয়োজন' });
+  const clause = category ? 'e.routine_category = $2' : 'e.subject = $2';
   const { rows } = await pool.query(`
     SELECT
       COUNT(*)::int AS exams_attended,
@@ -218,8 +223,8 @@ router.get('/me/category-stats', requireUser, asyncHandler(async (req, res) => {
       COALESCE(SUM(r.correct_count + r.wrong_count + r.skipped_count), 0)::int AS questions_faced,
       COALESCE(SUM(r.correct_count), 0)::int AS answers_correct
     FROM results r JOIN exams e ON e.id = r.exam_id
-    WHERE r.user_id = $1 AND e.routine_category = $2
-  `, [req.user.id, category]);
+    WHERE r.user_id = $1 AND ${clause}
+  `, [req.user.id, category || subject]);
   res.json(rows[0]);
 }));
 
@@ -263,12 +268,15 @@ router.get('/me/subject-stats', requireUser, asyncHandler(async (req, res) => {
 // GET /api/results/me/wrong-questions — every question this user has ever
 // answered incorrectly (deduped, most recent attempt wins), for a revision quiz.
 // ?category= optionally restricts this to wrong answers from exams tagged
-// with that routine_category (used by the per-category "ভুল ও অনুত্তরিত" button).
+// with that routine_category. ?subject= restricts to wrong answers on
+// questions of that raw subject (used by সাবজেক্ট অনুযায়ী প্রস্তুতি's
+// "Wrong & Unanswered" button).
 router.get('/me/wrong-questions', requireUser, asyncHandler(async (req, res) => {
-  const { category } = req.query;
+  const { category, subject } = req.query;
   const params = [req.user.id];
-  let categoryClause = '';
-  if (category) { params.push(category); categoryClause = `AND e.routine_category = $${params.length}`; }
+  let extraClause = '';
+  if (category) { params.push(category); extraClause = `AND e.routine_category = $${params.length}`; }
+  else if (subject) { params.push(subject); extraClause = `AND q.subject = $${params.length}`; }
   const { rows } = await pool.query(`
     SELECT DISTINCT ON (q.id)
       q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
@@ -280,7 +288,7 @@ router.get('/me/wrong-questions', requireUser, asyncHandler(async (req, res) => 
     WHERE r.user_id = $1
       AND r.answers->>(eq.question_id::text) IS NOT NULL
       AND UPPER(r.answers->>(eq.question_id::text)) != q.correct_option
-      ${categoryClause}
+      ${extraClause}
     ORDER BY q.id, r.submitted_at DESC
     LIMIT 100
   `, params);
@@ -396,12 +404,15 @@ router.get('/me/achievements', requireUser, asyncHandler(async (req, res) => {
 // ?category= optionally restricts this to results from exams tagged with
 // that routine_category (used by the per-category "মেধা তালিকা" button) —
 // the ranking is then based only on scores within that category, not
-// site-wide totals.
+// site-wide totals. ?subject= does the same but keyed on the exam's raw
+// subject value (per-subject "Merit List" button).
 router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
-  const { category } = req.query;
-  const catJoin = category ? `JOIN exams e ON e.id = r.exam_id AND e.routine_category = $2` : '';
-  const params = category ? [limit, category] : [limit];
+  const { category, subject } = req.query;
+  const scopeValue = category || subject;
+  const scopeCol = category ? 'e.routine_category' : 'e.subject';
+  const catJoin = scopeValue ? `JOIN exams e ON e.id = r.exam_id AND ${scopeCol} = $2` : '';
+  const params = scopeValue ? [limit, scopeValue] : [limit];
   const { rows } = await pool.query(`
     SELECT
       u.id AS user_id, u.name,
@@ -425,8 +436,8 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
     if (already) {
       me = already;
     } else {
-      const meCatJoin = category ? `JOIN exams e ON e.id = r.exam_id AND e.routine_category = $2` : '';
-      const meParams = category ? [req.user.id, category] : [req.user.id];
+      const meCatJoin = scopeValue ? `JOIN exams e ON e.id = r.exam_id AND ${scopeCol} = $2` : '';
+      const meParams = scopeValue ? [req.user.id, scopeValue] : [req.user.id];
       const meRes = await pool.query(`
         WITH totals AS (
           SELECT
