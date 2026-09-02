@@ -90,14 +90,21 @@
   }
   .brand{display:flex; align-items:center; gap:10px;}
   .brand-mark{
-    width:36px; height:36px; border-radius:11px;
-    background:var(--navy-deep);
+    width:38px; height:38px; border-radius:50%;
+    background:var(--seal);
     display:flex; align-items:center; justify-content:center;
-    color:#fff; font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:17px;
-    flex-shrink:0;
+    position:relative;
+    box-shadow:0 2px 0 var(--seal-deep);
   }
+  .brand-mark::after{
+    content:"";
+    position:absolute; inset:4px;
+    border:1.4px dashed rgba(255,255,255,0.65);
+    border-radius:50%;
+  }
+  .brand-mark svg{width:18px; height:18px; position:relative; z-index:2;}
   .brand-word{line-height:1.05;}
-  .brand-word .name{font-family:'Noto Serif Bengali', serif; font-size:18px; font-weight:700; color:var(--ink);}
+  .brand-word .name{font-family:'Noto Serif Bengali', serif; font-size:19px; font-weight:700; color:var(--ink);}
   .brand-word .sub{font-family:'Noto Sans Bengali', sans-serif; font-size:10.5px; font-weight:600; letter-spacing:0.3px; color:var(--gold);}
   .live-pill{
     display:flex; align-items:center; gap:6px;
@@ -301,37 +308,37 @@
   /* ---------- Model test drill-down (ministry / post) ---------- */
   .model-back{background:none; border:none; color:var(--seal); font-size:12.5px; font-weight:700; cursor:pointer; padding:0 0 10px; font-family:'Noto Sans Bengali'; display:flex; align-items:center; gap:4px;}
   .mode-toggle{
-    display:flex; gap:6px; margin-bottom:18px;
+    display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px;
+    background:var(--paper-deep); border:1px solid var(--line); border-radius:16px; padding:5px;
   }
   .mode-btn{
-    flex:1 1 0; background:var(--card); border:1px solid var(--line); border-radius:13px; padding:11px 6px;
-    display:flex; align-items:center; justify-content:center; gap:5px;
-    font-size:12.5px; font-weight:700; line-height:1.25;
+    flex:1 1 30%; background:transparent; border:none; border-radius:12px; padding:10px 6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    min-height:60px; font-size:11.5px; font-weight:700; line-height:1.25;
     color:var(--ink-soft); font-family:'Noto Sans Bengali'; cursor:pointer;
     transition:background .2s ease, color .2s ease, transform .15s ease;
   }
-  .mode-btn .mb-ic{font-size:15px; line-height:1;}
+  .mode-btn .mb-ic{font-size:17px; line-height:1;}
   .mode-btn:active{transform:scale(0.97);}
   .mode-btn.active{
-    background:var(--navy-deep); border-color:var(--navy-deep); color:#fff;
-    box-shadow:0 4px 12px rgba(16,24,44,0.25);
+    background:var(--seal); color:#fff;
+    box-shadow:0 4px 12px rgba(166,51,43,0.28);
   }
-  .mode-btn.mode-btn-hidden{display:none;}
   .group-card{
     background:var(--t-bg,var(--card)); border:1px solid var(--t-bd,var(--line)); color:var(--t-fg,var(--ink));
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     border-radius:14px;
-    padding:16px 15px; margin-bottom:10px; cursor:pointer; transition:transform .1s ease;
+    padding:14px 15px; margin-bottom:10px; cursor:pointer; transition:transform .1s ease;
   }
   .group-card:active{transform:scale(0.98);}
   .group-card .gc-left{display:flex; align-items:center; gap:12px; min-width:0;}
   .group-card .gc-ic{
-    width:44px; height:44px; border-radius:12px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center; font-size:19px;
+    width:40px; height:40px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:17px;
     background:var(--t-bd,#EAF1F8); color:var(--t-fg,#2E6BA8);
   }
-  .group-card .gc-ic.post{background:var(--wrong-bg); color:var(--seal-deep);}
-  .group-card .gc-name{font-family:'Noto Serif Bengali', serif; font-size:14.5px; color:var(--t-fg,var(--ink)); font-weight:700; line-height:1.4;}
+  .group-card .gc-ic.post{background:var(--gold-soft); color:#7A5E12;}
+  .group-card .gc-name{font-size:14px; color:var(--t-fg,var(--ink)); font-weight:700; line-height:1.4;}
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
@@ -519,8 +526,8 @@
   .streak-num b{font-family:'Space Mono',monospace; font-size:16px;}
   .streak-best{font-size:11px; color:var(--ink-faint); margin-top:2px;}
   .home-streak-pill{
-    display:inline-flex; align-items:center; gap:5px; background:var(--wrong-bg);
-    color:var(--seal-deep); padding:6px 11px; border-radius:20px; font-size:12px; font-weight:700;
+    display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12);
+    color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-top:10px;
   }
   .ph-item{
     background:var(--card); border:1px solid var(--line); border-radius:13px;
@@ -898,13 +905,16 @@
       <button class="hamburger-btn" onclick="openSideMenu()" title="মেনু">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
-      <div class="brand-mark">E</div>
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 21V7a2 2 0 0 1 2-2h6l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M12 5v6h6"/></svg>
+      </div>
       <div class="brand-word">
         <div class="name">Exam House</div>
+        <div class="sub">কঠিন প্রস্তুতি · সহজ জয়</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <div class="home-streak-pill" id="home-streak-pill" style="display:none;">🔥 <span id="home-streak-num">০</span> দিন</div>
+      <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
       <button id="theme-toggle-btn" onclick="toggleTheme()" style="background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; line-height:1;" title="ডার্ক/লাইট মোড">🌙</button>
     </div>
   </div>
@@ -955,17 +965,80 @@
     </div>
 
     <div id="home-normal-content">
-    <div class="mode-toggle" id="model-mode-toggle">
-      <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')">মন্ত্রণালয়</button>
-      <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')">বিষয়ভিত্তিক</button>
-      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')">প্র্যাকটিস</button>
-      <button class="mode-btn mode-btn-hidden" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
-      <button class="mode-btn mode-btn-hidden" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
+    <div class="hero-ticket">
+      <div class="punch left"></div><div class="punch right"></div>
+      <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
+      <div class="hero-title">যে প্রশ্ন একবার এসেছে,<br>সে বারবার ফিরে আসে</div>
+      <div class="hero-sub">বিভিন্ন মন্ত্রণালয় ও অধিদপ্তরে ইতিপূর্বে আসা গ্রেড ১১–২০ নিয়োগ পরীক্ষার প্রশ্নের ভিত্তিতে লাইভ পরীক্ষা ও মডেল টেস্ট দিন।</div>
+      <div class="home-streak-pill" id="home-streak-pill" style="display:none;">🔥 <span id="home-streak-num">০</span> দিনের স্ট্রিক</div>
+      <div class="hero-stub">
+        <div class="hero-stat"><b id="stat-total">—</b><span>মোট পরীক্ষা</span></div>
+        <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
+        <button class="hero-cta" onclick="goScreen('live')">লাইভ পরীক্ষা দেখুন</button>
+      </div>
     </div>
-    <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
-    <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
-    <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
-    <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+
+    <div class="daily-quiz-card" onclick="startDailyQuiz()">
+      <div class="dq-icon">🎯</div>
+      <div class="dq-text">
+        <div class="dq-title">আজকের কুইজ</div>
+        <div class="dq-sub">১০টি প্রশ্ন · ১৫ মিনিট · প্রতিদিন নতুন</div>
+      </div>
+      <div class="dq-arrow">→</div>
+    </div>
+
+    <div class="topic-spotlight-card" onclick="goHomeTopicSolution()">
+      <div class="ts-head">
+        <div class="ts-icon">🗂️</div>
+        <div style="flex:1;">
+          <div class="ts-title">টপিকভিত্তিক জব সলুশন <span class="ts-badge">নতুন</span></div>
+          <div class="ts-sub">প্রতিটা টপিক ধরে ধরে প্রশ্ন, উৎস ট্যাগ ও কুইজসহ</div>
+        </div>
+      </div>
+      <div class="ts-chips" id="home-topic-chips"><div class="loading-note" style="font-size:11px;">লোড হচ্ছে...</div></div>
+    </div>
+
+    <div class="cat-section-bar">Exam Section</div>
+    <div class="cat-grid">
+      <div class="cat-tile" onclick="goScreen('live')"><span class="ct-ic">🎯</span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goRoutineScreen()"><span class="ct-ic">🗓️</span><span>লাইভ রুটিন</span></div>
+      <div class="cat-tile" onclick="startDailyQuiz()"><span class="ct-ic">🎁</span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic">🏛️</span><span>মন্ত্রণালয় অনুযায়ী পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('subject');"><span class="ct-ic">📘</span><span>বিষয়ভিত্তিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" onclick="goHomeTopicSolution()"><span class="ct-ic">🗂️</span><span>টপিকভিত্তিক জব সলুশন</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-ic">⚔️</span><span>ডুয়েল মোড</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-ic">📖</span><span>রিডিং লিস্ট</span></div>
+      <div class="cat-tile" onclick="openLeaderboard()"><span class="ct-ic">🏆</span><span>র‍্যাংকিং</span></div>
+    </div>
+
+    <div class="cat-section-bar">Study Section</div>
+    <div class="cat-grid">
+      <div class="cat-tile" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">⭐</span><span>বুকমার্ক</span></div>
+      <div class="cat-tile" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-ic">❌</span><span>ভুল প্রশ্ন রিভিশন</span></div>
+      <div class="cat-tile" onclick="goScreen('perf-stats')"><span class="ct-ic">📊</span><span>পারফরম্যান্স স্ট্যাটিসটিক্স</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">▶️</span><span>ভিডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">📄</span><span>পিডিএফ সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔊</span><span>অডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🏪</span><span>বুক স্টোর</span><span class="ct-badge">শীঘ্রই</span></div>
+    </div>
+
+    <div class="cat-section-bar">Premium Section</div>
+    <div class="cat-grid">
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic">🗂️</span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
+      <div class="cat-tile" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">❤️</span><span>সেন্ট্রাল ফেভারিট</span></div>
+      <div class="cat-tile" onclick="goScreen('history')"><span class="ct-ic">✅</span><span>সেন্ট্রাল রেজাল্ট</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🗄️</span><span>সেন্ট্রাল আর্কাইভ</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔍</span><span>স্মার্ট সার্চ</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">💡</span><span>কুইজ মাস্টার</span><span class="ct-badge">শীঘ্রই</span></div>
+    </div>
+
+    <div id="home-circulars-wrap" style="display:none;">
+      <div class="sec-head"><h2>সার্কুলার ক্যালেন্ডার</h2></div>
+      <div class="circular-scroll" id="home-circulars-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+    </div>
+
+    <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
+    <div id="home-live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
     </div>
   </div>
 
@@ -990,6 +1063,21 @@
     <div class="sec-head" style="margin-top:4px;"><h2 id="routine-days-title">রুটিন</h2></div>
     <p id="routine-days-subtitle" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;"></p>
     <div id="routine-days-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ MODEL TEST SCREEN ============ -->
+  <div class="screen" id="screen-model">
+    <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
+    <div class="mode-toggle" id="model-mode-toggle">
+      <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
+      <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')"><span class="mb-ic">📘</span>বিষয়ভিত্তিক</button>
+      <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
+      <button class="mode-btn" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
+      <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
+    </div>
+    <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
+    <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
+    <div id="model-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
   <!-- ============ PROFILE / LOGIN SCREEN ============ -->
@@ -2075,13 +2163,8 @@
   let SUPPRESS_HISTORY_PUSH = false;
 
   function goScreen(name){
-    // "model" is a standalone bottom-nav entry point that resets straight to
-    // the top-level ministry list, but it now lives on the home screen (the
-    // homepage IS the model-test browser) — so it activates screen-home,
-    // just with its own nav highlight + a reset of the drill-down state.
-    const targetScreen = (name === 'model') ? 'home' : name;
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-    document.getElementById('screen-'+targetScreen).classList.add('active');
+    document.getElementById('screen-'+name).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const navMap = {home:0, live:1, model:2, history:3};
     if(navMap[name] !== undefined){
@@ -2089,7 +2172,7 @@
     }
     if(name === 'history') renderProfile();
     if(name === 'perf-stats') renderProfile();
-    if(name === 'model'){ MODEL_NAV = {level:'ministries'}; setModelMode('ministry'); }
+    if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
     window.scrollTo(0,0);
     if(!SUPPRESS_HISTORY_PUSH){
       history.pushState({screen:name}, '', location.pathname);
@@ -3364,7 +3447,6 @@
 
   function renderList(containerId, exams, emptyMsg){
     const el = document.getElementById(containerId);
-    if(!el) return;
     if(!exams.length){ el.innerHTML = `<div class="empty-note">${emptyMsg}</div>`; return; }
     el.innerHTML = exams.map(ticketHtml).join('');
   }
@@ -3438,12 +3520,24 @@
     try{
       const all = await apiGet('/api/exams/public/list');
       ALL_EXAMS = all;
+      const live = all.filter(e=>e.type==='live');
+      // "মোট পরীক্ষা" should reflect only exams the admin actually uploaded —
+      // not the auto-generated daily quiz, practice-mode quizzes, duel
+      // challenges, or the auto-built বিষয়ভিত্তিক/সর্বাধিক পুনরাবৃত্ত wrapper
+      // exams (is_auto_subject / is_repeated_bank) — those all re-wrap the
+      // same underlying questions the admin already uploaded, so counting
+      // them here would double-count the same content.
+      const uploadedExams = all.filter(e=>!e.is_daily && !e.is_practice && !e.is_duel && !e.is_auto_subject && !e.is_repeated_bank);
+      document.getElementById('stat-total').textContent = toBnDigits(uploadedExams.length);
+      document.getElementById('stat-live').textContent = toBnDigits(live.length);
+      renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderLiveList();
       loadLiveCategoryList();
       renderModelScreen();
+      loadCirculars();
+      loadHomeTopicChips();
     }catch(err){
-      const listEl = document.getElementById('model-list');
-      if(listEl) listEl.innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
+      document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
   }
   loadHome();
@@ -3629,8 +3723,11 @@
     // since those have no countdowns and re-rendering them mid-session was
     // wiping the student's scroll position / revealed answers every 15s.
     if(ALL_EXAMS.length){
+      const live = ALL_EXAMS.filter(e=>e.type==='live');
+      const model = ALL_EXAMS.filter(e=>e.type==='model');
+      renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
       renderLiveList();
-      if(document.getElementById('screen-home').classList.contains('active') && MODEL_MODE === 'ministry'){
+      if(document.getElementById('screen-model').classList.contains('active') && MODEL_MODE === 'ministry'){
         renderModelScreen();
       }
     }
