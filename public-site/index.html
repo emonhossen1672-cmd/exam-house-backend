@@ -121,77 +121,91 @@
   @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
 
   /* ---------- Hero admit card ---------- */
+  /* ---------- Line icon sprite (Demo 6 style) ---------- */
+  .ic{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round;}
+
+  /* ---------- Hero admit card (Demo 6: আর্কাইভড অ্যাডমিট কার্ড) ---------- */
   .hero-ticket{
     position:relative;
-    background:var(--navy-deep);
-    color:#fff;
-    border-radius:20px;
-    padding:26px 22px 22px;
-    overflow:hidden;
-    margin-bottom:22px;
+    background:linear-gradient(155deg, #16283F 0%, #1E3554 100%);
+    color:#F3E9CE;
+    border-radius:16px;
+    padding:26px 18px 4px;
+    overflow:visible;
+    margin:6px 0 22px;
   }
-  .hero-ticket::before{
-    content:"";
-    position:absolute; inset:0;
-    background:
-      radial-gradient(circle at 12% 20%, rgba(184,144,46,0.28), transparent 40%),
-      radial-gradient(circle at 90% 85%, rgba(166,51,43,0.35), transparent 45%);
+  .hero-fold{
+    position:absolute; top:-13px; left:20px; background:var(--gold);
+    color:#2B2317; font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:11px;
+    padding:5px 12px 4px; border-radius:6px 6px 0 0; letter-spacing:.2px; z-index:2;
   }
   .hero-eyebrow{
-    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:2px;
-    color:var(--gold-soft); text-transform:uppercase; position:relative; z-index:2;
+    font-family:'Noto Sans Bengali', sans-serif; font-size:10.5px; letter-spacing:1.2px;
+    color:#B8A87E; position:relative; z-index:2;
   }
   .hero-title{
-    font-family:'Noto Serif Bengali', serif; font-size:26px; line-height:1.35;
-    margin:10px 0 8px; position:relative; z-index:2;
+    font-family:'Noto Serif Bengali', serif; font-size:22px; line-height:1.5; font-weight:700;
+    margin:14px 0 9px; position:relative; z-index:2;
   }
   .hero-sub{
-    font-size:14px; color:#C7CEE0; line-height:1.6; position:relative; z-index:2; max-width:92%;
+    font-size:12.5px; color:#D8CCA9; line-height:1.7; position:relative; z-index:2; max-width:92%;
   }
   .hero-stub{
-    margin-top:20px; padding-top:16px;
-    border-top:1.5px dashed rgba(255,255,255,0.25);
+    margin-top:16px; padding-top:14px;
+    border-top:1px solid rgba(243,233,206,0.18);
     display:flex; justify-content:space-between; align-items:center;
-    position:relative; z-index:2;
+    position:relative; z-index:2; gap:14px;
   }
   .hero-stat{text-align:left;}
-  .hero-stat b{display:block; font-family:'Space Mono',monospace; font-size:17px; color:#fff;}
-  .hero-stat span{font-size:10.5px; color:#9AA4BE;}
+  .hero-stat b{display:block; font-family:'Space Mono',monospace; font-size:18px; color:var(--gold-soft); font-weight:700;}
+  .hero-stat span{font-size:9.5px; color:#B8A87E; letter-spacing:.2px;}
   .hero-cta{
-    background:var(--seal); color:#fff; border:none;
-    padding:10px 16px; border-radius:10px; font-family:'Noto Sans Bengali'; font-weight:600;
-    font-size:13.5px; cursor:pointer;
+    background:var(--gold); color:#2B2317; border:none;
+    padding:10px 16px; border-radius:8px; font-family:'Noto Sans Bengali'; font-weight:700;
+    font-size:12.5px; cursor:pointer; white-space:nowrap;
   }
+  .hero-barcode{
+    display:flex; align-items:stretch; gap:2px; height:14px; overflow:hidden;
+    margin-top:16px; padding-top:9px; border-top:1px dashed rgba(243,233,206,0.25); position:relative; z-index:2;
+  }
+  .hero-barcode i{display:block; background:rgba(243,233,206,0.4);}
 
-  .hero-ticket .punch{
-    position:absolute; width:16px; height:16px; background:var(--paper);
-    border-radius:50%; top:calc(100% - 46px); z-index:3;
+  /* ---------- Streak stamp (wax-seal badge on hero) ---------- */
+  .home-streak-pill{
+    position:absolute; top:-17px; right:18px; width:54px; height:54px; border-radius:50%;
+    border:2px solid var(--gold); background:#16283F; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; color:var(--gold); transform:rotate(-8deg); z-index:2;
+    text-align:center; line-height:1.15;
   }
-  .hero-ticket .punch.left{left:-8px;}
-  .hero-ticket .punch.right{right:-8px;}
+  .home-streak-pill #home-streak-num{font-family:'Space Mono',monospace; font-size:15px; font-weight:700;}
+  .home-streak-pill .streak-label{font-size:6.5px; font-weight:600; letter-spacing:.2px; display:block;}
 
   .daily-quiz-card{
-    display:flex; align-items:center; gap:12px; margin-top:16px;
-    background:var(--gold); color:#fff; border-radius:14px; padding:14px 16px; cursor:pointer;
+    display:flex; align-items:center; gap:11px; margin-top:16px;
+    background:var(--card); border:1px solid var(--line); border-inline-start:4px solid var(--gold);
+    border-radius:10px; padding:13px 15px; cursor:pointer;
   }
-  .dq-icon{font-size:22px;}
+  .dq-icon{width:30px; height:30px; border-radius:8px; background:var(--paper-deep); color:var(--navy-deep); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .dq-icon svg{width:16px; height:16px;}
   .dq-text{flex:1;}
-  .dq-title{font-weight:700; font-size:14px;}
-  .dq-sub{font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px;}
-  .dq-arrow{font-size:18px;}
+  .dq-title{font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:13.5px; color:var(--ink);}
+  .dq-sub{font-size:10.5px; color:var(--ink-faint); margin-top:2px;}
+  .dq-arrow{font-size:16px; color:var(--ink-faint);}
 
   /* ---------- Topic spotlight card (হোমপেজে টপিকভিত্তিক জব সলুশন) ---------- */
   .topic-spotlight-card{
-    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:10px;
+    background:var(--card); border:1px solid var(--line); border-top:3px solid var(--navy-deep);
+    border-radius:12px; padding:16px; margin-top:10px;
   }
   .ts-head{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
-  .ts-icon{width:36px; height:36px; border-radius:10px; background:var(--success-bg); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
-  .ts-title{font-weight:700; font-size:13.5px; color:var(--ink); display:flex; align-items:center; gap:6px;}
-  .ts-badge{background:var(--success-bg); color:var(--success); font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:20px;}
+  .ts-icon{width:36px; height:36px; border-radius:9px; background:var(--paper-deep); color:var(--navy-deep); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .ts-icon svg{width:18px; height:18px;}
+  .ts-title{font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:14px; color:var(--ink); display:flex; align-items:center; gap:6px;}
+  .ts-badge{background:var(--navy-deep); color:#F3E9CE; font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px;}
   .ts-sub{font-size:11px; color:var(--ink-faint); margin-top:2px;}
   .ts-chips{display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .ts-chips::-webkit-scrollbar{display:none;}
-  .ts-chip{flex:0 0 auto; background:var(--paper-deep); border-radius:10px; padding:8px 12px; cursor:pointer;}
+  .ts-chip{flex:0 0 auto; background:var(--paper-deep); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer;}
   .ts-chip b{display:block; font-size:11.5px; color:var(--ink);}
   .ts-chip span{font-size:10px; color:var(--ink-faint);}
 
@@ -525,10 +539,7 @@
   .streak-num{font-size:14px; font-weight:700; color:var(--ink);}
   .streak-num b{font-family:'Space Mono',monospace; font-size:16px;}
   .streak-best{font-size:11px; color:var(--ink-faint); margin-top:2px;}
-  .home-streak-pill{
-    display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.12);
-    color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-top:10px;
-  }
+  .home-streak-pill-old-unused{ display:none; }
   .ph-item{
     background:var(--card); border:1px solid var(--line); border-radius:13px;
     padding:13px 14px; margin-bottom:9px;
@@ -857,22 +868,28 @@
   .sm-item .sm-ic{width:20px; text-align:center; font-size:16px; flex-shrink:0;}
   .sm-item .sm-soon{margin-left:auto; font-size:9.5px; background:var(--gold-soft); color:#7A5E12; padding:2px 7px; border-radius:20px; font-weight:700;}
 
-  /* ---------- Categorized section cards (Exam/Study/Premium) ---------- */
+  /* ---------- Categorized section cards (Demo 6: পরীক্ষা/পড়াশোনা/প্রিমিয়াম বিভাগ) ---------- */
   .cat-section-bar{
-    background:var(--seal); color:#fff; text-align:center; font-weight:700; font-size:14px;
-    padding:10px; border-radius:12px; margin:22px 0 12px;
+    display:flex; align-items:center; gap:10px; margin:24px 0 12px;
   }
+  .cat-section-bar .cat-bar{width:4px; height:16px; border-radius:2px; background:var(--navy-deep); flex-shrink:0;}
+  .cat-section-bar h2{font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:15.5px; color:var(--ink); letter-spacing:.2px;}
   .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .cat-tile{
-    position:relative; display:flex; align-items:center; gap:9px;
-    background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:12px 10px; font-size:12.5px; font-weight:600; color:var(--ink);
+    position:relative; display:flex; align-items:center; gap:10px;
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:12px 11px; font-size:12.5px; font-weight:600; color:var(--ink);
     cursor:pointer; min-height:48px;
   }
   .cat-tile:active{background:var(--paper-deep);}
-  .cat-tile .ct-ic{font-size:17px; flex-shrink:0; width:22px; text-align:center;}
-  .cat-tile .ct-dot{position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--seal);}
-  .cat-tile .ct-badge{position:absolute; top:6px; right:6px; font-size:8.5px; background:var(--gold-soft); color:#7A5E12; padding:1px 6px; border-radius:20px; font-weight:700;}
+  .cat-tile .ct-ic{
+    width:32px; height:32px; border-radius:8px; flex-shrink:0;
+    background:var(--paper-deep); color:var(--navy-deep);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cat-tile .ct-ic .ic{width:16px; height:16px;}
+  .cat-tile .ct-badge{position:absolute; top:8px; right:8px; font-size:8.5px; background:var(--paper-deep); color:var(--ink-faint); padding:1px 6px; border-radius:20px; font-weight:700;}
+
 
   /* ---------- Packages screen ---------- */
   .pkg-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
@@ -896,6 +913,30 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+<defs>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="1"/><path d="M3 9h18v4H3z"/><path d="M12 9v12"/><path d="M12 9C9 3 4 6 7 9M12 9c3-6 8-3 5 0"/></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><path d="M12 2.5l9.5 5.5H2.5L12 2.5z"/><path d="M4 9v10M9 9v10M15 9v10M20 9v10"/><path d="M2.5 21.5h19"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.2c-2.1-2-6-2.2-8.4-1V18c2.4-1.2 6.3-1 8.4 1"/><path d="M12 6.2c2.1-2 6-2.2 8.4-1V18c-2.4-1.2-6.3-1-8.4 1V6.2z"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 014.5 5h4l2 2h9A1.5 1.5 0 0121 8.5V18a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18V6.5z"/></symbol>
+<symbol id="i-swords" viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><line x1="19" y1="19" x2="5" y2="5"/><circle cx="12" cy="12" r="1.3"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 016.5 3h7l5 5v11.5A1.5 1.5 0 0117 21H6.5A1.5 1.5 0 015 19.5v-15z"/><path d="M8 12h8M8 15.5h8M8 8.5h4"/></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 3.5h8v4a4 4 0 01-8 0v-4z"/><path d="M8 4.5H5a2 2 0 002.5 4.3M16 4.5h3a2 2 0 01-2.5 4.3"/><path d="M9.5 14h5l1 6.5h-7l1-6.5z"/><path d="M10.5 14v-2.5M13.5 14v-2.5"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9L12 3.2z"/></symbol>
+<symbol id="i-xcircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><line x1="6" y1="20" x2="6" y2="11"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="15"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10 8.3l6 3.7-6 3.7V8.3z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18.5h6M10 21h4M12 2.5a5.8 5.8 0 00-3.3 10.5c.6.45.9 1.15.9 1.9v.1h4.8v-.1c0-.75.3-1.45.9-1.9A5.8 5.8 0 0012 2.5z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M8 12.3l2.7 2.7L16.5 9"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.3 12.4L12.9 5a2 2 0 00-1.4-.6H5.3A1.3 1.3 0 004 5.7v6.2c0 .5.2 1 .6 1.4l7.4 7.4a2 2 0 002.8 0l5.5-5.5a2 2 0 000-2.8z"/><circle cx="8.6" cy="8.6" r="1.4"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3s-7-4.3-9.4-8.8C1.2 8.2 2.7 5 6.1 5c2 0 3.5 1.2 4.2 2.6C11 6.2 12.5 5 14.5 5c3.4 0 4.9 3.2 3.5 6.5-2.4 4.5-9.4 8.8-9.4 8.8z"/></symbol>
+<symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 14v-1.5a8 8 0 0116 0V14"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></symbol>
+</defs>
+</svg>
 
 <div class="device">
 
@@ -966,20 +1007,23 @@
 
     <div id="home-normal-content">
     <div class="hero-ticket">
-      <div class="punch left"></div><div class="punch right"></div>
+      <div class="hero-fold">গ্রেড ১১–২০ আর্কাইভ</div>
+      <div class="home-streak-pill" id="home-streak-pill" style="display:none;"><span id="home-streak-num">০</span><span class="streak-label">দিন স্ট্রিক</span></div>
       <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
       <div class="hero-title">যে প্রশ্ন একবার এসেছে,<br>সে বারবার ফিরে আসে</div>
       <div class="hero-sub">বিভিন্ন মন্ত্রণালয় ও অধিদপ্তরে ইতিপূর্বে আসা গ্রেড ১১–২০ নিয়োগ পরীক্ষার প্রশ্নের ভিত্তিতে লাইভ পরীক্ষা ও মডেল টেস্ট দিন।</div>
-      <div class="home-streak-pill" id="home-streak-pill" style="display:none;">🔥 <span id="home-streak-num">০</span> দিনের স্ট্রিক</div>
       <div class="hero-stub">
         <div class="hero-stat"><b id="stat-total">—</b><span>মোট পরীক্ষা</span></div>
         <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
         <button class="hero-cta" onclick="goScreen('live')">লাইভ পরীক্ষা দেখুন</button>
       </div>
+      <div class="hero-barcode" aria-hidden="true">
+        <i style="width:3px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:1px"></i><i style="width:1px"></i><i style="width:4px"></i><i style="width:3px"></i><i style="width:2px"></i><i style="width:4px"></i><i style="width:2px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:4px"></i><i style="width:2px"></i><i style="width:3px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:3px"></i><i style="width:1px"></i>
+      </div>
     </div>
 
     <div class="daily-quiz-card" onclick="startDailyQuiz()">
-      <div class="dq-icon">🎯</div>
+      <div class="dq-icon"><svg class="ic"><use href="#i-target"/></svg></div>
       <div class="dq-text">
         <div class="dq-title">আজকের কুইজ</div>
         <div class="dq-sub">১০টি প্রশ্ন · ১৫ মিনিট · প্রতিদিন নতুন</div>
@@ -989,7 +1033,7 @@
 
     <div class="topic-spotlight-card" onclick="goHomeTopicSolution()">
       <div class="ts-head">
-        <div class="ts-icon">🗂️</div>
+        <div class="ts-icon"><svg class="ic"><use href="#i-folder"/></svg></div>
         <div style="flex:1;">
           <div class="ts-title">টপিকভিত্তিক জব সলুশন <span class="ts-badge">নতুন</span></div>
           <div class="ts-sub">প্রতিটা টপিক ধরে ধরে প্রশ্ন, উৎস ট্যাগ ও কুইজসহ</div>
@@ -998,38 +1042,38 @@
       <div class="ts-chips" id="home-topic-chips"><div class="loading-note" style="font-size:11px;">লোড হচ্ছে...</div></div>
     </div>
 
-    <div class="cat-section-bar">Exam Section</div>
+    <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" onclick="goScreen('live')"><span class="ct-ic">🎯</span><span>লাইভ পরীক্ষা</span></div>
-      <div class="cat-tile" onclick="goRoutineScreen()"><span class="ct-ic">🗓️</span><span>লাইভ রুটিন</span></div>
-      <div class="cat-tile" onclick="startDailyQuiz()"><span class="ct-ic">🎁</span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic">🏛️</span><span>মন্ত্রণালয় অনুযায়ী পরীক্ষা</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('subject');"><span class="ct-ic">📘</span><span>বিষয়ভিত্তিক মডেল টেস্ট</span></div>
-      <div class="cat-tile" onclick="goHomeTopicSolution()"><span class="ct-ic">🗂️</span><span>টপিকভিত্তিক জব সলুশন</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-ic">⚔️</span><span>ডুয়েল মোড</span></div>
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-ic">📖</span><span>রিডিং লিস্ট</span></div>
-      <div class="cat-tile" onclick="openLeaderboard()"><span class="ct-ic">🏆</span><span>র‍্যাংকিং</span></div>
+      <div class="cat-tile" onclick="goScreen('live')"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goRoutineScreen()"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
+      <div class="cat-tile" onclick="startDailyQuiz()"><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>মন্ত্রণালয় অনুযায়ী পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('subject');"><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>বিষয়ভিত্তিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" onclick="goHomeTopicSolution()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
+      <div class="cat-tile" onclick="openLeaderboard()" style="grid-column:1/2;"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>র‍্যাংকিং</span></div>
     </div>
 
-    <div class="cat-section-bar">Study Section</div>
+    <div class="cat-section-bar"><span class="cat-bar"></span><h2>পড়াশোনা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">⭐</span><span>বুকমার্ক</span></div>
-      <div class="cat-tile" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-ic">❌</span><span>ভুল প্রশ্ন রিভিশন</span></div>
-      <div class="cat-tile" onclick="goScreen('perf-stats')"><span class="ct-ic">📊</span><span>পারফরম্যান্স স্ট্যাটিসটিক্স</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">▶️</span><span>ভিডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">📄</span><span>পিডিএফ সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔊</span><span>অডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🏪</span><span>বুক স্টোর</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
+      <div class="cat-tile" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
+      <div class="cat-tile" onclick="goScreen('perf-stats')"><span class="ct-ic"><svg class="ic"><use href="#i-chart"/></svg></span><span>পারফরম্যান্স স্ট্যাটিসটিক্স</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-play"/></svg></span><span>ভিডিও সেকশন</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>পিডিএফ সেকশন</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-headphones"/></svg></span><span>অডিও সেকশন</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>বুক স্টোর</span></div>
     </div>
 
-    <div class="cat-section-bar">Premium Section</div>
+    <div class="cat-section-bar"><span class="cat-bar"></span><h2>প্রিমিয়াম বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic">🗂️</span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
-      <div class="cat-tile" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">❤️</span><span>সেন্ট্রাল ফেভারিট</span></div>
-      <div class="cat-tile" onclick="goScreen('history')"><span class="ct-ic">✅</span><span>সেন্ট্রাল রেজাল্ট</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🗄️</span><span>সেন্ট্রাল আর্কাইভ</span><span class="ct-badge">শীঘ্রই</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔍</span><span>স্মার্ট সার্চ</span><span class="ct-badge">শীঘ্রই</span></div>
-      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">💡</span><span>কুইজ মাস্টার</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
+      <div class="cat-tile" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
+      <div class="cat-tile" onclick="goScreen('history')"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>সেন্ট্রাল রেজাল্ট</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
     </div>
 
     <div id="home-circulars-wrap" style="display:none;">
@@ -2091,7 +2135,7 @@
     }
     const pill = document.getElementById('home-streak-pill');
     if(current > 0){
-      pill.style.display = 'inline-flex';
+      pill.style.display = 'flex';
       document.getElementById('home-streak-num').textContent = toBnDigits(current);
     } else {
       pill.style.display = 'none';
