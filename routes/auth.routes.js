@@ -65,6 +65,11 @@ router.post('/otp/send', otpLimiter, asyncHandler(async (req, res) => {
   const smsResult = await sendSMS(phone, `আপনার Exam House ভেরিফিকেশন কোড: ${code} — এটি ${OTP_TTL_MINUTES} মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`);
 
   const response = { ok: true, expires_in_minutes: OTP_TTL_MINUTES };
+  // Dev-mode convenience only: when no real SMS gateway is configured AND
+  // we're not running in production, echo the code back so the flow can be
+  // tested without an actual phone. Gated on NODE_ENV so a forgotten
+  // SMS_API_URL in production fails loudly (broken OTP flow) instead of
+  // silently leaking every OTP code in the API response.
   if (smsResult.dev && !IS_PRODUCTION) response.dev_code = code;
   res.json(response);
 }));
@@ -247,6 +252,8 @@ router.post('/google', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/auth/reset-password — body: { phone, code, new_password }
+// Requires a fresh, correct OTP for purpose 'reset_password' (checked directly
+// here, same as /otp/verify, so this can be a single-step flow from the app).
 router.post('/reset-password', asyncHandler(async (req, res) => {
   const { phone, code, new_password } = req.body;
   if (!phone || !code || !new_password) {
