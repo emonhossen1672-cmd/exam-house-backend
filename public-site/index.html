@@ -192,22 +192,20 @@
   .dq-sub{font-size:10.5px; color:var(--ink-faint); margin-top:2px;}
   .dq-arrow{font-size:16px; color:var(--ink-faint);}
 
-  /* ---------- Topic spotlight card (হোমপেজে টপিকভিত্তিক জব সলুশন) ---------- */
-  .topic-spotlight-card{
-    background:var(--card); border:1px solid var(--line); border-top:3px solid var(--navy-deep);
-    border-radius:12px; padding:16px; margin-top:10px;
+  /* ---------- Live exam spotlight ticker (হোমপেজে আজকের লাইভ পরীক্ষা) ---------- */
+  .live-spotlight-card{
+    background:var(--card); border:1px solid var(--line); border-top:3px solid var(--seal);
+    border-radius:12px; padding:16px; margin-top:10px; cursor:pointer;
   }
-  .ts-head{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
-  .ts-icon{width:36px; height:36px; border-radius:9px; background:var(--paper-deep); color:var(--navy-deep); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .ts-icon svg{width:18px; height:18px;}
-  .ts-title{font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:14px; color:var(--ink); display:flex; align-items:center; gap:6px;}
-  .ts-badge{background:var(--navy-deep); color:#F3E9CE; font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px;}
-  .ts-sub{font-size:11px; color:var(--ink-faint); margin-top:2px;}
-  .ts-chips{display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
-  .ts-chips::-webkit-scrollbar{display:none;}
-  .ts-chip{flex:0 0 auto; background:var(--paper-deep); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer;}
-  .ts-chip b{display:block; font-size:11.5px; color:var(--ink);}
-  .ts-chip span{font-size:10px; color:var(--ink-faint);}
+  .ls-head{display:flex; align-items:center; gap:10px;}
+  .ls-icon{width:36px; height:36px; border-radius:9px; background:var(--paper-deep); color:var(--seal); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .ls-icon svg{width:18px; height:18px;}
+  .ls-title{font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:14px; color:var(--ink); display:flex; align-items:center; gap:6px;}
+  .ls-badge{background:var(--seal); color:#fff; font-size:9.5px; font-weight:700; padding:2px 8px; border-radius:20px;}
+  .ls-ticker-wrap{height:18px; overflow:hidden; margin-top:4px;}
+  .ls-ticker{font-size:12px; color:var(--ink-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity .35s ease, transform .35s ease;}
+  .ls-ticker.ls-fade{opacity:0; transform:translateY(6px);}
+  .ls-arrow{color:var(--ink-faint); font-size:16px; flex-shrink:0;}
 
   /* ---------- Quick access grid (দ্রুত প্রবেশ) ---------- */
   .quick-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;}
@@ -1032,15 +1030,15 @@
       <div class="dq-arrow">→</div>
     </div>
 
-    <div class="topic-spotlight-card" onclick="goHomeTopicSolution()">
-      <div class="ts-head">
-        <div class="ts-icon"><svg class="ic"><use href="#i-folder"/></svg></div>
-        <div style="flex:1;">
-          <div class="ts-title">টপিকভিত্তিক জব সলুশন <span class="ts-badge">নতুন</span></div>
-          <div class="ts-sub">প্রতিটা টপিক ধরে ধরে প্রশ্ন, উৎস ট্যাগ ও কুইজসহ</div>
+    <div class="live-spotlight-card" onclick="goScreen('live')">
+      <div class="ls-head">
+        <div class="ls-icon"><svg class="ic"><use href="#i-target"/></svg></div>
+        <div style="flex:1; min-width:0;">
+          <div class="ls-title">আজকের লাইভ পরীক্ষা <span class="ls-badge">লাইভ</span></div>
+          <div class="ls-ticker-wrap"><div class="ls-ticker" id="home-live-ticker">লোড হচ্ছে...</div></div>
         </div>
+        <div class="ls-arrow">→</div>
       </div>
-      <div class="ts-chips" id="home-topic-chips"><div class="loading-note" style="font-size:11px;">লোড হচ্ছে...</div></div>
     </div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
@@ -1068,11 +1066,6 @@
       <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">❤️</span><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
       <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🔍</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
       <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">💡</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
-    </div>
-
-    <div id="home-circulars-wrap" style="display:none;">
-      <div class="sec-head"><h2>সার্কুলার ক্যালেন্ডার</h2></div>
-      <div class="circular-scroll" id="home-circulars-list"><div class="loading-note">লোড হচ্ছে...</div></div>
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
@@ -3572,32 +3565,33 @@
       renderLiveList();
       loadLiveCategoryList();
       renderModelScreen();
-      loadCirculars();
-      loadHomeTopicChips();
+      startHomeLiveTicker(live);
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
   }
   loadHome();
 
-  // Homepage টপিকভিত্তিক জব সলুশন spotlight — shows the subjects with the most
-  // questions as quick chips, so tapping one jumps straight into টপিক mode
-  // for that subject instead of making the user pick from scratch.
-  async function loadHomeTopicChips(){
-    const wrap = document.getElementById('home-topic-chips');
-    try{
-      const subjects = await apiGet('/api/exams/public/subjects');
-      if(!subjects.length){ wrap.innerHTML = ''; return; }
-      TOPIC_SUBJECTS_CACHE = subjects;
-      const top = subjects.slice(0, 4);
-      wrap.innerHTML = top.map(s => `
-        <div class="ts-chip" onclick='event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(s.subject)})'>
-          <b>${escapeHtml(s.subject)}</b>
-          <span>${toBnDigits(s.question_count)}টি প্রশ্ন</span>
-        </div>`).join('');
-    }catch(err){
-      wrap.innerHTML = '';
-    }
+  // Homepage আজকের লাইভ পরীক্ষা ticker — cycles through today's live exam
+  // titles one at a time inside the spotlight card, instead of a static list.
+  let HOME_TICKER_TIMER = null;
+  function startHomeLiveTicker(liveExams){
+    const el = document.getElementById('home-live-ticker');
+    if(!el) return;
+    if(HOME_TICKER_TIMER){ clearInterval(HOME_TICKER_TIMER); HOME_TICKER_TIMER = null; }
+    const titles = liveExams.map(e => [e.ministry_name, e.title].filter(Boolean).join(' — '));
+    if(!titles.length){ el.textContent = 'এখন কোনো লাইভ পরীক্ষা নেই।'; return; }
+    let i = 0;
+    el.textContent = titles[0];
+    if(titles.length === 1) return;
+    HOME_TICKER_TIMER = setInterval(() => {
+      el.classList.add('ls-fade');
+      setTimeout(() => {
+        i = (i + 1) % titles.length;
+        el.textContent = titles[i];
+        el.classList.remove('ls-fade');
+      }, 350);
+    }, 2600);
   }
 
   function goHomeTopicSolution(subject){
