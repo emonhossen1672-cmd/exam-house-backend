@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Applied before the stylesheet paints anything, so switching between
+  // sessions never shows a flash of the wrong theme. Reads the same
+  // localStorage key the in-app toggle button (further down) writes to.
+  (function(){
+    var saved = localStorage.getItem('eh_theme');
+    if(saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
 <title>Exam House — লাইভ পরীক্ষা ও মডেল টেস্ট</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -26,6 +37,23 @@
     --navy-deep:#10182C;
     --radius:18px;
   }
+  /* ---------- Dark mode ---------- */
+  /* Only the "surface" tokens (page/card backgrounds, borders, body text)
+     flip here — the accent/badge tokens (--seal, --gold, --gold-soft,
+     --success-bg, --wrong-bg, --navy-deep...) stay as-is on purpose: they're
+     always paired with their own matching text color (e.g. .tag.grade uses
+     --gold-soft with a hardcoded #7A5E12 text), so they already read fine as
+     colored chips against a dark card — recoloring them would break that pairing. */
+  html[data-theme="dark"]{
+    --paper:#131A2C;
+    --paper-deep:#0B0F1C;
+    --card:#1B2338;
+    --line:#2C3552;
+    --ink:#EDEFF6;
+    --ink-soft:#AEB6CC;
+    --ink-faint:#7C87A3;
+  }
+  html[data-theme="dark"] .device{ box-shadow:0 0 60px rgba(0,0,0,0.6); }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
     font-family:'Noto Sans Bengali', sans-serif;
@@ -151,6 +179,30 @@
   .dq-title{font-weight:700; font-size:14px;}
   .dq-sub{font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px;}
   .dq-arrow{font-size:18px;}
+
+  /* ---------- Topic spotlight card (হোমপেজে টপিকভিত্তিক জব সলুশন) ---------- */
+  .topic-spotlight-card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:10px;
+  }
+  .ts-head{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .ts-icon{width:36px; height:36px; border-radius:10px; background:var(--success-bg); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .ts-title{font-weight:700; font-size:13.5px; color:var(--ink); display:flex; align-items:center; gap:6px;}
+  .ts-badge{background:var(--success-bg); color:var(--success); font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:20px;}
+  .ts-sub{font-size:11px; color:var(--ink-faint); margin-top:2px;}
+  .ts-chips{display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .ts-chips::-webkit-scrollbar{display:none;}
+  .ts-chip{flex:0 0 auto; background:var(--paper-deep); border-radius:10px; padding:8px 12px; cursor:pointer;}
+  .ts-chip b{display:block; font-size:11.5px; color:var(--ink);}
+  .ts-chip span{font-size:10px; color:var(--ink-faint);}
+
+  /* ---------- Quick access grid (দ্রুত প্রবেশ) ---------- */
+  .quick-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;}
+  .quick-tile{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 6px; cursor:pointer; text-align:center;
+  }
+  .qt-ic{font-size:19px;}
+  .quick-tile span{font-size:11.5px; font-weight:700; color:var(--ink);}
 
   /* ---------- Circular calendar (সার্কুলার ক্যালেন্ডার) ---------- */
   .circular-scroll{display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
@@ -290,6 +342,59 @@
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
+  /* ---------- Live category tabs (used on লাইভ পরীক্ষা screen) ---------- */
+  .live-cat-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; -webkit-overflow-scrolling:touch;}
+  .live-cat-tabs::-webkit-scrollbar{display:none;}
+  .lct-pill{flex:0 0 auto; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:12px; font-weight:700; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+  .lct-pill.active{background:var(--seal); border-color:var(--seal); color:#fff;}
+  /* লাইভ পরীক্ষা category cards — vertically stacked (matches লাইভ রুটিন list) */
+  #live-cat-list .group-card{margin-bottom:10px;}
+  #live-cat-list .group-card.active-cat{border-color:var(--seal); background:var(--gold-soft); opacity:0.92;}
+  #live-cat-list .group-card.active-cat .gc-name{color:#7A5E12;}
+
+  /* ---------- লাইভ রুটিন day cards ---------- */
+  .routine-progress-bar-wrap{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px;}
+  .routine-progress-top{display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:var(--ink); margin-bottom:8px;}
+  .routine-progress-track{background:var(--paper-deep); border-radius:20px; height:8px; overflow:hidden;}
+  .routine-progress-fill{background:var(--success); height:100%; border-radius:20px;}
+  .routine-day-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 14px; margin-bottom:9px;}
+  .routine-day-card.done{background:var(--success-bg); border-color:var(--success);}
+  .rd-top{display:flex; align-items:flex-start; gap:10px;}
+  .rd-check{background:none; border:none; font-size:19px; cursor:pointer; flex-shrink:0; padding:0; line-height:1.4;}
+  .rd-title{font-size:13.5px; color:var(--ink); line-height:1.4;}
+  .rd-tasks{font-size:12px; color:var(--ink-soft); margin-top:6px; margin-left:29px; line-height:1.5;}
+  .rd-exam-btn{
+    display:block; width:calc(100% - 29px); margin:10px 0 0 29px; background:var(--paper-deep); border:1px solid var(--line);
+    border-radius:10px; padding:9px 12px; font-size:12px; font-weight:700; color:var(--seal); cursor:pointer; text-align:left; font-family:'Noto Sans Bengali';
+  }
+
+  /* ---------- Topic job solution — subject card (redesigned) ---------- */
+  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
+  .tj-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .tj-name{font-size:15px; font-weight:700; color:var(--ink);}
+  .tj-like{display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink-faint); cursor:pointer; padding:4px; font-family:'Space Mono',monospace;}
+  .tj-like .tj-heart{font-size:15px; line-height:1; transition:transform .15s ease;}
+  .tj-like.on .tj-heart{transform:scale(1.12);}
+  .tj-like:active .tj-heart{transform:scale(0.85);}
+  .tj-mid{display:flex; align-items:center; gap:14px; margin-bottom:14px;}
+  .tj-ring{flex-shrink:0; width:64px; height:64px; position:relative;}
+  .tj-ring svg{width:64px; height:64px; transform:rotate(-90deg);}
+  .tj-ring circle{fill:none; stroke-width:6;}
+  .tj-ring .tj-ring-bg{stroke:var(--paper-deep);}
+  .tj-ring .tj-ring-fg{stroke:var(--seal); stroke-linecap:round; transition:stroke-dashoffset .4s ease;}
+  .tj-ring-label{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:var(--ink-soft); font-family:'Space Mono',monospace; text-align:center; line-height:1.25;}
+  .tj-stats{flex:1; min-width:0;}
+  .tj-stat-row{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0;}
+  .tj-stat-row span:first-child{color:var(--ink-faint);}
+  .tj-stat-row span:last-child{color:var(--ink); font-weight:700; font-family:'Space Mono',monospace;}
+  .tj-actions{display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px;}
+  .tj-action-btn{
+    background:var(--paper-deep); border:none; border-radius:10px; padding:9px 4px;
+    font-size:11px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali'; text-align:center; line-height:1.35;
+  }
+  .tj-action-btn:active{transform:scale(0.96);}
+  .tj-action-btn.primary{background:var(--seal); color:#fff;}
+
   /* ---------- Smart practice card ---------- */
   .smart-practice-card{
     background:var(--seal); color:#fff; border-radius:16px; padding:16px;
@@ -380,11 +485,14 @@
     border-radius:11px; font-weight:600; font-size:14.5px; cursor:pointer; margin-top:16px; font-family:'Noto Sans Bengali';
   }
   .auth-switch{text-align:center; font-size:12.5px; color:var(--ink-faint); margin-top:16px;}
+  .auth-or-divider{display:flex; align-items:center; gap:12px; margin:22px 0 14px; color:var(--ink-faint); font-size:12px;}
+  .auth-or-divider::before, .auth-or-divider::after{content:''; flex:1; height:1px; background:var(--border-soft, #e5e0d6);}
   .auth-switch a{color:var(--seal); font-weight:600; cursor:pointer;}
   .profile-card{
-    display:flex; align-items:center; gap:14px;
+    display:flex; align-items:center; gap:14px; position:relative;
     background:var(--navy-deep); border-radius:18px; padding:18px 16px; color:#fff;
   }
+  .profile-eyebrow{position:absolute; top:9px; left:16px; font-family:'Space Mono',monospace; font-size:8.5px; letter-spacing:2.5px; color:var(--gold-soft); text-transform:uppercase;}
   .profile-avatar{
     width:48px; height:48px; border-radius:50%; background:var(--seal);
     display:flex; align-items:center; justify-content:center; font-family:'Noto Serif Bengali',serif;
@@ -392,14 +500,26 @@
   }
   .profile-name{font-family:'Noto Serif Bengali',serif; font-size:16px;}
   .profile-phone{font-family:'Space Mono',monospace; font-size:11.5px; color:#9AA4BE; margin-top:2px;}
+  .profile-roll{font-family:'Space Mono',monospace; font-size:10px; color:var(--gold-soft); margin-top:3px; letter-spacing:0.5px;}
   .profile-logout{
     margin-left:auto; background:rgba(255,255,255,0.1); color:#fff; border:none;
     padding:8px 12px; border-radius:9px; font-size:11.5px; cursor:pointer; flex-shrink:0; font-family:'Noto Sans Bengali';
   }
+  .profile-stats-strip{display:flex; background:var(--card); border:1px solid var(--line); border-radius:16px; margin-top:10px; overflow:hidden;}
+  .profile-stats-strip>div{flex:1; text-align:center; padding:14px 8px;}
+  .profile-stats-strip>div:first-child{border-right:1px solid var(--line);}
+  .switch{position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch .slider{position:absolute; cursor:pointer; inset:0; background:#d9dde5; transition:.2s; border-radius:24px;}
+  .switch .slider::before{position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,0.2);}
+  .switch input:checked + .slider{background:var(--seal, #1f6feb);}
+  .switch input:checked + .slider::before{transform:translateX(18px);}
+  .profile-stats-strip b{display:block; font-family:'Space Mono',monospace; font-size:17px; color:var(--ink); margin-bottom:2px;}
+  .profile-stats-strip span{font-size:10.5px; color:var(--ink-faint);}
   .streak-card{
     display:flex; align-items:center; gap:12px;
     background:linear-gradient(135deg,#FFF4E0 0%,var(--paper-deep) 100%);
-    border:1px solid var(--gold, #C9973B); border-radius:16px; padding:14px 16px; margin-top:12px;
+    border:1px solid var(--gold, #C9973B); border-radius:16px; padding:14px 16px; margin-top:10px;
   }
   .streak-flame{font-size:26px; line-height:1;}
   .streak-num{font-size:14px; font-weight:700; color:var(--ink);}
@@ -417,6 +537,11 @@
   .ph-item .title{font-size:13.5px; color:var(--ink); font-weight:600;}
   .ph-item .score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700; flex-shrink:0;}
   .ph-item .meta{font-size:11px; color:var(--ink-faint); margin-top:5px;}
+  .ph-hint{font-size:11px; color:var(--ink-faint); margin-bottom:8px;}
+  .ph-more-btn{
+    width:100%; background:var(--paper-deep); border:1px solid var(--line); color:var(--ink-soft);
+    border-radius:12px; padding:11px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';
+  }
 
   .subj-stat{
     background:var(--card); border:1px solid var(--line); border-radius:13px;
@@ -628,6 +753,33 @@
   .merit-name{flex:1; font-size:13.5px;}
   .merit-score{font-family:'Space Mono',monospace; font-size:13px; color:var(--success); font-weight:700;}
 
+  /* ---------- Leaderboard podium ---------- */
+  .lb-podium{display:flex; align-items:flex-end; justify-content:center; gap:10px; padding:6px 0 18px;}
+  .lb-p-col{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .lb-p-avatar{border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif Bengali',serif; font-weight:700; background:var(--paper-deep); border:2px solid var(--line); color:var(--ink-soft);}
+  .lb-p-col.gold .lb-p-avatar{width:54px; height:54px; font-size:18px; background:#FFF3DC; border-color:var(--gold);color:var(--seal-deep);}
+  .lb-p-col.silver .lb-p-avatar{width:44px; height:44px; font-size:15px;}
+  .lb-p-col.bronze .lb-p-avatar{width:44px; height:44px; font-size:15px; background:var(--wrong-bg); border-color:#D9A79F; color:var(--seal);}
+  .lb-p-name{font-size:11.5px; font-weight:700; color:var(--ink);}
+  .lb-p-score{font-family:'Space Mono',monospace; font-size:10.5px; color:var(--ink-faint);}
+  .lb-p-col.gold .lb-p-score{color:var(--gold); font-weight:700; font-size:11.5px;}
+  .lb-p-stand{border-radius:8px 8px 0 0; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-weight:700; color:var(--ink-soft);}
+  .lb-p-col.gold .lb-p-stand{width:58px; height:52px; background:#FFF3DC; border:1px solid var(--gold-soft);}
+  .lb-p-col.silver .lb-p-stand{width:52px; height:38px; background:var(--card); border:1px solid var(--line);}
+  .lb-p-col.bronze .lb-p-stand{width:52px; height:30px; background:var(--card); border:1px solid var(--line);}
+  .lb-row{display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--card); border-bottom:1px solid var(--paper-deep);}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-row-rank{font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-faint); width:18px; flex-shrink:0;}
+  .lb-row-avatar{width:28px; height:28px; border-radius:50%; background:var(--paper-deep); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--ink-soft); flex-shrink:0;}
+  .lb-row-name{flex:1; font-size:12.5px; color:var(--ink);}
+  .lb-row-score{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft);}
+  .lb-list-wrap{border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  .lb-row.me{background:#FFF3DC;}
+  .lb-row.me .lb-row-rank{color:var(--seal-deep); font-weight:700;}
+  .lb-row.me .lb-row-avatar{background:var(--gold); color:#fff;}
+  .lb-row.me .lb-row-name, .lb-row.me .lb-row-score{color:var(--seal-deep); font-weight:700;}
+  .lb-gap-note{margin-top:10px; font-size:11px; color:var(--ink-faint); text-align:center;}
+
   /* ---------- Achievements / badges ---------- */
   .badge-summary{font-size:12.5px; color:var(--ink-faint); padding:0 0 14px;}
   .badge-group-title{font-family:'Noto Serif Bengali',serif; font-size:14px; color:var(--ink); margin:16px 0 10px;}
@@ -673,7 +825,75 @@
 
   ::-webkit-scrollbar{width:0;}
   @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+
+  /* ---------- Hamburger + Side menu ---------- */
+  .hamburger-btn{background:none; border:none; padding:4px 6px; cursor:pointer; display:flex; align-items:center;}
+  .hamburger-btn svg{width:22px; height:22px; stroke:var(--ink);}
+  .side-menu-overlay{
+    position:fixed; inset:0; background:rgba(16,24,44,0.45); z-index:80;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+    display:flex; justify-content:center;
+  }
+  .side-menu-overlay.active{opacity:1; pointer-events:auto;}
+  .side-menu-panel{
+    position:absolute; left:0; top:0; bottom:0; width:82%; max-width:340px;
+    background:var(--card); box-shadow:2px 0 24px rgba(0,0,0,0.18);
+    transform:translateX(-100%); transition:transform .22s ease;
+    overflow-y:auto; padding-bottom:24px;
+  }
+  .side-menu-overlay.active .side-menu-panel{transform:translateX(0);}
+  .sm-head{padding:22px 18px 16px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center;}
+  .sm-avatar{width:48px; height:48px; border-radius:50%; background:var(--paper-deep); display:flex; align-items:center; justify-content:center; font-size:20px; overflow:hidden; flex-shrink:0;}
+  .sm-avatar img{width:100%; height:100%; object-fit:cover;}
+  .sm-name{font-weight:700; font-size:15px; color:var(--ink);}
+  .sm-sub{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
+  .sm-group{padding:8px 0;}
+  .sm-group + .sm-group{border-top:1px solid var(--line);}
+  .sm-item{
+    display:flex; align-items:center; gap:14px; padding:12px 18px;
+    font-size:14px; color:var(--ink); cursor:pointer; background:none; border:none; width:100%; text-align:left;
+  }
+  .sm-item:active{background:var(--paper-deep);}
+  .sm-item .sm-ic{width:20px; text-align:center; font-size:16px; flex-shrink:0;}
+  .sm-item .sm-soon{margin-left:auto; font-size:9.5px; background:var(--gold-soft); color:#7A5E12; padding:2px 7px; border-radius:20px; font-weight:700;}
+
+  /* ---------- Categorized section cards (Exam/Study/Premium) ---------- */
+  .cat-section-bar{
+    background:var(--seal); color:#fff; text-align:center; font-weight:700; font-size:14px;
+    padding:10px; border-radius:12px; margin:22px 0 12px;
+  }
+  .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .cat-tile{
+    position:relative; display:flex; align-items:center; gap:9px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:12px 10px; font-size:12.5px; font-weight:600; color:var(--ink);
+    cursor:pointer; min-height:48px;
+  }
+  .cat-tile:active{background:var(--paper-deep);}
+  .cat-tile .ct-ic{font-size:17px; flex-shrink:0; width:22px; text-align:center;}
+  .cat-tile .ct-dot{position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--seal);}
+  .cat-tile .ct-badge{position:absolute; top:6px; right:6px; font-size:8.5px; background:var(--gold-soft); color:#7A5E12; padding:1px 6px; border-radius:20px; font-weight:700;}
+
+  /* ---------- Packages screen ---------- */
+  .pkg-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
+  .pkg-title{font-weight:700; font-size:14.5px; margin-bottom:4px;}
+  .pkg-meta{font-size:11.5px; color:var(--ink-faint); margin-bottom:8px;}
+  .pkg-price-row{display:flex; align-items:baseline; gap:8px; margin-bottom:4px;}
+  .pkg-price{font-size:19px; font-weight:800; color:var(--seal); font-family:'Space Mono',monospace;}
+  .pkg-old-price{font-size:12.5px; color:var(--ink-faint); text-decoration:line-through;}
+  .pkg-save{font-size:11px; color:var(--success); font-weight:700; margin-bottom:10px;}
+  .pkg-buy-btn{width:100%; background:var(--seal); color:#fff; border:none; border-radius:10px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer;}
+  .pkg-note{font-size:11px; color:var(--ink-faint); text-align:center; margin-top:14px; line-height:1.6;}
+
+  /* ---------- Simple toast ---------- */
+  .eh-toast{
+    position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px);
+    background:var(--navy-deep); color:#fff; font-size:12.5px; padding:10px 16px; border-radius:30px;
+    z-index:200; opacity:0; pointer-events:none; transition:all .22s ease; max-width:80%; text-align:center;
+  }
+  .eh-toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -682,6 +902,9 @@
   <!-- ============ TOPBAR ============ -->
   <div class="topbar">
     <div class="brand">
+      <button class="hamburger-btn" onclick="openSideMenu()" title="মেনু">
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 21V7a2 2 0 0 1 2-2h6l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M12 5v6h6"/></svg>
       </div>
@@ -690,8 +913,44 @@
         <div class="sub">কঠিন প্রস্তুতি · সহজ জয়</div>
       </div>
     </div>
-    <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="live-pill"><span class="live-dot"></span> লাইভ চলছে</div>
+      <button id="theme-toggle-btn" onclick="toggleTheme()" style="background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; line-height:1;" title="ডার্ক/লাইট মোড">🌙</button>
+    </div>
   </div>
+
+  <!-- ============ SIDE MENU ============ -->
+  <div class="side-menu-overlay" id="side-menu-overlay" onclick="if(event.target===this) closeSideMenu()">
+    <div class="side-menu-panel">
+      <div class="sm-head">
+        <div class="sm-avatar" id="sm-avatar">👤</div>
+        <div>
+          <div class="sm-name" id="sm-name">অতিথি</div>
+          <div class="sm-sub" id="sm-sub">লগইন করা নেই</div>
+        </div>
+      </div>
+      <div class="sm-group">
+        <button class="sm-item" onclick="closeSideMenu(); goScreen('history');"><span class="sm-ic">👤</span>প্রোফাইল</button>
+        <button class="sm-item" onclick="closeSideMenu(); goScreen('perf-stats');"><span class="sm-ic">📊</span>পারফরম্যান্স স্ট্যাটিসটিক্স</button>
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">➕</span>রেফারেল<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); goScreen('packages');"><span class="sm-ic">📦</span>প্যাকেজসমূহ</button>
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">🏪</span>বুক স্টোর<span class="sm-soon">শীঘ্রই</span></button>
+      </div>
+      <div class="sm-group">
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">🧑‍🏫</span>আমাদের উপদেষ্টা<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">❓</span>জিজ্ঞাসা (FAQ)<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">ℹ️</span>আমাদের সম্পর্কে<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">📞</span>যোগাযোগ<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); ehToast('শীঘ্রই আসছে');"><span class="sm-ic">📄</span>শর্তাবলী<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); toggleTheme();"><span class="sm-ic">⚙️</span>সেটিংস (থিম)</button>
+      </div>
+      <div class="sm-group">
+        <button class="sm-item" id="sm-logout-item" style="display:none; color:var(--seal);" onclick="closeSideMenu(); doUserLogout();"><span class="sm-ic">↩️</span>লগআউট</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="eh-toast" id="eh-toast"></div>
 
   <!-- ============ HOME SCREEN ============ -->
   <div class="screen active" id="screen-home">
@@ -728,18 +987,54 @@
       <div class="dq-arrow">→</div>
     </div>
 
+    <div class="topic-spotlight-card" onclick="goHomeTopicSolution()">
+      <div class="ts-head">
+        <div class="ts-icon">🗂️</div>
+        <div style="flex:1;">
+          <div class="ts-title">টপিকভিত্তিক জব সলুশন <span class="ts-badge">নতুন</span></div>
+          <div class="ts-sub">প্রতিটা টপিক ধরে ধরে প্রশ্ন, উৎস ট্যাগ ও কুইজসহ</div>
+        </div>
+      </div>
+      <div class="ts-chips" id="home-topic-chips"><div class="loading-note" style="font-size:11px;">লোড হচ্ছে...</div></div>
+    </div>
+
+    <div class="cat-section-bar">Exam Section</div>
+    <div class="cat-grid">
+      <div class="cat-tile" onclick="goScreen('live')"><span class="ct-ic">🎯</span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goRoutineScreen()"><span class="ct-ic">🗓️</span><span>লাইভ রুটিন</span></div>
+      <div class="cat-tile" onclick="startDailyQuiz()"><span class="ct-ic">🎁</span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic">🏛️</span><span>মন্ত্রণালয় অনুযায়ী পরীক্ষা</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('subject');"><span class="ct-ic">📘</span><span>বিষয়ভিত্তিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" onclick="goHomeTopicSolution()"><span class="ct-ic">🗂️</span><span>টপিকভিত্তিক জব সলুশন</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-ic">⚔️</span><span>ডুয়েল মোড</span></div>
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-ic">📖</span><span>রিডিং লিস্ট</span></div>
+      <div class="cat-tile" onclick="openLeaderboard()"><span class="ct-ic">🏆</span><span>র‍্যাংকিং</span></div>
+    </div>
+
+    <div class="cat-section-bar">Study Section</div>
+    <div class="cat-grid">
+      <div class="cat-tile" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">⭐</span><span>বুকমার্ক</span></div>
+      <div class="cat-tile" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-ic">❌</span><span>ভুল প্রশ্ন রিভিশন</span></div>
+      <div class="cat-tile" onclick="goScreen('perf-stats')"><span class="ct-ic">📊</span><span>পারফরম্যান্স স্ট্যাটিসটিক্স</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">▶️</span><span>ভিডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">📄</span><span>পিডিএফ সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔊</span><span>অডিও সেকশন</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🏪</span><span>বুক স্টোর</span><span class="ct-badge">শীঘ্রই</span></div>
+    </div>
+
+    <div class="cat-section-bar">Premium Section</div>
+    <div class="cat-grid">
+      <div class="cat-tile" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic">🗂️</span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
+      <div class="cat-tile" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-ic">❤️</span><span>সেন্ট্রাল ফেভারিট</span></div>
+      <div class="cat-tile" onclick="goScreen('history')"><span class="ct-ic">✅</span><span>সেন্ট্রাল রেজাল্ট</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🗄️</span><span>সেন্ট্রাল আর্কাইভ</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">🔍</span><span>স্মার্ট সার্চ</span><span class="ct-badge">শীঘ্রই</span></div>
+      <div class="cat-tile" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-ic">💡</span><span>কুইজ মাস্টার</span><span class="ct-badge">শীঘ্রই</span></div>
+    </div>
+
     <div id="home-circulars-wrap" style="display:none;">
       <div class="sec-head"><h2>সার্কুলার ক্যালেন্ডার</h2></div>
       <div class="circular-scroll" id="home-circulars-list"><div class="loading-note">লোড হচ্ছে...</div></div>
-    </div>
-
-    <div id="home-perf-widget" style="display:none;">
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>আপনার পারফরম্যান্স</h2><a onclick="goScreen('history')">বিস্তারিত →</a></div>
-      <div id="home-perf-empty" class="empty-note" style="display:none;">একটি পরীক্ষা দিলে এখানে আপনার বিষয়ভিত্তিক ফলাফল দেখাবে।</div>
-      <div id="home-perf-list"></div>
-      <button class="revision-trigger" id="home-revision-trigger-btn" style="display:none;" onclick="openRevision()">
-        🎯 <span id="home-revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
-      </button>
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
@@ -750,7 +1045,24 @@
   <!-- ============ LIVE EXAM SCREEN ============ -->
   <div class="screen" id="screen-live">
     <div class="sec-head" style="margin-top:4px;"><h2>লাইভ পরীক্ষাসমূহ</h2></div>
+    <div id="live-cat-list" style="margin-bottom:16px;"></div>
     <div id="live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ LIVE ROUTINE SCREEN ============ -->
+  <div class="screen" id="screen-routine">
+    <button class="model-back" onclick="goScreen('home')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2>লাইভ রুটিন</h2></div>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">পরিকল্পিত প্ল্যান অনুযায়ী দিন ধরে ধরে প্রস্তুতি নিন</p>
+    <div id="routine-cat-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+  </div>
+
+  <!-- ============ LIVE ROUTINE — DAY LIST SCREEN ============ -->
+  <div class="screen" id="screen-routine-days">
+    <button class="model-back" onclick="goScreen('routine')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2 id="routine-days-title">রুটিন</h2></div>
+    <p id="routine-days-subtitle" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;"></p>
+    <div id="routine-days-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
   <!-- ============ MODEL TEST SCREEN ============ -->
@@ -781,7 +1093,24 @@
         <input class="auth-input" id="li-pass" type="password" placeholder="পাসওয়ার্ড">
         <div class="auth-err" id="login-err"></div>
         <button class="auth-btn" onclick="doUserLogin()">লগইন করুন</button>
+        <p class="auth-switch">পাসওয়ার্ড মনে নেই? <a onclick="showAuthForm('login-otp')">OTP দিয়ে লগইন করুন</a></p>
         <p class="auth-switch">অ্যাকাউন্ট নেই? <a onclick="showAuthForm('register')">রেজিস্ট্রেশন করুন</a></p>
+      </div>
+
+      <div id="login-otp-form" style="display:none;">
+        <label class="auth-label">মোবাইল নম্বর</label>
+        <input class="auth-input" id="lo-phone" placeholder="01XXXXXXXXX">
+
+        <div id="lo-otp-group" style="display:none;">
+          <label class="auth-label">মোবাইলে পাঠানো OTP কোড</label>
+          <input class="auth-input" id="lo-otp" inputmode="numeric" maxlength="6" placeholder="৬ ডিজিটের কোড">
+          <p id="lo-resend-note" style="font-size:11.5px; color:var(--ink-faint); margin-top:8px;"></p>
+        </div>
+
+        <div class="auth-err" id="login-otp-err"></div>
+        <button class="auth-btn" id="lo-send-otp-btn" onclick="sendLoginOtp()">OTP পাঠান</button>
+        <button class="auth-btn" id="lo-verify-btn" style="display:none;" onclick="doLoginOtp()">ভেরিফাই করে লগইন করুন</button>
+        <p class="auth-switch">পাসওয়ার্ড দিয়ে লগইন করবেন? <a onclick="showAuthForm('login')">লগইন করুন</a></p>
       </div>
 
       <div id="register-form" style="display:none;">
@@ -803,16 +1132,27 @@
         <button class="auth-btn" id="rg-verify-btn" style="display:none;" onclick="doRegister()">ভেরিফাই করে রেজিস্ট্রেশন সম্পন্ন করুন</button>
         <p class="auth-switch">আগে থেকেই অ্যাকাউন্ট আছে? <a onclick="showAuthForm('login')">লগইন করুন</a></p>
       </div>
+
+      <div class="auth-or-divider"><span>অথবা</span></div>
+      <div id="g_id_signin_wrap" style="display:flex; justify-content:center; margin-bottom:6px;"></div>
+      <div class="auth-err" id="google-auth-err" style="text-align:center;"></div>
     </div>
 
     <div id="auth-profile" style="display:none;">
       <div class="profile-card">
+        <span class="profile-eyebrow">Member ID</span>
         <div class="profile-avatar" id="profile-initial">এ</div>
         <div>
           <div class="profile-name" id="profile-name">—</div>
           <div class="profile-phone" id="profile-phone">—</div>
+          <div class="profile-roll" id="profile-roll"></div>
         </div>
         <button class="profile-logout" onclick="doUserLogout()">লগআউট</button>
+      </div>
+
+      <div class="profile-stats-strip">
+        <div><b id="profile-stat-exams">০</b><span>মোট পরীক্ষা</span></div>
+        <div><b id="profile-stat-correct">০</b><span>সঠিক উত্তর</span></div>
       </div>
 
       <div class="streak-card" id="profile-streak-card" style="display:none;">
@@ -822,10 +1162,6 @@
           <div class="streak-best">সর্বোচ্চ: <span id="profile-streak-best">০</span> দিন</div>
         </div>
       </div>
-
-      <button class="revision-trigger" id="revision-trigger-btn" style="display:none;" onclick="openRevision()">
-        🎯 <span id="revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
-      </button>
 
       <button class="revision-trigger" id="bookmark-trigger-btn" style="display:none; background:var(--gold);" onclick="openBookmarks()">
         ⭐ <span id="bookmark-trigger-label">আমার বুকমার্ক</span>
@@ -839,15 +1175,72 @@
         🎖️ <span id="achievements-trigger-label">অর্জন দেখুন</span>
       </button>
 
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
-      <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
-      <div id="subject-stats-list"></div>
+      <button class="revision-trigger" id="notify-trigger-btn" style="background:#3a4a6b;" onclick="openNotifySettings()">
+        🔔 <span>নোটিফিকেশন সেটিংস</span>
+      </button>
 
-      <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার ফলাফল</h2></div>
-      <div id="profile-trend-chart-wrap" style="display:none; margin-bottom:16px;"></div>
+      <button class="revision-trigger" style="background:#3a4a6b;" onclick="goScreen('perf-stats')">
+        📊 <span>পারফরম্যান্স স্ট্যাটিসটিক্স দেখুন</span>
+      </button>
+
+      <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার পরীক্ষার তালিকা</h2></div>
       <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
       <div id="profile-history-list"></div>
     </div>
+  </div>
+
+  <!-- ============ PERFORMANCE STATISTICS SCREEN ============ -->
+  <div class="screen" id="screen-perf-stats">
+    <button class="model-back" onclick="goScreen('history')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2>পারফরম্যান্স স্ট্যাটিসটিক্স</h2></div>
+
+    <button class="revision-trigger" id="revision-trigger-btn" style="display:none;" onclick="openRevision()">
+      🎯 <span id="revision-trigger-label">ভুল প্রশ্ন থেকে প্র্যাকটিস করুন</span>
+    </button>
+
+    <div class="sec-head" style="margin:22px 0 12px;"><h2>বিষয়ভিত্তিক পারফরম্যান্স</h2></div>
+    <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
+    <div id="subject-stats-list"></div>
+
+    <div class="sec-head" style="margin:22px 0 12px;"><h2>পরীক্ষার প্রবণতা</h2></div>
+    <div id="profile-trend-chart-wrap" style="display:none; margin-bottom:16px;"></div>
+  </div>
+
+  <!-- ============ PACKAGES SCREEN ============ -->
+  <div class="screen" id="screen-packages">
+    <button class="model-back" onclick="goScreen('home')">← পেছনে</button>
+    <div class="sec-head" style="margin-top:4px;"><h2>প্রিমিয়াম প্যাকেজ</h2></div>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">সকল লাইভ + আর্কাইভ পরীক্ষা, ক্লাস ও প্রিমিয়াম সার্ভিস</p>
+
+    <div class="pkg-card">
+      <div class="pkg-title">৪ বছর মেয়াদী স্বাধীন প্যাকেজ</div>
+      <div class="pkg-meta">মেয়াদ: ৪ বছর</div>
+      <div class="pkg-price-row"><span class="pkg-price">৳২৯৯৯</span><span class="pkg-old-price">৳৫৯৯৬</span></div>
+      <div class="pkg-save">৪৯.৯৮% সাশ্রয়</div>
+      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
+    </div>
+    <div class="pkg-card">
+      <div class="pkg-title">৩ বছর মেয়াদী স্বাধীন প্যাকেজ</div>
+      <div class="pkg-meta">মেয়াদ: ৩ বছর</div>
+      <div class="pkg-price-row"><span class="pkg-price">৳২৫৯৯</span><span class="pkg-old-price">৳৪৪৯৭</span></div>
+      <div class="pkg-save">৪২.২১% সাশ্রয়</div>
+      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
+    </div>
+    <div class="pkg-card">
+      <div class="pkg-title">২ বছর মেয়াদী স্বাধীন প্যাকেজ <span style="color:var(--gold); font-size:11px;">জনপ্রিয়</span></div>
+      <div class="pkg-meta">মেয়াদ: ২ বছর</div>
+      <div class="pkg-price-row"><span class="pkg-price">৳১৯৯৯</span><span class="pkg-old-price">৳২৯৯৮</span></div>
+      <div class="pkg-save">৩৩.৩২% সাশ্রয়</div>
+      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
+    </div>
+    <div class="pkg-card">
+      <div class="pkg-title">বার্ষিক প্যাকেজ <span style="color:var(--gold); font-size:11px;">জনপ্রিয়</span></div>
+      <div class="pkg-meta">মেয়াদ: ১ বছর</div>
+      <div class="pkg-price-row"><span class="pkg-price">৳১৪৯৯</span><span class="pkg-old-price">৳২৩৮৮</span></div>
+      <div class="pkg-save">৩৭.২৭% সাশ্রয়</div>
+      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
+    </div>
+    <div class="pkg-note">প্যাকেজ মূল্য নমুনা হিসেবে দেখানো হয়েছে। সরাসরি পেমেন্ট (bKash/Nagad) যুক্ত হলে এখান থেকেই কেনা যাবে।</div>
   </div>
 
   <!-- ============ BOTTOM NAV ============ -->
@@ -982,6 +1375,16 @@
     <div class="exam-body" id="bookmark-body" style="padding-bottom:40px;"></div>
   </div>
 
+  <!-- ============ NOTIFICATION SETTINGS OVERLAY ============ -->
+  <div class="exam-overlay" id="notify-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeNotifySettings()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">নোটিফিকেশন সেটিংস</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="notify-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
   <!-- ============ ARCHIVE OVERLAY ============ -->
   <div class="archive-overlay" id="archive-overlay">
     <div class="archive-top">
@@ -996,6 +1399,10 @@
 <script>
   // Backend is served from this same origin
   const API_BASE = '';
+  // Paste the same OAuth 2.0 Web Client ID configured on the backend
+  // (GOOGLE_CLIENT_ID env var) here. This value is public — it identifies
+  // the app to Google, it isn't a secret — so it's fine to hardcode.
+  const GOOGLE_CLIENT_ID = '406086948373-apu714vc11jkrv3igm8riupduvm32rua.apps.googleusercontent.com';
 
   // ---------- Back-button / history support ----------
   // The app never used to push history entries, so on mobile the very
@@ -1009,6 +1416,26 @@
     const bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
     return String(str).replace(/[0-9]/g, d=>bn[d]);
   }
+
+  // ---------- Dark mode ----------
+  // The actual attribute is already set (or not) by the tiny blocking script
+  // in <head>, before first paint — this just keeps the toggle button's icon
+  // in sync and handles the click.
+  function currentTheme(){
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+  function syncThemeButton(){
+    const btn = document.getElementById('theme-toggle-btn');
+    if(btn) btn.textContent = currentTheme() === 'dark' ? '☀️' : '🌙';
+  }
+  function toggleTheme(){
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    if(next === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('eh_theme', next);
+    syncThemeButton();
+  }
+  syncThemeButton();
   // Escapes text before it's inserted via innerHTML, so a user-entered name,
   // question, or explanation can never be interpreted as HTML/script (XSS fix).
   function escapeHtml(str){
@@ -1056,11 +1483,14 @@
 
   function showAuthForm(which){
     document.getElementById('login-form').style.display = which==='login' ? 'block' : 'none';
+    document.getElementById('login-otp-form').style.display = which==='login-otp' ? 'block' : 'none';
     document.getElementById('register-form').style.display = which==='register' ? 'block' : 'none';
-    document.getElementById('auth-heading').textContent = which==='login' ? 'লগইন করুন' : 'রেজিস্ট্রেশন করুন';
+    document.getElementById('auth-heading').textContent = which==='register' ? 'রেজিস্ট্রেশন করুন' : 'লগইন করুন';
     document.getElementById('login-err').textContent = '';
+    document.getElementById('login-otp-err').textContent = '';
     document.getElementById('register-err').textContent = '';
     resetRegisterOtp();
+    resetLoginOtp();
   }
 
   async function doUserLogin(){
@@ -1076,6 +1506,121 @@
       renderProfile();
     }catch(e){ err.textContent = e.message; }
   }
+
+  // ---------- Passwordless login via OTP ----------
+  let LOGIN_OTP_TIMER = null;
+
+  function resetLoginOtp(){
+    if(LOGIN_OTP_TIMER) clearInterval(LOGIN_OTP_TIMER);
+    LOGIN_OTP_TIMER = null;
+    document.getElementById('lo-otp-group').style.display = 'none';
+    document.getElementById('lo-send-otp-btn').style.display = 'block';
+    document.getElementById('lo-verify-btn').style.display = 'none';
+    document.getElementById('lo-otp').value = '';
+    document.getElementById('lo-resend-note').textContent = '';
+    document.getElementById('lo-phone').disabled = false;
+  }
+
+  function startLoginOtpCountdown(seconds){
+    const note = document.getElementById('lo-resend-note');
+    let remaining = seconds;
+    if(LOGIN_OTP_TIMER) clearInterval(LOGIN_OTP_TIMER);
+    const tick = ()=>{
+      if(remaining <= 0){
+        clearInterval(LOGIN_OTP_TIMER);
+        note.innerHTML = 'কোডের মেয়াদ শেষ হয়ে গেছে — <a onclick="resetLoginOtp()">আবার পাঠান</a>';
+        return;
+      }
+      const m = Math.floor(remaining/60), s = String(remaining%60).padStart(2,'0');
+      note.innerHTML = `কোডের মেয়াদ: ${m}:${s} — <a onclick="resetLoginOtp()">নম্বর ভুল হলে পরিবর্তন করুন</a>`;
+      remaining--;
+    };
+    tick();
+    LOGIN_OTP_TIMER = setInterval(tick, 1000);
+  }
+
+  async function sendLoginOtp(){
+    const err = document.getElementById('login-otp-err');
+    err.textContent = '';
+    const phone = document.getElementById('lo-phone').value.trim();
+    if(!phone){ err.textContent = 'মোবাইল নম্বর দিন'; return; }
+
+    const btn = document.getElementById('lo-send-otp-btn');
+    btn.disabled = true; btn.textContent = 'পাঠানো হচ্ছে...';
+    try{
+      const data = await apiPost('/api/auth/otp/send', { phone, purpose: 'login' });
+      document.getElementById('lo-phone').disabled = true;
+      document.getElementById('lo-otp-group').style.display = 'block';
+      btn.style.display = 'none';
+      document.getElementById('lo-verify-btn').style.display = 'block';
+      startLoginOtpCountdown((data.expires_in_minutes || 5) * 60);
+      if(data.dev_code){
+        // dev-mode only (no real SMS gateway configured yet)
+        err.textContent = 'টেস্ট মোড কোড: ' + data.dev_code;
+      }
+    }catch(e){
+      err.textContent = e.message;
+    }finally{
+      btn.disabled = false; btn.textContent = 'OTP পাঠান';
+    }
+  }
+
+  async function doLoginOtp(){
+    const err = document.getElementById('login-otp-err');
+    const code = document.getElementById('lo-otp').value.trim();
+    if(!code){ err.textContent = 'OTP কোড দিন'; return; }
+    err.textContent = '';
+    const btn = document.getElementById('lo-verify-btn');
+    btn.disabled = true; btn.textContent = 'যাচাই করা হচ্ছে...';
+    try{
+      const phone = document.getElementById('lo-phone').value.trim();
+      const data = await apiPost('/api/auth/login-otp', { phone, code });
+      USER_TOKEN = data.token; USER_INFO = data.user;
+      localStorage.setItem('eh_user_token', USER_TOKEN);
+      if(LOGIN_OTP_TIMER) clearInterval(LOGIN_OTP_TIMER);
+      renderProfile();
+    }catch(e){
+      err.textContent = e.message;
+    }finally{
+      btn.disabled = false; btn.textContent = 'ভেরিফাই করে লগইন করুন';
+    }
+  }
+
+  // ---------- Sign in with Google ----------
+  // Renders Google's own button (styled to match, via the `theme`/`shape`
+  // options below) inside #g_id_signin_wrap and handles the credential it
+  // returns. Runs once on page load; harmless no-op if GOOGLE_CLIENT_ID
+  // hasn't been set yet or the Google script failed to load (e.g. offline).
+  function initGoogleSignIn(){
+    if(GOOGLE_CLIENT_ID.startsWith('YOUR_') ) return; // not configured yet
+    if(typeof google === 'undefined' || !google.accounts) return; // script blocked/offline
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('g_id_signin_wrap'),
+      { type:'standard', theme:'outline', size:'large', text:'continue_with', shape:'pill', locale:'bn' }
+    );
+  }
+
+  async function handleGoogleCredential(response){
+    const err = document.getElementById('google-auth-err');
+    err.textContent = '';
+    try{
+      const data = await apiPost('/api/auth/google', { credential: response.credential });
+      USER_TOKEN = data.token; USER_INFO = data.user;
+      localStorage.setItem('eh_user_token', USER_TOKEN);
+      renderProfile();
+    }catch(e){ err.textContent = e.message; }
+  }
+  // The Google SDK tag in <head> loads with async, so it may not be ready
+  // the instant this inline script runs — poll briefly instead of assuming.
+  (function waitForGoogleSdk(retriesLeft){
+    if(typeof google !== 'undefined' && google.accounts){ initGoogleSignIn(); return; }
+    if(retriesLeft <= 0) return; // offline / blocked — button just won't appear
+    setTimeout(()=>waitForGoogleSdk(retriesLeft-1), 300);
+  })(20);
 
   // ---------- Registration with OTP verification ----------
   let REG_OTP_TIMER = null;
@@ -1175,10 +1720,8 @@
     document.getElementById('bookmark-trigger-btn').style.display = 'none';
     document.getElementById('auth-guest').style.display = 'block';
     document.getElementById('auth-profile').style.display = 'none';
-    document.getElementById('home-perf-widget').style.display = 'none';
     document.getElementById('home-streak-pill').style.display = 'none';
     document.getElementById('revision-trigger-btn').style.display = 'none';
-    document.getElementById('home-revision-trigger-btn').style.display = 'none';
     showAuthForm('login');
   }
 
@@ -1234,34 +1777,22 @@
       document.getElementById('auth-guest').style.display = 'none';
       document.getElementById('auth-profile').style.display = 'block';
       document.getElementById('profile-name').textContent = USER_INFO.name;
-      document.getElementById('profile-phone').textContent = USER_INFO.phone;
+      document.getElementById('profile-phone').textContent = USER_INFO.phone || USER_INFO.email || '';
+      document.getElementById('profile-roll').textContent = 'EH-' + String(USER_INFO.id).padStart(4, '0');
       document.getElementById('profile-initial').textContent = USER_INFO.name.trim()[0] || 'এ';
       applyStreakDisplay(USER_INFO.current_streak || 0, USER_INFO.longest_streak || 0);
 
       const history = await apiGetAuth('/api/results/me');
       renderTrendChart(history);
-      const empty = document.getElementById('profile-history-empty');
-      const list = document.getElementById('profile-history-list');
-      if(!history.length){ empty.style.display='block'; list.innerHTML=''; }
-      else{
-        empty.style.display='none';
-        list.innerHTML = history.map(h=>{
-          const total = h.correct_count + h.wrong_count + h.skipped_count;
-          return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
-            <div class="top"><span class="title">${escapeHtml(h.exam_title)}</span><span class="score">${h.score}%</span></div>
-            <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${h.exam_type==='live'?'লাইভ পরীক্ষা':'মডেল টেস্ট'} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')} · উত্তরপত্র দেখতে চাপুন</div>
-          </div>`;
-        }).join('');
-      }
+      document.getElementById('profile-stat-exams').textContent = toBnDigits(history.length);
+      document.getElementById('profile-stat-correct').textContent = toBnDigits(history.reduce((sum, h) => sum + h.correct_count, 0));
+      HISTORY_FULL_CACHE = history;
+      HISTORY_SHOWN_COUNT = HISTORY_PAGE_SIZE;
+      renderHistoryList();
 
       await renderSubjectStats([
         {listId:'subject-stats-list', emptyId:'subject-stats-empty'}
       ]);
-
-      document.getElementById('home-perf-widget').style.display = 'block';
-      await renderSubjectStats([
-        {listId:'home-perf-list', emptyId:'home-perf-empty', limit:2}
-      ], true);
 
       refreshRevisionTrigger();
       refreshBookmarkTrigger();
@@ -1270,6 +1801,47 @@
       // token expired/invalid — log out silently
       doUserLogout();
     }
+  }
+
+  // ---------- Result history list: type icon + colour-coded score + "আরও দেখুন" paging ----------
+  // Kept separate from renderProfile so "আরও দেখুন" can re-render without refetching.
+  let HISTORY_FULL_CACHE = [];
+  let HISTORY_SHOWN_COUNT = 0;
+  const HISTORY_PAGE_SIZE = 6;
+
+  function historyTypeInfo(h){
+    if(h.is_duel) return { icon:'⚔️', label:'ডুয়েল চ্যালেঞ্জ' };
+    if(h.is_daily) return { icon:'🎯', label:'আজকের কুইজ' };
+    if(h.is_practice) return { icon:'📖', label:'রিডিং/স্মার্ট প্র্যাকটিস' };
+    if(h.is_auto_subject || h.is_repeated_bank) return { icon:'📘', label:'বিষয়ভিত্তিক মডেল টেস্ট' };
+    if(h.exam_type === 'live') return { icon:'🔴', label:'লাইভ পরীক্ষা' };
+    return { icon:'📘', label:'মডেল টেস্ট' };
+  }
+
+  function renderHistoryList(){
+    const empty = document.getElementById('profile-history-empty');
+    const list = document.getElementById('profile-history-list');
+    const history = HISTORY_FULL_CACHE;
+    if(!history.length){ empty.style.display='block'; list.innerHTML=''; return; }
+    empty.style.display='none';
+
+    const shown = history.slice(0, HISTORY_SHOWN_COUNT);
+    const cards = shown.map(h=>{
+      const total = h.correct_count + h.wrong_count + h.skipped_count;
+      const pct = parseFloat(h.score);
+      const scoreColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
+      const type = historyTypeInfo(h);
+      return `<div class="ph-item" onclick="openReviewById(${h.id})" style="cursor:pointer;">
+        <div class="top"><span class="title">${type.icon} ${escapeHtml(h.exam_title)}</span><span class="score" style="color:${scoreColor};">${h.score}%</span></div>
+        <div class="meta">সঠিক ${toBnDigits(h.correct_count)}/${toBnDigits(total)} · ${type.label} · ${new Date(h.submitted_at).toLocaleDateString('bn-BD')}</div>
+      </div>`;
+    }).join('');
+
+    const moreBtn = history.length > HISTORY_SHOWN_COUNT
+      ? `<button class="ph-more-btn" onclick="HISTORY_SHOWN_COUNT += HISTORY_PAGE_SIZE; renderHistoryList();">আরও ${toBnDigits(Math.min(HISTORY_PAGE_SIZE, history.length - HISTORY_SHOWN_COUNT))}টি দেখুন</button>`
+      : '';
+
+    list.innerHTML = '<div class="ph-hint">যেকোনো ফলাফলে চাপলে উত্তরপত্র দেখা যাবে</div>' + cards + moreBtn;
   }
 
   // ---------- Bookmarks (save a question for later revision) ----------
@@ -1380,22 +1952,66 @@
     loadOverallLeaderboard();
   }
 
+  function lbInitial(name){
+    return (name || '?').trim().charAt(0) || '?';
+  }
+
   async function loadOverallLeaderboard(){
     const body = document.getElementById('leaderboard-body');
     body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
     try{
-      const rows = await apiGet('/api/results/leaderboard/overall');
+      const data = await apiGetAuth('/api/results/leaderboard/overall');
+      const rows = data.leaderboard || [];
+      const me = data.me || null;
       if(!rows.length){
         body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">এখনো কোনো র‍্যাংকিং তৈরি হয়নি — লগইন করে পরীক্ষা দিলে এখানে দেখাবে।</p>';
         return;
       }
       const myId = USER_INFO ? USER_INFO.id : null;
-      body.innerHTML = rows.map(r=>`
-        <div class="merit-item ${myId && r.user_id===myId ? 'me' : ''}">
-          <div class="merit-rank">${toBnDigits(r.rank)}</div>
-          <div class="merit-name">${escapeHtml(r.name)}<br><span style="font-size:10.5px; color:var(--ink-faint,#888);">${toBnDigits(r.exams_taken)}টি পরীক্ষা · গড় ${r.avg_score}%</span></div>
-          <div class="merit-score">${r.total_score}</div>
-        </div>`).join('');
+      const top3 = rows.slice(0, 3);
+      const rest = rows.slice(3);
+      const meInTop = myId && rows.some(r => r.user_id === myId);
+
+      let html = '';
+      if(top3.length === 3){
+        const order = [top3[1], top3[0], top3[2]]; // silver, gold, bronze visual order
+        const cls = ['silver', 'gold', 'bronze'];
+        html += '<div class="lb-podium">' + order.map((r, i) => `
+          <div class="lb-p-col ${cls[i]}">
+            <div class="lb-p-avatar">${escapeHtml(lbInitial(r.name))}</div>
+            <div class="lb-p-name">${escapeHtml(r.name)}</div>
+            <div class="lb-p-score">${r.total_score}</div>
+            <div class="lb-p-stand">${cls[i]==='gold' ? '<span style=\"font-size:18px;\">🏆</span>' : toBnDigits(r.rank)}</div>
+          </div>`).join('') + '</div>';
+      }
+
+      const listRows = top3.length === 3 ? rest : rows;
+      if(listRows.length){
+        html += '<div class="lb-list-wrap">' + listRows.map(r => `
+          <div class="lb-row ${myId && r.user_id===myId ? 'me' : ''}">
+            <span class="lb-row-rank">${toBnDigits(r.rank)}</span>
+            <span class="lb-row-avatar">${escapeHtml(lbInitial(r.name))}</span>
+            <span class="lb-row-name">${myId && r.user_id===myId ? 'আপনি' : escapeHtml(r.name)}<br><span style="font-size:10px; color:var(--ink-faint);">${toBnDigits(r.exams_taken)}টি পরীক্ষা</span></span>
+            <span class="lb-row-score">${r.total_score}</span>
+          </div>`).join('') + '</div>';
+      }
+
+      if(me && !meInTop){
+        html += '<div class="lb-list-wrap" style="margin-top:10px;"><div class="lb-row me">'
+          + `<span class="lb-row-rank">${toBnDigits(me.rank)}</span>`
+          + `<span class="lb-row-avatar">${escapeHtml(lbInitial(USER_INFO ? USER_INFO.name : me.name))}</span>`
+          + `<span class="lb-row-name">আপনি<br><span style="font-size:10px; color:var(--ink-faint);">${toBnDigits(me.exams_taken)}টি পরীক্ষা</span></span>`
+          + `<span class="lb-row-score">${me.total_score}</span>`
+          + '</div></div>';
+        if(me.next_rank_score != null){
+          const gap = (parseFloat(me.next_rank_score) - parseFloat(me.total_score)).toFixed(2);
+          if(gap > 0) html += `<div class="lb-gap-note">আর ${gap} নম্বর বেশি পেলে ${toBnDigits(me.rank - 1)}তম স্থানে উঠবেন</div>`;
+        }
+      } else if(!me && USER_TOKEN === null){
+        html += '<div class="lb-gap-note">লগইন করে পরীক্ষা দিলে এখানে আপনার নিজের অবস্থানও দেখাবে</div>';
+      }
+
+      body.innerHTML = html;
     }catch(e){
       body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
     }
@@ -1455,9 +2071,9 @@
       WRONG_QUESTIONS_CACHE = await apiGetAuth('/api/results/me/wrong-questions');
       const count = WRONG_QUESTIONS_CACHE.length;
       const label = count ? `ভুল প্রশ্ন থেকে প্র্যাকটিস করুন (${toBnDigits(count)}টি)` : '';
-      ['revision-trigger-btn','home-revision-trigger-btn'].forEach((btnId, idx)=>{
+      ['revision-trigger-btn'].forEach((btnId, idx)=>{
         const btn = document.getElementById(btnId);
-        const labelEl = document.getElementById(idx===0 ? 'revision-trigger-label' : 'home-revision-trigger-label');
+        const labelEl = document.getElementById('revision-trigger-label');
         if(count){ btn.style.display = 'flex'; labelEl.textContent = label; }
         else { btn.style.display = 'none'; }
       });
@@ -1486,20 +2102,23 @@
   async function renderSubjectStats(targets, useCache){
     try{
       if(!useCache || !SUBJ_STATS_CACHE) SUBJ_STATS_CACHE = await apiGetAuth('/api/results/me/subject-stats');
-      const subjStats = SUBJ_STATS_CACHE;
+      // Weakest subject first — this is the "where should I focus" view, so
+      // the subject needing the most work should be the first thing seen.
+      const withPct = SUBJ_STATS_CACHE.map(s => {
+        const answered = s.correct + s.wrong;
+        return { ...s, pct: answered ? Math.round((s.correct/answered)*100) : 0 };
+      }).sort((a, b) => a.pct - b.pct);
       targets.forEach(t=>{
         const sEmpty = document.getElementById(t.emptyId);
         const sList = document.getElementById(t.listId);
-        const rows = t.limit ? subjStats.slice(0, t.limit) : subjStats;
+        const rows = t.limit ? withPct.slice(0, t.limit) : withPct;
         if(!rows.length){ sEmpty.style.display='block'; sList.innerHTML=''; return; }
         sEmpty.style.display='none';
         sList.innerHTML = rows.map(s=>{
-          const answered = s.correct + s.wrong;
-          const pct = answered ? Math.round((s.correct/answered)*100) : 0;
-          const barColor = pct>=70 ? 'var(--success)' : (pct>=40 ? 'var(--gold)' : 'var(--wrong)');
+          const barColor = s.pct>=70 ? 'var(--success)' : (s.pct>=40 ? 'var(--gold)' : 'var(--wrong)');
           return `<div class="subj-stat">
-            <div class="subj-stat-top"><span>${s.subject}</span><span>${toBnDigits(pct)}% সঠিক</span></div>
-            <div class="subj-stat-bar"><div class="subj-stat-fill" style="width:${pct}%; background:${barColor};"></div></div>
+            <div class="subj-stat-top"><span>${s.subject}</span><span style="color:${barColor};">${toBnDigits(s.pct)}% সঠিক</span></div>
+            <div class="subj-stat-bar"><div class="subj-stat-fill" style="width:${s.pct}%; background:${barColor};"></div></div>
             <div class="subj-stat-meta">মোট ${toBnDigits(s.total)}টি প্রশ্ন · সঠিক ${toBnDigits(s.correct)} · ভুল ${toBnDigits(s.wrong)} · বাদ ${toBnDigits(s.skipped)}</div>
           </div>`;
         }).join('');
@@ -1507,6 +2126,37 @@
     }catch(e){
       // silent — home widget just won't show if this fails
     }
+  }
+
+  // ---------- Side menu ----------
+  function openSideMenu(){
+    const overlay = document.getElementById('side-menu-overlay');
+    if(USER_TOKEN && USER_INFO){
+      document.getElementById('sm-avatar').textContent = (USER_INFO.name||'এ').trim()[0] || '👤';
+      document.getElementById('sm-name').textContent = USER_INFO.name || 'ব্যবহারকারী';
+      document.getElementById('sm-sub').textContent = 'ID: EH-' + String(USER_INFO.id).padStart(4,'0');
+      document.getElementById('sm-logout-item').style.display = 'flex';
+    }else{
+      document.getElementById('sm-avatar').textContent = '👤';
+      document.getElementById('sm-name').textContent = 'অতিথি';
+      document.getElementById('sm-sub').textContent = 'লগইন করা নেই';
+      document.getElementById('sm-logout-item').style.display = 'none';
+    }
+    overlay.classList.add('active');
+    history.pushState({overlay:'side-menu'}, '', location.pathname);
+  }
+  function closeSideMenu(){
+    document.getElementById('side-menu-overlay').classList.remove('active');
+  }
+
+  // ---------- Toast ----------
+  let EH_TOAST_TIMER = null;
+  function ehToast(msg){
+    const el = document.getElementById('eh-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    if(EH_TOAST_TIMER) clearTimeout(EH_TOAST_TIMER);
+    EH_TOAST_TIMER = setTimeout(()=> el.classList.remove('show'), 1800);
   }
 
   // ---------- Navigation ----------
@@ -1517,8 +2167,11 @@
     document.getElementById('screen-'+name).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const navMap = {home:0, live:1, model:2, history:3};
-    document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
+    if(navMap[name] !== undefined){
+      document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
+    }
     if(name === 'history') renderProfile();
+    if(name === 'perf-stats') renderProfile();
     if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
     window.scrollTo(0,0);
     if(!SUPPRESS_HISTORY_PUSH){
@@ -1533,7 +2186,7 @@
   // the whole site. We just watch each overlay's "active" class rather
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
-    'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay'];
+    'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -1739,7 +2392,8 @@
     }
     if(MODEL_MODE === 'topic'){
       if(TOPIC_NAV.level === 'questions'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
-      else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; }
+      else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
+      else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -2021,6 +2675,7 @@
   async function renderTopicScreen(){
     if(TOPIC_NAV.level === 'topics'){ renderTopicListScreen(); return; }
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
+    if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
 
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -2033,7 +2688,7 @@
     if(!TOPIC_SUBJECTS_CACHE){
       listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
       try{
-        TOPIC_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects');
+        TOPIC_SUBJECTS_CACHE = await apiGetAuth('/api/questions/public/topic-job-subjects');
       }catch(err){
         listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
         return;
@@ -2045,17 +2700,161 @@
       return;
     }
 
-    listEl.innerHTML = TOPIC_SUBJECTS_CACHE.map(s=>`
-      <div class="group-card" onclick='openTopicSubject(${JSON.stringify(s.subject)})'>
-        <div class="gc-left">
-          <div class="gc-ic post">🗂️</div>
-          <div>
-            <div class="gc-name">${s.subject}</div>
-            <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন</div>
+    listEl.innerHTML = TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
+  }
+
+  // One subject card: ❤️ like, circular "পড়া হয়েছে" progress ring, subtopic/
+  // question counts, and the three actions (all questions / all subtopics /
+  // random quiz) from the reference design.
+  function renderTjCard(s){
+    const pct = s.question_count ? s.read_count / s.question_count : 0;
+    const pctLabel = toBnDigits(Math.round(pct * 100)) + '%';
+    const subjArg = JSON.stringify(s.subject);
+    return `
+      <div class="tj-card">
+        <div class="tj-top">
+          <div class="tj-name">${escapeHtml(s.subject)}</div>
+          <div class="tj-like${s.liked ? ' on' : ''}" id="tj-like-${cssId(s.subject)}" onclick='toggleTopicLike(${subjArg}, event)'>
+            <span class="tj-heart">${s.liked ? '❤️' : '🤍'}</span>
+            <span class="tj-like-count">${toBnDigits(s.like_count)}</span>
           </div>
         </div>
-        <div class="gc-arrow">›</div>
-      </div>`).join('');
+        <div class="tj-mid">
+          <div class="tj-ring">
+            ${tjRingSvg(pct)}
+            <div class="tj-ring-label">${toBnDigits(s.read_count)}/${toBnDigits(s.question_count)}<br>${pctLabel}</div>
+          </div>
+          <div class="tj-stats">
+            <div class="tj-stat-row"><span>Subtopics</span><span>${toBnDigits(s.subtopic_count)}</span></div>
+            <div class="tj-stat-row"><span>Questions</span><span>${toBnDigits(s.question_count)}</span></div>
+          </div>
+        </div>
+        <div class="tj-actions">
+          <button class="tj-action-btn" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
+          <button class="tj-action-btn" onclick='openTopicSubject(${subjArg})'>সব সাবটপিক</button>
+          <button class="tj-action-btn primary" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
+        </div>
+      </div>`;
+  }
+
+  // Turns a subject name into a safe DOM-id fragment (subjects are Bengali
+  // text, not identifier-safe on their own).
+  function cssId(str){
+    return String(str).split('').map(c=>c.charCodeAt(0)).join('');
+  }
+
+  function tjRingSvg(pct){
+    const r = 26, c = 2 * Math.PI * r;
+    const dash = c * Math.min(1, Math.max(0, pct || 0));
+    return `<svg viewBox="0 0 64 64">
+      <circle class="tj-ring-bg" cx="32" cy="32" r="${r}"></circle>
+      <circle class="tj-ring-fg" cx="32" cy="32" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c - dash).toFixed(2)}"></circle>
+    </svg>`;
+  }
+
+  async function toggleTopicLike(subject, ev){
+    if(ev) ev.stopPropagation();
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    const wrap = document.getElementById('tj-like-' + cssId(subject));
+    try{
+      const data = await apiAuth('/api/questions/public/topic-job-like', 'POST', { subject });
+      if(TOPIC_SUBJECTS_CACHE){
+        const row = TOPIC_SUBJECTS_CACHE.find(s=>s.subject===subject);
+        if(row){ row.liked = data.liked; row.like_count = data.like_count; }
+      }
+      if(wrap){
+        wrap.classList.toggle('on', data.liked);
+        wrap.innerHTML = `<span class="tj-heart">${data.liked ? '❤️' : '🤍'}</span><span class="tj-like-count">${toBnDigits(data.like_count)}</span>`;
+      }
+    }catch(err){
+      alert(err.message || 'করা যায়নি');
+    }
+  }
+
+  // Random Quiz action on a subject card — reuses the same instant-quiz
+  // endpoint as Reading List's "স্মার্ট প্র্যাকটিস"/subject practice.
+  async function startTopicSubjectQuiz(subject){
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">কুইজ তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiGet('/api/exams/public/practice?subject=' + encodeURIComponent(subject) + '&count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'কুইজ শুরু করা যায়নি');
+    }
+  }
+
+  function openTopicAllQuestions(subject){
+    TOPIC_NAV = {level:'all', subject, page:1};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  function goTopicAllPage(delta){
+    TOPIC_NAV.page = Math.max(1, TOPIC_NAV.page + delta);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  // "সব প্রশ্ন" — every question in the subject, ungrouped by subtopic.
+  // Reuses রিডিং লিস্ট's pagination endpoint since the payload shape (and
+  // page size) already matches what the topic question-card renderer needs.
+  async function renderTopicAllQuestionsPage(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = TOPIC_NAV.subject;
+    subtext.textContent = 'সব প্রশ্ন · টপিকভিত্তিক জব সলুশন';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data;
+    try{
+      data = await apiGet('/api/questions/public/reading-list?subject=' + encodeURIComponent(TOPIC_NAV.subject) + '&page=' + TOPIC_NAV.page);
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+      return;
+    }
+
+    TOPIC_NAV.page = data.page;
+    TOPIC_PAGE_QUESTIONS = data.questions;
+    const startNum = (data.page - 1) * 30 + 1;
+
+    const cards = data.questions.map((q, i)=>{
+      const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
+      const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+      const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      return `
+        <div class="rl-q-card" id="tp-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startNum + i)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="rl-q-opts">${opts}</div>
+          <button class="rl-q-reveal" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর দেখুন</button>
+          ${explainHtml}
+        </div>`;
+    }).join('');
+
+    const quizCta = `
+      <div class="rl-quiz-cta" onclick="startTopicQuiz()">
+        <div class="rq-ic">⏱️</div>
+        <div class="rq-title">অটো কুইজ শুরু করুন</div>
+        <div class="rq-sub">এই পৃষ্ঠার প্রশ্নের উপর ভিত্তি করে ১০টি প্রশ্ন · ৫ মিনিট</div>
+      </div>`;
+
+    const pager = `
+      <div class="rl-pager">
+        <button class="rl-pager-btn" onclick="goTopicAllPage(-1)" ${data.page<=1?'disabled':''}>← আগের পৃষ্ঠা</button>
+        <span class="rl-pager-info">${toBnDigits(data.page)} / ${toBnDigits(data.total_pages)}</span>
+        <button class="rl-pager-btn" onclick="goTopicAllPage(1)" ${data.page>=data.total_pages?'disabled':''}>পরের পৃষ্ঠা →</button>
+      </div>`;
+
+    listEl.innerHTML = (data.questions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
   }
 
   function openTopicSubject(subject){
@@ -2183,6 +2982,18 @@
     if(explain) explain.style.display = 'block';
     const btn = card.querySelector('.rl-q-reveal');
     if(btn) btn.style.display = 'none';
+    markTopicQuestionRead(qid);
+  }
+
+  // Best-effort progress tracking for the subject card's ring — fires once
+  // per revealed question, silently ignored for guests or on network error.
+  // The cached subject list is cleared so the ring reflects the new count
+  // next time the subject list screen is shown.
+  function markTopicQuestionRead(qid){
+    if(!USER_TOKEN) return;
+    apiAuth('/api/questions/public/mark-read', 'POST', { question_ids: [qid] })
+      .then(()=>{ TOPIC_SUBJECTS_CACHE = null; })
+      .catch(()=>{});
   }
 
   // Auto quiz: 10 random questions from just this topic's current page, 5 minutes.
@@ -2480,11 +3291,158 @@
       exam.reminder_set = turningOn;
       btnEl.classList.toggle('active', turningOn);
       btnEl.innerHTML = turningOn ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন';
+      // First time a student turns a reminder on, also offer to enable push —
+      // that's the channel that actually delivers it without a paid SMS
+      // gateway. Best-effort: if they decline the browser prompt, the SMS
+      // side (if/when configured) still works on its own.
+      if(turningOn && 'PushManager' in window){
+        const reg = SW_REGISTRATION || await navigator.serviceWorker.getRegistration();
+        const already = reg && await reg.pushManager.getSubscription();
+        if(!already) enablePushNotifications();
+      }
     }catch(e){
       alert(e.message || 'রিমাইন্ডার সেট করা যায়নি');
     }finally{
       btnEl.disabled = false;
     }
+  }
+
+  // ---------- Web Push notifications ----------
+  // Service worker registers on every load (silent — no permission prompt
+  // yet). Actual subscription (which DOES prompt for permission) only
+  // happens when the student explicitly asks for it: via the 🔔 exam
+  // reminder button, or the notification settings sheet.
+  let SW_REGISTRATION = null;
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').then(reg => { SW_REGISTRATION = reg; }).catch(()=>{});
+  }
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+  }
+
+  // Subscribes this browser to push and saves it server-side. Returns true
+  // on success. Silently no-ops (returns false) if push isn't supported,
+  // VAPID isn't configured yet, or the student declines the permission prompt.
+  async function enablePushNotifications(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      alert('এই ব্রাউজারে পুশ নোটিফিকেশন সমর্থিত নয়।');
+      return false;
+    }
+    if(!USER_TOKEN){ alert('নোটিফিকেশন চালু করতে আগে লগইন করুন।'); return false; }
+    try{
+      const { publicKey } = await apiGet('/api/push/public/vapid-key');
+      const reg = SW_REGISTRATION || await navigator.serviceWorker.register('/sw.js');
+      let sub = await reg.pushManager.getSubscription();
+      if(!sub){
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+      }
+      await apiPost('/api/push/subscribe', sub.toJSON(), true);
+      return true;
+    }catch(err){
+      if(Notification.permission === 'denied'){
+        alert('নোটিফিকেশনের অনুমতি বন্ধ আছে — ব্রাউজার সেটিংস থেকে চালু করুন।');
+      } else if(err.message && err.message.includes('চালু করা')){
+        alert('এই মুহূর্তে পুশ নোটিফিকেশন চালু নেই — পরে চেষ্টা করুন।');
+      } else {
+        alert('নোটিফিকেশন চালু করা যায়নি: ' + (err.message || ''));
+      }
+      return false;
+    }
+  }
+
+  async function disablePushNotifications(){
+    try{
+      const reg = SW_REGISTRATION || await navigator.serviceWorker.getRegistration();
+      const sub = reg && await reg.pushManager.getSubscription();
+      if(sub){
+        await apiPost('/api/push/unsubscribe', { endpoint: sub.endpoint }, true);
+        await sub.unsubscribe();
+      }
+    }catch(err){ /* best-effort */ }
+  }
+
+  function openNotifySettings(){
+    document.getElementById('notify-overlay').classList.add('active');
+    loadNotifySettings();
+  }
+  function closeNotifySettings(){
+    document.getElementById('notify-overlay').classList.remove('active');
+  }
+
+  async function loadNotifySettings(){
+    const body = document.getElementById('notify-body');
+    body.innerHTML = '<p style="color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    let settings;
+    try{
+      settings = await apiGetAuth('/api/push/settings');
+    }catch(err){
+      body.innerHTML = '<p style="color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + escapeHtml(err.message) + '</p>';
+      return;
+    }
+    const subscribed = settings.subscribed_devices > 0;
+    body.innerHTML = `
+      <p style="font-size:12.5px; color:var(--ink-faint,#888); margin-bottom:18px;">লাইভ পরীক্ষা শুরুর আগে ও দৈনিক কুইজের সময় এই ব্রাউজারে নোটিফিকেশন পেতে চালু করুন।</p>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line,#eee);">
+        <div>
+          <div style="font-weight:700; font-size:13.5px;">এই ডিভাইসে নোটিফিকেশন</div>
+          <div style="font-size:11.5px; color:var(--ink-faint,#888); margin-top:2px;">${subscribed ? `চালু আছে (${toBnDigits(settings.subscribed_devices)}টি ডিভাইস)` : 'বন্ধ আছে'}</div>
+        </div>
+        <button class="btn-enter" style="padding:8px 16px; font-size:12px;" id="notify-toggle-btn" onclick="onNotifyToggleClick(${subscribed})">${subscribed ? 'বন্ধ করুন' : 'চালু করুন'}</button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line,#eee);">
+        <div>
+          <div style="font-weight:700; font-size:13.5px;">দৈনিক কুইজ রিমাইন্ডার</div>
+          <div style="font-size:11.5px; color:var(--ink-faint,#888); margin-top:2px;">প্রতিদিন সকালে "আজকের কুইজ" রেডি হলে জানাবে</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="daily-quiz-toggle" ${settings.daily_quiz_opt_in ? 'checked' : ''} onchange="toggleDailyQuizOptIn(this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      ${subscribed ? `<button class="btn btn-ghost" style="margin-top:16px; width:100%;" onclick="sendTestPush()">টেস্ট নোটিফিকেশন পাঠান</button>` : ''}
+    `;
+  }
+
+  async function onNotifyToggleClick(currentlySubscribed){
+    const btn = document.getElementById('notify-toggle-btn');
+    if(btn) btn.disabled = true;
+    if(currentlySubscribed){
+      await disablePushNotifications();
+    } else {
+      await enablePushNotifications();
+    }
+    loadNotifySettings();
+  }
+
+  async function toggleDailyQuizOptIn(checked){
+    try{
+      if(checked){
+        const reg = SW_REGISTRATION || await navigator.serviceWorker.getRegistration();
+        const sub = reg && await reg.pushManager.getSubscription();
+        if(!sub){ const ok = await enablePushNotifications(); if(!ok){ document.getElementById('daily-quiz-toggle').checked = false; return; } }
+      }
+      await apiAuth('/api/push/daily-quiz-opt-in', 'PUT', { opt_in: checked });
+    }catch(err){
+      alert(err.message || 'সংরক্ষণ করা যায়নি');
+      loadNotifySettings();
+    }
+  }
+
+  async function sendTestPush(){
+    try{
+      await apiPost('/api/push/test', {}, true);
+      alert('টেস্ট নোটিফিকেশন পাঠানো হয়েছে — কিছুক্ষণের মধ্যে দেখতে পাবেন।');
+    }catch(err){ alert(err.message || 'পাঠানো যায়নি'); }
   }
 
   function renderList(containerId, exams, emptyMsg){
@@ -2573,14 +3531,175 @@
       document.getElementById('stat-total').textContent = toBnDigits(uploadedExams.length);
       document.getElementById('stat-live').textContent = toBnDigits(live.length);
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
-      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+      renderLiveList();
+      loadLiveCategoryList();
       renderModelScreen();
       loadCirculars();
+      loadHomeTopicChips();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
   }
   loadHome();
+
+  // Homepage টপিকভিত্তিক জব সলুশন spotlight — shows the subjects with the most
+  // questions as quick chips, so tapping one jumps straight into টপিক mode
+  // for that subject instead of making the user pick from scratch.
+  async function loadHomeTopicChips(){
+    const wrap = document.getElementById('home-topic-chips');
+    try{
+      const subjects = await apiGet('/api/exams/public/subjects');
+      if(!subjects.length){ wrap.innerHTML = ''; return; }
+      TOPIC_SUBJECTS_CACHE = subjects;
+      const top = subjects.slice(0, 4);
+      wrap.innerHTML = top.map(s => `
+        <div class="ts-chip" onclick='event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(s.subject)})'>
+          <b>${escapeHtml(s.subject)}</b>
+          <span>${toBnDigits(s.question_count)}টি প্রশ্ন</span>
+        </div>`).join('');
+    }catch(err){
+      wrap.innerHTML = '';
+    }
+  }
+
+  function goHomeTopicSolution(subject){
+    goScreen('model');
+    setModelMode('topic');
+    if(subject) openTopicSubject(subject);
+  }
+
+  // ---------- লাইভ পরীক্ষা category cards (vertically stacked, same style
+  // and same 5 categories as লাইভ রুটিন) — clicking one filters the live
+  // exam list below to just that routine's exams. ----------
+  let LIVE_CATEGORY_FILTER = '';
+  async function loadLiveCategoryList(){
+    const wrap = document.getElementById('live-cat-list');
+    try{
+      const categories = await apiGet('/api/routines/public/categories');
+      const allCard = `
+        <div class="group-card${LIVE_CATEGORY_FILTER===''?' active-cat':''}" data-cat="" onclick="setLiveCategory('')">
+          <div class="gc-left">
+            <div class="gc-ic post">📋</div>
+            <div>
+              <div class="gc-name">সব লাইভ পরীক্ষা</div>
+              <div class="gc-meta">সকল ক্যাটাগরির পরীক্ষা একসাথে</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`;
+      const catCards = categories.map(c => `
+        <div class="group-card${LIVE_CATEGORY_FILTER===c.slug?' active-cat':''}" data-cat="${c.slug}" onclick='setLiveCategory(${JSON.stringify(c.slug)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">${c.icon}</div>
+            <div>
+              <div class="gc-name">${escapeHtml(c.title)}</div>
+              <div class="gc-meta">${escapeHtml(c.subtitle)}</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`).join('');
+      wrap.innerHTML = allCard + catCards;
+    }catch(err){
+      wrap.innerHTML = '';
+    }
+  }
+  function setLiveCategory(cat){
+    LIVE_CATEGORY_FILTER = cat;
+    document.querySelectorAll('#live-cat-list .group-card').forEach(el=>{
+      el.classList.toggle('active-cat', el.dataset.cat === cat);
+    });
+    renderLiveList();
+  }
+  function renderLiveList(){
+    const live = ALL_EXAMS.filter(e => e.type==='live' && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
+    renderList('live-list', live, LIVE_CATEGORY_FILTER ? 'এই ক্যাটাগরিতে এখন কোনো লাইভ পরীক্ষা নেই।' : 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+  }
+
+  // ---------- লাইভ রুটিন (structured day-by-day prep plans) ----------
+  function goRoutineScreen(){
+    goScreen('routine');
+    loadRoutineCategories();
+  }
+
+  async function loadRoutineCategories(){
+    const wrap = document.getElementById('routine-cat-list');
+    wrap.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    try{
+      const categories = await apiGet('/api/routines/public/categories');
+      wrap.innerHTML = categories.map(c => `
+        <div class="group-card" onclick='openRoutineCategory(${JSON.stringify(c.slug)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">${c.icon}</div>
+            <div>
+              <div class="gc-name">${escapeHtml(c.title)}</div>
+              <div class="gc-meta">${escapeHtml(c.subtitle)} · ${c.day_count ? toBnDigits(c.day_count) + 'টি দিন প্রস্তুত' : 'শীঘ্রই আসছে'}</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`).join('');
+    }catch(err){
+      wrap.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
+  }
+
+  let CURRENT_ROUTINE_DAYS = [];
+  async function openRoutineCategory(slug){
+    goScreen('routine-days');
+    const list = document.getElementById('routine-days-list');
+    list.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    try{
+      const data = await apiGetAuth('/api/routines/public/' + slug);
+      document.getElementById('routine-days-title').textContent = data.category.title;
+      document.getElementById('routine-days-subtitle').textContent = data.category.subtitle;
+      CURRENT_ROUTINE_DAYS = data.days;
+      renderRoutineDaysList();
+    }catch(err){
+      list.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
+  }
+
+  function renderRoutineDaysList(){
+    const list = document.getElementById('routine-days-list');
+    if(!CURRENT_ROUTINE_DAYS.length){
+      list.innerHTML = '<div class="empty-note">এই রুটিনের দিন এখনো যোগ করা হয়নি — শীঘ্রই আসছে।</div>';
+      return;
+    }
+    const done = CURRENT_ROUTINE_DAYS.filter(d=>d.completed).length;
+    const pct = Math.round((done / CURRENT_ROUTINE_DAYS.length) * 100);
+    list.innerHTML = `
+      <div class="routine-progress-bar-wrap">
+        <div class="routine-progress-top"><span>${toBnDigits(done)}/${toBnDigits(CURRENT_ROUTINE_DAYS.length)} দিন সম্পন্ন</span><span>${toBnDigits(pct)}%</span></div>
+        <div class="routine-progress-track"><div class="routine-progress-fill" style="width:${pct}%;"></div></div>
+      </div>` +
+      CURRENT_ROUTINE_DAYS.map(d => `
+        <div class="routine-day-card ${d.completed ? 'done' : ''}">
+          <div class="rd-top">
+            <button class="rd-check" onclick="toggleRoutineDay(${d.id})">${d.completed ? '✅' : '⬜'}</button>
+            <div class="rd-title"><b>দিন ${toBnDigits(d.day_number)}:</b> ${escapeHtml(d.title)}</div>
+          </div>
+          ${d.tasks ? `<div class="rd-tasks">${escapeHtml(d.tasks)}</div>` : ''}
+          ${d.exam_id ? `<button class="rd-exam-btn" onclick="openExamFromRoutine(${d.exam_id})">${d.exam_type==='live' ? '🔴' : '📘'} ${escapeHtml(d.exam_title || 'পরীক্ষা শুরু করুন')} →</button>` : ''}
+        </div>`).join('');
+  }
+
+  async function toggleRoutineDay(dayId){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    const day = CURRENT_ROUTINE_DAYS.find(d=>d.id===dayId);
+    if(!day) return;
+    const newState = !day.completed;
+    day.completed = newState; // optimistic update
+    renderRoutineDaysList();
+    try{
+      await apiAuth('/api/routines/progress/' + dayId, 'POST', { completed: newState });
+    }catch(err){
+      day.completed = !newState; // revert on failure
+      renderRoutineDaysList();
+    }
+  }
+
+  function openExamFromRoutine(examId){
+    openNameSheet(examId);
+  }
 
   // Deep-link support: a shared duel link like /?duel=a1b2c3d4 opens straight
   // to the Duel tab with the code pre-filled in the join box. Placed at the
@@ -2607,7 +3726,7 @@
       const live = ALL_EXAMS.filter(e=>e.type==='live');
       const model = ALL_EXAMS.filter(e=>e.type==='model');
       renderList('home-live-list', live.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
-      renderList('live-list', live, 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+      renderLiveList();
       if(document.getElementById('screen-model').classList.contains('active') && MODEL_MODE === 'ministry'){
         renderModelScreen();
       }
@@ -2855,7 +3974,8 @@
     }
 
     try{
-      const merit = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
+      const meritRes = await apiGet('/api/results/exam/'+CURRENT_EXAM.id);
+      const merit = meritRes.leaderboard || [];
       document.getElementById('merit-list').innerHTML = merit.slice(0,15).map((m,i)=>`
         <div class="merit-item ${m.id===result.id ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(i+1)}</div>
