@@ -248,6 +248,17 @@
       </div>
       <button class="btn btn-primary" id="syncRepeatedBtn" style="width:auto; padding-left:26px; padding-right:26px;">🔁 পুনরাবৃত্ত প্রশ্ন সিঙ্ক করুন</button>
       <div id="syncRepeatedResult" style="margin-top:10px; font-size:13px;"></div>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
+      <h2>বিষয় তালিকা (ডায়াগনস্টিক)</h2>
+      <div class="desc">
+        "বিষয়ভিত্তিক" ট্যাব শুধু ৫টা নির্দিষ্ট বিষয় চেনে: বাংলা, ইংরেজি, গণিত, সাধারণ জ্ঞান, বিজ্ঞান ও প্রযুক্তি
+        (এদের যেকোনো একটা দিয়ে subject শুরু হলেই চলবে)। এর বাইরের যেকোনো subject লেখা (যেমন শুধু "কম্পিউটার",
+        "ভূমি বিষয়ক", বানান একটু আলাদা) — সেই প্রশ্নগুলো ব্যাংকে জমা হয় ঠিকই, কিন্তু বিষয়ভিত্তিক লিস্টে দেখায় না,
+        তাই কাউন্ট বাড়তে দেখা যায় না। নতুন আপলোডের পর নিচের বাটনে চেপে চেক করে নাও কোনগুলো "❌ অচেনা" দেখাচ্ছে।
+      </div>
+      <button class="btn btn-primary" id="loadSubjectsBtn" style="width:auto; padding-left:26px; padding-right:26px;">🔍 বিষয় তালিকা দেখুন</button>
+      <div id="subjectsRawResult" style="margin-top:14px;"></div>
     </div>
 
     <div class="panel" id="panel-quicktext">
@@ -1049,6 +1060,45 @@ document.getElementById('syncRepeatedBtn').addEventListener('click', async () =>
     btn.disabled = false; btn.textContent = original;
   }
 });
+
+// ---- বিষয় তালিকা (ডায়াগনস্টিক) ----
+document.getElementById('loadSubjectsBtn').addEventListener('click', loadSubjectsRaw);
+
+async function loadSubjectsRaw(){
+  const btn = document.getElementById('loadSubjectsBtn');
+  const box = document.getElementById('subjectsRawResult');
+  btn.disabled = true; const original = btn.textContent; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const rows = await api('/api/questions/admin/subjects-raw');
+    if (!rows.length){ box.innerHTML = '<div class="desc">প্রশ্ন ব্যাংক এখনো খালি।</div>'; return; }
+    box.innerHTML = `<table>
+      <tr><th>subject (যেমন লেখা আছে)</th><th>প্রশ্ন</th><th>চেনা বিষয়?</th><th></th></tr>
+      ${rows.map(r => `
+        <tr>
+          <td class="qtext">${escapeHtml(r.subject || '(খালি)')}</td>
+          <td>${r.question_count}</td>
+          <td>${r.canonical ? '✅ ' + escapeHtml(r.canonical) : '❌ অচেনা'}</td>
+          <td>${r.subject ? `<button class="btn btn-ghost btn-small" onclick="renameSubjectPrompt(${JSON.stringify(r.subject)})">রিনেম</button>` : ''}</td>
+        </tr>`).join('')}
+    </table>`;
+  } catch(err){
+    box.innerHTML = '<div class="desc">সমস্যা: ' + escapeHtml(err.message) + '</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function renameSubjectPrompt(from){
+  const to = prompt(`"${from}" ট্যাগের সব প্রশ্নকে কোন নামে বদলে দেব?\nচেনা বিষয়ের একটা লিখুন (হুবহু): বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান / বিজ্ঞান ও প্রযুক্তি`, from);
+  if (!to || !to.trim() || to.trim() === from) return;
+  try{
+    const data = await api('/api/questions/admin/rename-subject', { method: 'PUT', body: JSON.stringify({ from, to: to.trim() }) });
+    alert(`${data.updated} টি প্রশ্নের subject বদলে গেছে।`);
+    loadSubjectsRaw();
+  } catch(err){
+    alert('সমস্যা: ' + err.message);
+  }
+}
 
 // ---- Quick text bulk add ----
 async function loadQuickTextMinistries(){
