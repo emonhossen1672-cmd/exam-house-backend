@@ -187,16 +187,40 @@ async function updateStreak(userId) {
   return { current_streak: newStreak, longest_streak: Math.max(u.longest_streak, newStreak) };
 }
 
-// GET /api/results/me — logged-in student's own exam history, across all exams
+// GET /api/results/me — logged-in student's own exam history, across all exams.
+// ?category= optionally restricts this to results from exams tagged with
+// that routine_category (used by the per-category "ফলাফল" button).
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
+  const { category } = req.query;
+  const params = [req.user.id];
+  let categoryClause = '';
+  if (category) { params.push(category); categoryClause = `AND e.routine_category = $${params.length}`; }
   const { rows } = await pool.query(`
     SELECT r.id, r.exam_id, e.title AS exam_title, e.type AS exam_type,
       e.is_duel, e.is_daily, e.is_practice, e.is_auto_subject, e.is_repeated_bank,
       r.correct_count, r.wrong_count, r.skipped_count, r.score, r.submitted_at
     FROM results r JOIN exams e ON e.id = r.exam_id
-    WHERE r.user_id = $1 ORDER BY r.submitted_at DESC
-  `, [req.user.id]);
+    WHERE r.user_id = $1 ${categoryClause} ORDER BY r.submitted_at DESC
+  `, params);
   res.json(rows);
+}));
+
+// GET /api/results/me/category-stats?category=slug — the small stats strip
+// (Exam Attended / Exam Passed / Question Faced / Answers Correct) shown at
+// the top of a category hub page. "Passed" = score >= 40%.
+router.get('/me/category-stats', requireUser, asyncHandler(async (req, res) => {
+  const { category } = req.query;
+  if (!category) return res.status(400).json({ error: 'category প্রয়োজন' });
+  const { rows } = await pool.query(`
+    SELECT
+      COUNT(*)::int AS exams_attended,
+      COUNT(*) FILTER (WHERE r.score >= 40)::int AS exams_passed,
+      COALESCE(SUM(r.correct_count + r.wrong_count + r.skipped_count), 0)::int AS questions_faced,
+      COALESCE(SUM(r.correct_count), 0)::int AS answers_correct
+    FROM results r JOIN exams e ON e.id = r.exam_id
+    WHERE r.user_id = $1 AND e.routine_category = $2
+  `, [req.user.id, category]);
+  res.json(rows[0]);
 }));
 
 // GET /api/results/me/subject-stats — subject-wise accuracy across ALL of this
@@ -238,20 +262,28 @@ router.get('/me/subject-stats', requireUser, asyncHandler(async (req, res) => {
 
 // GET /api/results/me/wrong-questions — every question this user has ever
 // answered incorrectly (deduped, most recent attempt wins), for a revision quiz.
+// ?category= optionally restricts this to wrong answers from exams tagged
+// with that routine_category (used by the per-category "ভুল ও অনুত্তরিত" button).
 router.get('/me/wrong-questions', requireUser, asyncHandler(async (req, res) => {
+  const { category } = req.query;
+  const params = [req.user.id];
+  let categoryClause = '';
+  if (category) { params.push(category); categoryClause = `AND e.routine_category = $${params.length}`; }
   const { rows } = await pool.query(`
     SELECT DISTINCT ON (q.id)
       q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
       q.correct_option, q.explanation, r.submitted_at
     FROM results r
+    JOIN exams e ON e.id = r.exam_id
     JOIN exam_questions eq ON eq.exam_id = r.exam_id
     JOIN questions q ON q.id = eq.question_id
     WHERE r.user_id = $1
       AND r.answers->>(eq.question_id::text) IS NOT NULL
       AND UPPER(r.answers->>(eq.question_id::text)) != q.correct_option
+      ${categoryClause}
     ORDER BY q.id, r.submitted_at DESC
     LIMIT 100
-  `, [req.user.id]);
+  `, params);
   res.json(rows);
 }));
 
@@ -361,8 +393,15 @@ router.get('/me/achievements', requireUser, asyncHandler(async (req, res) => {
 // logged-in user, also returns their own rank/score even when it falls
 // outside the returned page, plus the score of whoever sits one rank above
 // them, so the client can show a "X marks to climb one rank" nudge.
+// ?category= optionally restricts this to results from exams tagged with
+// that routine_category (used by the per-category "মেধা তালিকা" button) —
+// the ranking is then based only on scores within that category, not
+// site-wide totals.
 router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const { category } = req.query;
+  const catJoin = category ? `JOIN exams e ON e.id = r.exam_id AND e.routine_category = $2` : '';
+  const params = category ? [limit, category] : [limit];
   const { rows } = await pool.query(`
     SELECT
       u.id AS user_id, u.name,
@@ -373,11 +412,12 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
       RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank
     FROM results r
     JOIN users u ON u.id = r.user_id
+    ${catJoin}
     WHERE r.user_id IS NOT NULL
     GROUP BY u.id, u.name
     ORDER BY total_score DESC
     LIMIT $1
-  `, [limit]);
+  `, params);
 
   let me = null;
   if (req.user) {
@@ -385,6 +425,8 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
     if (already) {
       me = already;
     } else {
+      const meCatJoin = category ? `JOIN exams e ON e.id = r.exam_id AND e.routine_category = $2` : '';
+      const meParams = category ? [req.user.id, category] : [req.user.id];
       const meRes = await pool.query(`
         WITH totals AS (
           SELECT
@@ -396,12 +438,13 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
             RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank
           FROM results r
           JOIN users u ON u.id = r.user_id
+          ${meCatJoin}
           WHERE r.user_id IS NOT NULL
           GROUP BY u.id, u.name
         )
         SELECT t.*, (SELECT MIN(total_score) FROM totals WHERE rank = t.rank - 1) AS next_rank_score
         FROM totals t WHERE t.user_id = $1
-      `, [req.user.id]);
+      `, meParams);
       if (meRes.rows.length) me = meRes.rows[0];
     }
   }
