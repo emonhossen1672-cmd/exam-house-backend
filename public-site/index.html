@@ -2381,6 +2381,15 @@
       closeAllOverlays();
       return;
     }
+    // If we're inside মডেল টেস্ট and mid-drill-down (ministry→post→exam,
+    // subject→exam, topic→subtopic→question, etc.), a back-press should
+    // step one level back instead of leaving the screen — see
+    // drillBackStep()/drillNavAtTop() near the model-test functions.
+    const modelScreenActive = document.getElementById('screen-model').classList.contains('active');
+    if(modelScreenActive && typeof drillNavAtTop === 'function' && !drillNavAtTop()){
+      drillBackStep();
+      return;
+    }
     const screenName = (e.state && e.state.screen) ? e.state.screen : 'home';
     SUPPRESS_HISTORY_PUSH = true;
     goScreen(screenName);
@@ -2527,6 +2536,7 @@
 
   function modelPickMinistry(name){
     MODEL_NAV = {level:'posts', ministry:name};
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -2534,10 +2544,34 @@
     MODEL_NAV.level = 'exams';
     MODEL_NAV.post = postName;
     MODEL_NAV.grade = grade;
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
+  // The on-screen "←" back button and the phone's hardware/browser back
+  // button both need to step the drill-down (ministry→post→exam,
+  // subject→exam, topic→subtopic→question, etc.) back one level instead
+  // of leaving the whole মডেল টেস্ট screen. Every "pick" function above
+  // pushes one history entry per level going deeper, so both buttons now
+  // go through the SAME path: they just call history.back(), which fires
+  // popstate, which calls drillBackStep() below to do the actual one-level
+  // decrement. This keeps the history stack and the on-screen level in
+  // sync no matter which button was pressed.
   function modelGoBack(){
+    history.back();
+  }
+  // Whether the currently active drill-down (for whichever mode tab is
+  // open) is already at its top level — used by the popstate handler to
+  // decide whether a back-press should step the drill-down or fall
+  // through to normal screen-level navigation.
+  function drillNavAtTop(){
+    if(MODEL_MODE === 'subject') return SUBJECT_NAV.level === 'subjects';
+    if(MODEL_MODE === 'practice') return READING_NAV.level === 'subjects';
+    if(MODEL_MODE === 'topic') return TOPIC_NAV.level === 'subjects';
+    if(MODEL_MODE === 'ministry') return MODEL_NAV.level === 'ministries';
+    return true;
+  }
+  function drillBackStep(){
     if(MODEL_MODE === 'subject'){
       if(SUBJECT_NAV.level === 'exams'){ SUBJECT_NAV = {level:'subjects'}; }
       renderModelScreen();
@@ -2647,6 +2681,7 @@
 
   function subjectPick(subject){
     SUBJECT_NAV = {level:'exams', subject};
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -2715,6 +2750,7 @@
 
   function openReadingList(subject){
     READING_NAV = {level:'list', subject, page:1};
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -2993,6 +3029,7 @@
 
   function openTopicAllQuestions(subject){
     TOPIC_NAV = {level:'all', subject, page:1};
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -3064,6 +3101,7 @@
   function openTopicSubject(subject){
     TOPIC_NAV = {level:'topics', subject};
     TOPIC_TOPICS_CACHE = null;
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -3111,6 +3149,7 @@
   function openTopicTopic(topic){
     TOPIC_NAV = {level:'subtopics', subject:TOPIC_NAV.subject, topic};
     TOPIC_SUBTOPICS_CACHE = null;
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -3174,6 +3213,7 @@
 
   function openSubtopicQuestions(subtopic){
     TOPIC_NAV = {level:'questions', subject:TOPIC_NAV.subject, topic:TOPIC_NAV.topic, subtopic, page:1};
+    history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
   }
