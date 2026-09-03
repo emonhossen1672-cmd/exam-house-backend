@@ -371,7 +371,11 @@
       </div>
 
       <div id="retagBar" style="display:none; margin:14px 0; padding:12px; border:1px solid var(--line, #E4DCC6); border-radius:10px; background:var(--paper, #FBF8F0);">
-        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><span id="retagCount">0</span>টি প্রশ্ন সিলেক্ট করা হয়েছে — নতুন টপিক/সাবটপিকে সরান</div>
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><span id="retagCount">0</span>টি প্রশ্ন সিলেক্ট করা হয়েছে — নতুন বিষয়/টপিক/সাবটপিকে সরান</div>
+        <div class="field" style="margin-bottom:8px;">
+          <label>নতুন বিষয় (ফাঁকা রাখলে বদলাবে না)</label>
+          <input type="text" id="retag_subject" list="fixed-subjects-list" placeholder="যেমন: বাংলা ব্যাকরণ / বাংলা সাহিত্য">
+        </div>
         <div class="grid-2">
           <div class="field" style="margin-bottom:8px;">
             <label>নতুন টপিক (ফাঁকা রাখলে বদলাবে না)</label>
@@ -648,8 +652,10 @@ async function refreshSubtopicSuggestions(subject, topic){
 const retagTopicEl = document.getElementById('retag_topic');
 if (retagTopicEl){
   retagTopicEl.addEventListener('blur', () => {
-    const subjectEl = document.getElementById('f_subject');
-    refreshSubtopicSuggestions(subjectEl ? subjectEl.value : '', retagTopicEl.value);
+    const retagSubjectEl = document.getElementById('retag_subject');
+    const fSubjectEl = document.getElementById('f_subject');
+    const subject = (retagSubjectEl && retagSubjectEl.value.trim()) || (fSubjectEl ? fSubjectEl.value : '');
+    refreshSubtopicSuggestions(subject, retagTopicEl.value);
   });
 }
 
@@ -1532,6 +1538,7 @@ document.getElementById('retagClearBtn').addEventListener('click', () => {
   document.querySelectorAll('.qSelectBox').forEach(box => box.checked = false);
   const selectAll = document.getElementById('selectAllQ');
   if (selectAll) selectAll.checked = false;
+  document.getElementById('retag_subject').value = '';
   updateRetagBar();
 });
 
@@ -1540,14 +1547,16 @@ document.getElementById('retagApplyBtn').addEventListener('click', async () => {
   const btn = document.getElementById('retagApplyBtn');
   if (!SELECTED_QIDS.size) return;
 
+  const subjectRaw = document.getElementById('retag_subject').value;
   const topicRaw = document.getElementById('retag_topic').value;
   const subtopicRaw = document.getElementById('retag_subtopic').value;
   const body = { question_ids: [...SELECTED_QIDS] };
+  if (subjectRaw.trim() !== '') body.subject = subjectRaw.trim();
   if (topicRaw !== '') body.topic = topicRaw;
   if (subtopicRaw !== '') body.subtopic = subtopicRaw;
 
-  if (topicRaw === '' && subtopicRaw === ''){
-    alert('নতুন টপিক বা সাবটপিক অন্তত একটা দিন');
+  if (subjectRaw.trim() === '' && topicRaw === '' && subtopicRaw === ''){
+    alert('নতুন বিষয়, টপিক বা সাবটপিক অন্তত একটা দিন');
     return;
   }
 
@@ -1555,6 +1564,7 @@ document.getElementById('retagApplyBtn').addEventListener('click', async () => {
   try{
     const data = await api('/api/questions/admin/bulk-retag', { method: 'PUT', body: JSON.stringify(body) });
     resultBox.textContent = `${data.updated} টি প্রশ্ন আপডেট হয়েছে ✓`;
+    document.getElementById('retag_subject').value = '';
     document.getElementById('retag_topic').value = '';
     document.getElementById('retag_subtopic').value = '';
     loadQuestions();
