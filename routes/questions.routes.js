@@ -38,7 +38,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-    [ministry_id || null, grade || null, subject, (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
+    [ministry_id || null, grade || null, String(subject || '').trim(), (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
   );
   res.status(201).json(rows[0]);
 }));
@@ -50,7 +50,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
     `UPDATE questions SET ministry_id=$1, grade=$2, subject=$3, topic=$4, subtopic=$5, question_text=$6,
      option_a=$7, option_b=$8, option_c=$9, option_d=$10, correct_option=$11, explanation=$12
      WHERE id=$13 RETURNING *`,
-    [ministry_id || null, grade || null, subject, (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
+    [ministry_id || null, grade || null, String(subject || '').trim(), (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -110,7 +110,7 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
       await client.query(
         `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [q.ministry_id || null, q.grade || null, q.subject, (q.topic || '').trim() || null, (q.subtopic || '').trim() || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+        [q.ministry_id || null, q.grade || null, String(q.subject || '').trim(), (q.topic || '').trim() || null, (q.subtopic || '').trim() || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
          q.correct_option.toUpperCase(), q.explanation || null, (q.post_name || '').toString().trim() || null, q.exam_year || null]
       );
       added++;
@@ -369,7 +369,7 @@ router.put('/admin/rename-subject', requireAdmin, asyncHandler(async (req, res) 
   const from = (req.body.from || '').trim();
   const to = (req.body.to || '').trim();
   if (!from || !to) return res.status(400).json({ error: 'from ও to দুটোই দিতে হবে' });
-  const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE subject=$2', [to, from]);
+  const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE TRIM(subject)=$2', [to, from]);
   res.json({ updated: rowCount });
 }));
 
