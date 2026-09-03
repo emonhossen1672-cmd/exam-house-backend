@@ -1111,6 +1111,8 @@
     <div class="sec-head" style="margin:22px 0 10px;"><h2>দ্রুত অ্যাক্সেস</h2></div>
     <div class="cat-grid" style="grid-template-columns:1fr 1fr;">
       <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openRoutineCategory(CURRENT_CAT_SLUG)"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
+      <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="openCatLiveExams()"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="openCatModelTests()"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
       <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="openCatResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
       <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="openCatArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
       <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="openCatFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
@@ -1147,6 +1149,8 @@
     <div class="sec-head" style="margin:22px 0 10px;"><h2>দ্রুত অ্যাক্সেস</h2></div>
     <div class="cat-grid" style="grid-template-columns:1fr 1fr;">
       <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openRoutineCategory('subject-wise')"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
+      <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="openSubjLiveExams()"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="openSubjModelTests()"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
       <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="openSubjResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
       <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="openSubjArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
       <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="openSubjFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
@@ -4457,6 +4461,28 @@
     }
   }
 
+  // ---- লাইভ পরীক্ষা (live exams only, scoped to this category) ----
+  function openCatLiveExams(){
+    document.getElementById('cat-archive-overlay-title').textContent = CURRENT_CAT_TITLE + ' — লাইভ পরীক্ষা';
+    document.getElementById('cat-archive-overlay').classList.add('active');
+    const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG && e.type === 'live');
+    const body = document.getElementById('cat-archive-body');
+    body.innerHTML = catExams.length
+      ? catExams.map(ticketHtml).join('')
+      : '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো লাইভ পরীক্ষা যোগ করা হয়নি।</div>';
+  }
+
+  // ---- মডেল টেস্ট (model tests only, scoped to this category) ----
+  function openCatModelTests(){
+    document.getElementById('cat-archive-overlay-title').textContent = CURRENT_CAT_TITLE + ' — মডেল টেস্ট';
+    document.getElementById('cat-archive-overlay').classList.add('active');
+    const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG && e.type === 'model');
+    const body = document.getElementById('cat-archive-body');
+    body.innerHTML = catExams.length
+      ? catExams.map(ticketHtml).join('')
+      : '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো মডেল টেস্ট যোগ করা হয়নি।</div>';
+  }
+
   // ---- Archive (every exam ever posted in this category, live or model) ----
   function openCatArchive(){
     document.getElementById('cat-archive-overlay-title').textContent = CURRENT_CAT_TITLE + ' — আর্কাইভ';
@@ -4616,6 +4642,28 @@
     }catch(e){
       body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
     }
+  }
+
+  // ---- লাইভ পরীক্ষা (live exams only, scoped to this subject) ----
+  function openSubjLiveExams(){
+    document.getElementById('cat-archive-overlay-title').textContent = CURRENT_SUBJECT + ' — লাইভ পরীক্ষা';
+    document.getElementById('cat-archive-overlay').classList.add('active');
+    const subjExams = ALL_EXAMS.filter(e => e.subject === CURRENT_SUBJECT && e.type === 'live');
+    const body = document.getElementById('cat-archive-body');
+    body.innerHTML = subjExams.length
+      ? subjExams.map(ticketHtml).join('')
+      : '<div class="empty-note">এই বিষয়ে এখনো কোনো লাইভ পরীক্ষা যোগ করা হয়নি।</div>';
+  }
+
+  // ---- মডেল টেস্ট (model tests only, scoped to this subject) ----
+  function openSubjModelTests(){
+    document.getElementById('cat-archive-overlay-title').textContent = CURRENT_SUBJECT + ' — মডেল টেস্ট';
+    document.getElementById('cat-archive-overlay').classList.add('active');
+    const subjExams = ALL_EXAMS.filter(e => e.subject === CURRENT_SUBJECT && e.type === 'model');
+    const body = document.getElementById('cat-archive-body');
+    body.innerHTML = subjExams.length
+      ? subjExams.map(ticketHtml).join('')
+      : '<div class="empty-note">এই বিষয়ে এখনো কোনো মডেল টেস্ট যোগ করা হয়নি।</div>';
   }
 
   // ---- Archive ----
