@@ -325,13 +325,31 @@ router.get('/public/subjects', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 
-// GET /api/exams/public/subject-list — every distinct raw subject that has
-// at least one exam, for the সাবজেক্ট অনুযায়ী প্রস্তুতি (subject-wise prep)
-// landing screen. Unlike /public/subjects (which merges everything down to
-// the 5 canonical buckets for Reading List/Duel/Smart Practice), this keeps
-// each admin-entered subject exactly as typed — e.g. "Bank Math Master" and
-// "গণিত" stay separate rows — since this screen is meant to show the
-// admin's own named subject programs, not a generic bucket.
+// The fixed 12 subject buttons shown on the সাবজেক্ট অনুযায়ী প্রস্তুতি landing
+// screen, in this exact order — same idea as routines.routes.js's CATEGORIES:
+// one source of truth, always shown even before any exam exists for a
+// subject yet. An admin exam's `subject` column has to match one of these
+// strings exactly (see the datalist in the admin panel) for it to count
+// toward that button's exam_count / is_live badge.
+const FIXED_SUBJECTS = [
+  'বাংলা ব্যাকরণ',
+  'বাংলা সাহিত্য',
+  'ইংরেজি ব্যাকরণ',
+  'ইংরেজি সাহিত্য',
+  'ভোকাবুলারি',
+  'গণিত',
+  'বাংলাদেশ',
+  'আন্তর্জাতিক',
+  'বিজ্ঞান',
+  'তথ্য ও যোগাযোগ প্রযুক্তি',
+  'ভূগোল, পরিবেশ ও ব্যবস্থাপনা',
+  'নৈতিকতা, মূল্যবোধ ও সুশাসন',
+];
+
+// GET /api/exams/public/subject-list — the 12 fixed subject buttons for the
+// সাবজেক্ট অনুযায়ী প্রস্তুতি (subject-wise prep) landing screen, always
+// returned in the same order — with 0/false counts for any subject that has
+// no matching exam yet, so the buttons never disappear.
 router.get('/public/subject-list', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT e.subject,
@@ -342,13 +360,12 @@ router.get('/public/subject-list', asyncHandler(async (req, res) => {
         AND e.start_time + (e.duration_minutes || ' minutes')::interval >= NOW()
       ) AS is_live
     FROM exams e
-    WHERE e.subject IS NOT NULL AND TRIM(e.subject) <> '' AND e.subject <> 'সব'
-    GROUP BY e.subject
-    ORDER BY e.subject
-  `);
-  res.json(rows);
+    WHERE e.subject = ANY($1)
+    GROUP BY e.subject`, [FIXED_SUBJECTS]);
+  const bySubject = new Map(rows.map(r => [r.subject, r]));
+  const result = FIXED_SUBJECTS.map(s => bySubject.get(s) || { subject: s, exam_count: 0, is_live: false });
+  return res.json(result);
 }));
-
 
 // fresh practice quiz: picks random questions for the chosen subject and wraps
 // them in a real (but is_practice=true) 'model' exam row, so the rest of the
