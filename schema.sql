@@ -366,3 +366,6 @@ CREATE TABLE IF NOT EXISTS user_routine_progress (
 -- e.g. "২০০ দিনে বিসিএস প্রস্তুতি" shows up under that tab there too.
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS routine_category VARCHAR(40);
 CREATE INDEX IF NOT EXISTS idx_exams_routine_category ON exams(routine_category);
+-- Subtopic layer for টপিকভিত্তিক জব সলুশন (Subject → Topic → Subtopic → Questions)
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS subtopic VARCHAR(200);
+CREATE INDEX IF NOT EXISTS idx_questions_subtopic ON questions(subtopic);
