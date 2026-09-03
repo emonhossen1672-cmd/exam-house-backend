@@ -83,7 +83,7 @@ router.post('/', requireAdmin, upload.single('file'), asyncHandler(async (req, r
       await client.query(
         `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [ministryId, r.grade || null, r.subject, String(r.topic || '').trim() || null, String(r.subtopic || '').trim() || null, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
+        [ministryId, r.grade || null, String(r.subject || '').trim(), String(r.topic || '').trim() || null, String(r.subtopic || '').trim() || null, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
          r.post_name || null, r.year || null]
       );
       added++;
