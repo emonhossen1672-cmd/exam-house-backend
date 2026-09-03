@@ -1175,7 +1175,6 @@
     <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
     <div class="mode-toggle" id="model-mode-toggle">
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
-      <button class="mode-btn" id="mode-btn-subject" onclick="setModelMode('subject')"><span class="mb-ic">📘</span>বিষয়ভিত্তিক</button>
       <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
       <button class="mode-btn" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
       <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
@@ -1527,7 +1526,7 @@
   // Paste the same OAuth 2.0 Web Client ID configured on the backend
   // (GOOGLE_CLIENT_ID env var) here. This value is public — it identifies
   // the app to Google, it isn't a secret — so it's fine to hardcode.
-  const GOOGLE_CLIENT_ID = '406086948373-apu714vc11jkrv3igm8riupduvm32rua.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = '926368386068-h34jlvr575me1pkllruqbue1mrva12n9.apps.googleusercontent.com';
 
   // ---------- Back-button / history support ----------
   // The app never used to push history entries, so on mobile the very
@@ -2399,7 +2398,6 @@
   function setModelMode(mode){
     MODEL_MODE = mode;
     document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
-    document.getElementById('mode-btn-subject').classList.toggle('active', mode==='subject');
     document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
     document.getElementById('mode-btn-topic').classList.toggle('active', mode==='topic');
     document.getElementById('mode-btn-duel').classList.toggle('active', mode==='duel');
