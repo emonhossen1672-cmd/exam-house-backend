@@ -2547,7 +2547,8 @@
       return;
     }
     if(MODEL_MODE === 'topic'){
-      if(TOPIC_NAV.level === 'questions'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
+      if(TOPIC_NAV.level === 'questions'){ TOPIC_NAV = {level:'subtopics', subject:TOPIC_NAV.subject, topic:TOPIC_NAV.topic}; }
+      else if(TOPIC_NAV.level === 'subtopics'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       renderModelScreen();
@@ -2820,16 +2821,20 @@
 
   // ---------- Topic-wise Job Solution (টপিকভিত্তিক জব সলুশন) ----------
   // Subject list (level:'subjects') -> topics inside that subject with counts
-  // (level:'topics') -> paginated 30-question read-through of one topic
-  // (level:'questions'), each question tagged with its source (মন্ত্রণালয়/পদ/সাল),
-  // plus the same auto-quiz CTA as রিডিং লিস্ট, reusing the same reading-quiz endpoint.
+  // (level:'topics') -> subtopics inside that topic (level:'subtopics') ->
+  // paginated 30-question read-through of one subtopic (or the whole topic,
+  // if "সব প্রশ্ন" was picked) (level:'questions'), each question tagged with
+  // its source (মন্ত্রণালয়/পদ/সাল), plus the same auto-quiz CTA as রিডিং
+  // লিস্ট, reusing the same reading-quiz endpoint.
   let TOPIC_SUBJECTS_CACHE = null; // shared subject list (question_count per canonical subject)
   let TOPIC_NAV = {level:'subjects'};
   let TOPIC_TOPICS_CACHE = null; // topics for the currently open subject
+  let TOPIC_SUBTOPICS_CACHE = null; // subtopics for the currently open topic
   let TOPIC_PAGE_QUESTIONS = []; // current page's questions, for the auto-quiz CTA
 
   async function renderTopicScreen(){
     if(TOPIC_NAV.level === 'topics'){ renderTopicListScreen(); return; }
+    if(TOPIC_NAV.level === 'subtopics'){ renderSubtopicListScreen(); return; }
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
     if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
 
@@ -3085,14 +3090,13 @@
     }
 
     listEl.innerHTML = TOPIC_TOPICS_CACHE.map(t=>{
-      const pages = Math.max(1, Math.ceil(t.question_count / 30));
       return `
-        <div class="group-card" onclick='openTopicQuestions(${JSON.stringify(t.topic)})'>
+        <div class="group-card" onclick='openTopicTopic(${JSON.stringify(t.topic)})'>
           <div class="gc-left">
             <div class="gc-ic post">📌</div>
             <div>
               <div class="gc-name">${escapeHtml(t.topic)}</div>
-              <div class="gc-meta">${toBnDigits(t.question_count)}টি প্রশ্ন · ${toBnDigits(pages)}টি পৃষ্ঠা</div>
+              <div class="gc-meta">${toBnDigits(t.question_count)}টি প্রশ্ন · ${toBnDigits(t.subtopic_count)}টি সাবটপিক</div>
             </div>
           </div>
           <div class="gc-arrow">›</div>
@@ -3100,8 +3104,72 @@
     }).join('');
   }
 
-  function openTopicQuestions(topic){
-    TOPIC_NAV = {level:'questions', subject:TOPIC_NAV.subject, topic, page:1};
+  function openTopicTopic(topic){
+    TOPIC_NAV = {level:'subtopics', subject:TOPIC_NAV.subject, topic};
+    TOPIC_SUBTOPICS_CACHE = null;
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderSubtopicListScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = TOPIC_NAV.topic;
+    subtext.textContent = TOPIC_NAV.subject + ' · সাবটপিক বেছে নিন';
+
+    if(!TOPIC_SUBTOPICS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        const data = await apiGet('/api/questions/public/subtopics?subject=' + encodeURIComponent(TOPIC_NAV.subject)
+          + '&topic=' + encodeURIComponent(TOPIC_NAV.topic));
+        TOPIC_SUBTOPICS_CACHE = data.subtopics;
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!TOPIC_SUBTOPICS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এই টপিকে এখনো কোনো সাবটপিক যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    const totalQuestions = TOPIC_SUBTOPICS_CACHE.reduce((a,s)=>a+s.question_count, 0);
+    const allBtn = `
+      <div class="group-card" onclick='openSubtopicQuestions(null)'>
+        <div class="gc-left">
+          <div class="gc-ic post">📋</div>
+          <div>
+            <div class="gc-name">সব প্রশ্ন (এই টপিকের)</div>
+            <div class="gc-meta">${toBnDigits(totalQuestions)}টি প্রশ্ন</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`;
+
+    const cards = TOPIC_SUBTOPICS_CACHE.map(s=>{
+      const pages = Math.max(1, Math.ceil(s.question_count / 30));
+      return `
+        <div class="group-card" onclick='openSubtopicQuestions(${JSON.stringify(s.subtopic)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">📌</div>
+            <div>
+              <div class="gc-name">${escapeHtml(s.subtopic)}</div>
+              <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন · ${toBnDigits(pages)}টি পৃষ্ঠা</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`;
+    }).join('');
+
+    listEl.innerHTML = (TOPIC_SUBTOPICS_CACHE.length > 1 ? allBtn : '') + cards;
+  }
+
+  function openSubtopicQuestions(subtopic){
+    TOPIC_NAV = {level:'questions', subject:TOPIC_NAV.subject, topic:TOPIC_NAV.topic, subtopic, page:1};
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -3118,14 +3186,16 @@
     const subtext = document.getElementById('model-subtext');
     const listEl = document.getElementById('model-list');
     backBtn.style.display = 'flex';
-    heading.textContent = TOPIC_NAV.topic;
-    subtext.textContent = TOPIC_NAV.subject + ' · টপিকভিত্তিক জব সলুশন';
+    heading.textContent = TOPIC_NAV.subtopic || TOPIC_NAV.topic;
+    subtext.textContent = (TOPIC_NAV.subtopic ? TOPIC_NAV.topic + ' · ' : '') + TOPIC_NAV.subject;
     listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
 
     let data;
     try{
       data = await apiGet('/api/questions/public/topic-questions?subject=' + encodeURIComponent(TOPIC_NAV.subject)
-        + '&topic=' + encodeURIComponent(TOPIC_NAV.topic) + '&page=' + TOPIC_NAV.page);
+        + '&topic=' + encodeURIComponent(TOPIC_NAV.topic)
+        + (TOPIC_NAV.subtopic ? '&subtopic=' + encodeURIComponent(TOPIC_NAV.subtopic) : '')
+        + '&page=' + TOPIC_NAV.page);
     }catch(err){
       listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
       return;
