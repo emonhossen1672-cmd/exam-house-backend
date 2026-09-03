@@ -6,6 +6,7 @@ const XLSX = require('xlsx');
 const pool = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
+const { snapToFixedSubject, normalizeText } = require('../utils/topicJobSubjects');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -80,10 +81,14 @@ router.post('/', requireAdmin, upload.single('file'), asyncHandler(async (req, r
       }
 
       const ministryId = await getMinistryId(r.ministry);
+      // snapToFixedSubject cleans invisible/whitespace differences and, if the
+      // result matches one of the 12 টপিকভিত্তিক জব সলুশন subjects, locks it to
+      // the exact canonical string — otherwise CSV rows edited on mobile can
+      // look right but silently fail the exact-match check (see topicJobSubjects.js).
       await client.query(
         `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [ministryId, r.grade || null, String(r.subject || '').trim(), String(r.topic || '').trim() || null, String(r.subtopic || '').trim() || null, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
+        [ministryId, r.grade || null, snapToFixedSubject(r.subject), normalizeText(r.topic) || null, normalizeText(r.subtopic) || null, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
          r.post_name || null, r.year || null]
       );
       added++;
