@@ -82,11 +82,14 @@
 
   /* ---------- Topbar ---------- */
   .topbar{
+    display:none; /* পুরো অ্যাপ থেকে হেডার সরিয়ে দেওয়া হয়েছে — ইউজারের অনুরোধে।
+      মনে রাখবেন: এই বারেই হ্যামবার্গার মেনু (☰ — প্যাকেজ, পারফরম্যান্স স্ট্যাট,
+      থিম টগল ইত্যাদির একমাত্র পথ) ছিল, সেটাও এখন আর দেখা যাবে না। */
     position:sticky; top:0; z-index:30;
     background:var(--paper);
     border-bottom:1px solid var(--line);
     padding:14px 18px 12px;
-    display:flex; align-items:center; justify-content:space-between;
+    align-items:center; justify-content:space-between;
   }
   .brand{display:flex; align-items:center; gap:10px;}
   .brand-mark{
@@ -1287,6 +1290,24 @@
       <button class="revision-trigger" style="background:#3a4a6b;" onclick="goScreen('perf-stats')">
         📊 <span>পারফরম্যান্স স্ট্যাটিসটিক্স দেখুন</span>
       </button>
+
+      <button class="revision-trigger" style="background:var(--gold);" onclick="goScreen('packages')">
+        📦 <span>প্যাকেজসমূহ</span>
+      </button>
+
+      <button class="revision-trigger" style="background:var(--ink);" onclick="toggleTheme()">
+        🌙 <span>ডার্ক/লাইট থিম পরিবর্তন করুন</span>
+      </button>
+
+      <div class="sm-group" style="margin-top:14px;">
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">➕</span>রেফারেল<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">🏪</span>বুক স্টোর<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">🧑‍🏫</span>আমাদের উপদেষ্টা<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">❓</span>জিজ্ঞাসা (FAQ)<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">ℹ️</span>আমাদের সম্পর্কে<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">📞</span>যোগাযোগ<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">📄</span>শর্তাবলী<span class="sm-soon">শীঘ্রই</span></button>
+      </div>
 
       <div class="sec-head" style="margin:22px 0 12px;"><h2>আমার পরীক্ষার তালিকা</h2></div>
       <div id="profile-history-empty" class="empty-note" style="display:none;">🗂️<br>এখনো কোনো পরীক্ষা সম্পন্ন করেননি।</div>
@@ -2974,8 +2995,10 @@
   }
 
   // "সব প্রশ্ন" — every question in the subject, ungrouped by subtopic.
-  // Reuses রিডিং লিস্ট's pagination endpoint since the payload shape (and
-  // page size) already matches what the topic question-card renderer needs.
+  // Uses টপিকভিত্তিক জব সলুশনের নিজস্ব endpoint (exact 12-subject match) —
+  // NOT রিডিং লিস্টের reading-list endpoint, যেটা ৫টা canonical বিষয়ের
+  // সাথে মেলায় আর তাই "বাংলা ব্যাকরণ"-এর মতো ১২-বিষয়ের নাম দিলে কখনো মেলে না
+  // (খালি ফলাফল দেখাতো — এই বাগটাই ফিক্স করা হলো)।
   async function renderTopicAllQuestionsPage(){
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -2988,7 +3011,7 @@
 
     let data;
     try{
-      data = await apiGet('/api/questions/public/reading-list?subject=' + encodeURIComponent(TOPIC_NAV.subject) + '&page=' + TOPIC_NAV.page);
+      data = await apiGet('/api/questions/public/topic-questions?subject=' + encodeURIComponent(TOPIC_NAV.subject) + '&page=' + TOPIC_NAV.page);
     }catch(err){
       listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
       return;
