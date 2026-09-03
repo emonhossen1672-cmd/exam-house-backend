@@ -4,7 +4,7 @@ const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { normalizeSubject } = require('../utils/subjectMap');
-const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC } = require('../utils/topicJobSubjects');
+const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, snapToFixedSubject, normalizeText } = require('../utils/topicJobSubjects');
 
 // GET /api/questions?ministry_id=&grade=&subject=&topic=&subtopic=&search=  (admin only — includes correct answer)
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
@@ -38,7 +38,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-    [ministry_id || null, grade || null, String(subject || '').trim(), (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
+    [ministry_id || null, grade || null, snapToFixedSubject(subject), normalizeText(topic) || null, normalizeText(subtopic) || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
   );
   res.status(201).json(rows[0]);
 }));
@@ -50,7 +50,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
     `UPDATE questions SET ministry_id=$1, grade=$2, subject=$3, topic=$4, subtopic=$5, question_text=$6,
      option_a=$7, option_b=$8, option_c=$9, option_d=$10, correct_option=$11, explanation=$12
      WHERE id=$13 RETURNING *`,
-    [ministry_id || null, grade || null, String(subject || '').trim(), (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
+    [ministry_id || null, grade || null, snapToFixedSubject(subject), normalizeText(topic) || null, normalizeText(subtopic) || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -110,7 +110,7 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
       await client.query(
         `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [q.ministry_id || null, q.grade || null, String(q.subject || '').trim(), (q.topic || '').trim() || null, (q.subtopic || '').trim() || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+        [q.ministry_id || null, q.grade || null, snapToFixedSubject(q.subject), normalizeText(q.topic) || null, normalizeText(q.subtopic) || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
          q.correct_option.toUpperCase(), q.explanation || null, (q.post_name || '').toString().trim() || null, q.exam_year || null]
       );
       added++;
@@ -365,11 +365,21 @@ router.get('/admin/subjects-raw', requireAdmin, asyncHandler(async (req, res) =>
 // PUT /api/questions/admin/rename-subject — bulk-relabels every question
 // currently tagged with one raw subject string to another (e.g. to fix a
 // mismatched spelling so it lines up with one of the 12 fixed subjects).
+// Matching is done in JS via normalizeText (NFC + whitespace cleanup)
+// instead of a plain SQL TRIM, because the whole reason a subject ends up
+// mismatched in the first place is usually an invisible character or
+// Unicode-form difference that TRIM() alone can't see — so a plain
+// TRIM(subject)=$2 comparison would silently match nothing.
 router.put('/admin/rename-subject', requireAdmin, asyncHandler(async (req, res) => {
-  const from = (req.body.from || '').trim();
-  const to = (req.body.to || '').trim();
+  const from = normalizeText(req.body.from);
+  const to = snapToFixedSubject(req.body.to);
   if (!from || !to) return res.status(400).json({ error: 'from ও to দুটোই দিতে হবে' });
-  const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE TRIM(subject)=$2', [to, from]);
+
+  const { rows } = await pool.query('SELECT id, subject FROM questions');
+  const ids = rows.filter(r => normalizeText(r.subject) === from).map(r => r.id);
+  if (!ids.length) return res.json({ updated: 0 });
+
+  const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE id = ANY($2)', [to, ids]);
   res.json({ updated: rowCount });
 }));
 
@@ -386,9 +396,9 @@ router.put('/admin/bulk-retag', requireAdmin, asyncHandler(async (req, res) => {
 
   const sets = [];
   const params = [];
-  if (req.body.subject !== undefined) { params.push(req.body.subject.trim()); sets.push(`subject = $${params.length}`); }
-  if (req.body.topic !== undefined) { params.push(req.body.topic.trim() || null); sets.push(`topic = $${params.length}`); }
-  if (req.body.subtopic !== undefined) { params.push(req.body.subtopic.trim() || null); sets.push(`subtopic = $${params.length}`); }
+  if (req.body.subject !== undefined) { params.push(snapToFixedSubject(req.body.subject)); sets.push(`subject = $${params.length}`); }
+  if (req.body.topic !== undefined) { params.push(normalizeText(req.body.topic) || null); sets.push(`topic = $${params.length}`); }
+  if (req.body.subtopic !== undefined) { params.push(normalizeText(req.body.subtopic) || null); sets.push(`subtopic = $${params.length}`); }
   if (!sets.length) return res.status(400).json({ error: 'subject, topic বা subtopic — অন্তত একটা দিন' });
 
   params.push(ids);
