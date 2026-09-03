@@ -383,33 +383,43 @@
     border-radius:10px; padding:9px 12px; font-size:12px; font-weight:700; color:var(--seal); cursor:pointer; text-align:left; font-family:'Noto Sans Bengali';
   }
 
-  /* ---------- Topic job solution — subject card (redesigned, colorful) ---------- */
+  /* ---------- Topic job solution — subject card (redesigned to match রিডিং লিস্ট style) ---------- */
   .tj-banner{display:flex; gap:10px; margin-bottom:16px;}
   .tj-banner-stat{flex:1; background:var(--seal); border-radius:14px; padding:14px; text-align:center;}
   .tj-banner-num{font-size:20px; font-weight:700; color:#fff; font-family:'Space Mono',monospace;}
   .tj-banner-label{font-size:11.5px; color:rgba(255,255,255,0.85); margin-top:2px;}
-  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:12px;}
-  .tj-card-head{display:flex; align-items:flex-start; justify-content:space-between; padding:12px 14px;}
-  .tj-name-row{display:flex; align-items:center; gap:10px;}
-  .tj-icon{width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
-  .tj-name{font-size:15px; font-weight:700; color:#fff;}
-  .tj-meta{font-size:11.5px; color:rgba(255,255,255,0.85); margin-top:2px;}
-  .tj-like{display:flex; align-items:center; gap:4px; font-size:12px; color:rgba(255,255,255,0.85); cursor:pointer; padding:4px; font-family:'Space Mono',monospace; flex-shrink:0;}
-  .tj-like .tj-heart{font-size:15px; line-height:1; transition:transform .15s ease;}
-  .tj-like.on .tj-heart{transform:scale(1.12);}
-  .tj-like:active .tj-heart{transform:scale(0.85);}
-  .tj-body{padding:14px;}
-  .tj-progress-row{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-faint); margin-bottom:4px;}
-  .tj-progress-track{height:6px; border-radius:4px; overflow:hidden; margin-bottom:12px;}
-  .tj-progress-fill{height:100%; border-radius:4px; transition:width .4s ease;}
-  .tj-actions{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
-  .tj-action-btn{
-    background:var(--paper-deep); border:none; border-radius:10px; padding:9px 4px;
-    font-size:11.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali'; text-align:center; line-height:1.35;
+  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px;}
+  .tj-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .tj-name-row{display:flex; align-items:center; gap:11px; min-width:0;}
+  .tj-icon{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; font-family:'Space Mono',monospace;
   }
-  .tj-action-btn.wide{grid-column:1 / -1;}
+  .tj-name{font-size:15px; font-weight:700; color:var(--ink);}
+  .tj-meta{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
+  .tj-like{
+    display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;
+    padding:5px 10px; border-radius:20px; font-family:'Space Mono',monospace; flex-shrink:0;
+  }
+  .tj-like .tj-heart{width:14px; height:14px; display:flex;}
+  .tj-like .tj-heart svg{width:14px; height:14px;}
+  .tj-like:active .tj-heart{transform:scale(0.85);}
+  .tj-progress-row{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:6px;}
+  .tj-progress-track{height:6px; border-radius:4px; overflow:hidden; margin-bottom:12px; background:var(--paper-deep);}
+  .tj-progress-fill{height:100%; border-radius:4px; transition:width .4s ease;}
+  .tj-actions{display:flex; gap:7px;}
+  .tj-action-btn{
+    background:var(--paper-deep); border:none; border-radius:20px; padding:9px 12px;
+    font-size:11.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali';
+    text-align:center; line-height:1.2; display:flex; align-items:center; justify-content:center; gap:4px;
+  }
+  .tj-action-btn .ic{width:14px; height:14px; flex-shrink:0;}
+  .tj-action-btn.wide{flex:1.3;}
+  .tj-action-btn.mid{flex:1;}
   .tj-action-btn:active{transform:scale(0.96);}
-  .tj-action-btn.primary{color:#fff;}
+  .tj-action-btn.primary{color:#fff; flex:0.9;}
+
 
   /* ---------- Smart practice card ---------- */
   .smart-practice-card{
@@ -2921,18 +2931,18 @@
   // generic book icon + first palette color for any subject not listed
   // here (keeps the card working even if the backend list changes).
   const TJ_SUBJECT_STYLE = {
-    'বাংলা ব্যাকরণ': {icon:'🔤', c:0},
-    'বাংলা সাহিত্য': {icon:'📖', c:1},
-    'ইংরেজি ব্যাকরণ': {icon:'🔠', c:2},
-    'ইংরেজি সাহিত্য': {icon:'📗', c:3},
-    'ভোকাবুলারি': {icon:'🗣️', c:4},
-    'গণিত': {icon:'➗', c:5},
-    'বাংলাদেশ': {icon:'🇧🇩', c:6},
-    'আন্তর্জাতিক': {icon:'🌍', c:2},
-    'বিজ্ঞান': {icon:'🔬', c:1},
-    'তথ্য ও যোগাযোগ প্রযুক্তি': {icon:'💻', c:0},
-    'ভূগোল, পরিবেশ ও ব্যবস্থাপনা': {icon:'🗺️', c:5},
-    'নৈতিকতা, মূল্যবোধ ও সুশাসন': {icon:'⚖️', c:3}
+    'বাংলা ব্যাকরণ': {abbr:'ব্যা', c:6},
+    'বাংলা সাহিত্য': {abbr:'সা', c:0},
+    'ইংরেজি ব্যাকরণ': {abbr:'Gr', c:2},
+    'ইংরেজি সাহিত্য': {abbr:'Lit', c:3},
+    'ভোকাবুলারি': {abbr:'Vo', c:4},
+    'গণিত': {abbr:'গ', c:5},
+    'বাংলাদেশ': {abbr:'বাং', c:6},
+    'আন্তর্জাতিক': {abbr:'আন্ত', c:1},
+    'বিজ্ঞান': {abbr:'বি', c:6},
+    'তথ্য ও যোগাযোগ প্রযুক্তি': {abbr:'ICT', c:3},
+    'ভূগোল, পরিবেশ ও ব্যবস্থাপনা': {abbr:'ভূ', c:0},
+    'নৈতিকতা, মূল্যবোধ ও সুশাসন': {abbr:'নৈ', c:3}
   };
   const TJ_PALETTE = [
     {bg:'#FAECE7', text:'#993C1D', fill:'#D85A30'}, // coral
@@ -2944,43 +2954,46 @@
     {bg:'#EAF3DE', text:'#3B6D11', fill:'#639922'}  // green
   ];
   function tjStyleFor(subject){
-    const s = TJ_SUBJECT_STYLE[subject] || {icon:'📚', c:0};
-    return {icon:s.icon, ...TJ_PALETTE[s.c % TJ_PALETTE.length]};
+    const s = TJ_SUBJECT_STYLE[subject] || {abbr:(subject||'?').trim().slice(0,2), c:0};
+    return {abbr:s.abbr, ...TJ_PALETTE[s.c % TJ_PALETTE.length]};
   }
 
-  // One subject card: solid-colored header band (icon, name, like) so the
-  // subject's color reads immediately, then a white body with progress bar
-  // and the three actions (all questions / all subtopics / random quiz).
+  // One subject card: small round avatar badge (subject abbreviation, no
+  // emoji) + name + subtopic/question counts, a heart-like pill, a progress
+  // bar, then সব প্রশ্ন / সাবটপিক / কুইজ as three pill actions — matches the
+  // reference design and reuses the same rl-q-card question style inside
+  // (see renderTopicQuestionsPage/renderTopicAllQuestionsPage) as রিডিং লিস্ট.
   function renderTjCard(s){
     const pct = s.question_count ? s.read_count / s.question_count : 0;
-    const pctLabel = toBnDigits(Math.round(pct * 100)) + '%';
+    const pctRounded = Math.round(pct * 100);
     const subjArg = JSON.stringify(s.subject);
     const st = tjStyleFor(s.subject);
+    const progressLabel = pctRounded >= 100
+      ? 'সম্পন্ন ✓'
+      : `${toBnDigits(s.read_count)} / ${toBnDigits(s.question_count)} পড়া হয়েছে`;
     return `
       <div class="tj-card">
-        <div class="tj-card-head" style="background:${st.fill}">
+        <div class="tj-card-head">
           <div class="tj-name-row">
-            <div class="tj-icon">${st.icon}</div>
-            <div>
+            <div class="tj-icon" style="background:${st.bg}; color:${st.text}">${escapeHtml(st.abbr)}</div>
+            <div style="min-width:0;">
               <div class="tj-name">${escapeHtml(s.subject)}</div>
               <div class="tj-meta">${toBnDigits(s.topic_count)} সাবটপিক · ${toBnDigits(s.question_count)} প্রশ্ন</div>
             </div>
           </div>
-          <div class="tj-like${s.liked ? ' on' : ''}" id="tj-like-${cssId(s.subject)}" onclick='toggleTopicLike(${subjArg}, event)'>
-            <span class="tj-heart">${s.liked ? '❤️' : '🤍'}</span>
+          <div class="tj-like${s.liked ? ' on' : ''}" id="tj-like-${cssId(s.subject)}" style="background:${st.bg}; color:${st.text}" onclick='toggleTopicLike(${subjArg}, event)'>
+            <span class="tj-heart"><svg class="ic" viewBox="0 0 24 24" style="fill:${s.liked ? st.text : 'none'}; stroke:${st.text}; stroke-width:1.8;"><use href="#i-heart"/></svg></span>
             <span class="tj-like-count">${toBnDigits(s.like_count)}</span>
           </div>
         </div>
-        <div class="tj-body">
-          <div class="tj-progress-row"><span>অগ্রগতি</span><span style="color:${st.text}; font-weight:700">${pctLabel}</span></div>
-          <div class="tj-progress-track" style="background:${st.bg}">
-            <div class="tj-progress-fill" style="width:${Math.round(pct*100)}%; background:${st.fill}"></div>
-          </div>
-          <div class="tj-actions">
-            <button class="tj-action-btn wide" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
-            <button class="tj-action-btn" style="background:${st.bg}; color:${st.text}" onclick='openTopicSubject(${subjArg})'>সব সাবটপিক</button>
-            <button class="tj-action-btn primary" style="background:${st.fill}" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
-          </div>
+        <div class="tj-progress-row"><span>${progressLabel}</span><span style="color:${st.text}; font-weight:700">${toBnDigits(pctRounded)}%</span></div>
+        <div class="tj-progress-track">
+          <div class="tj-progress-fill" style="width:${pctRounded}%; background:${st.fill}"></div>
+        </div>
+        <div class="tj-actions">
+          <button class="tj-action-btn wide" onclick='openTopicAllQuestions(${subjArg})'><svg class="ic" viewBox="0 0 24 24" style="fill:none; stroke:var(--ink-soft); stroke-width:1.8;"><use href="#i-book"/></svg>সব প্রশ্ন</button>
+          <button class="tj-action-btn mid" style="background:${st.bg}; color:${st.text}" onclick='openTopicSubject(${subjArg})'>সাবটপিক ›</button>
+          <button class="tj-action-btn primary" style="background:${st.fill}" onclick='startTopicSubjectQuiz(${subjArg})'><svg class="ic" viewBox="0 0 24 24" style="fill:none; stroke:#fff; stroke-width:1.8;"><use href="#i-target"/></svg>কুইজ</button>
         </div>
       </div>`;
   }
@@ -3003,7 +3016,8 @@
       }
       if(wrap){
         wrap.classList.toggle('on', data.liked);
-        wrap.innerHTML = `<span class="tj-heart">${data.liked ? '❤️' : '🤍'}</span><span class="tj-like-count">${toBnDigits(data.like_count)}</span>`;
+        const st = tjStyleFor(subject);
+        wrap.innerHTML = `<span class="tj-heart"><svg class="ic" viewBox="0 0 24 24" style="fill:${data.liked ? st.text : 'none'}; stroke:${st.text}; stroke-width:1.8;"><use href="#i-heart"/></svg></span><span class="tj-like-count">${toBnDigits(data.like_count)}</span>`;
       }
     }catch(err){
       alert(err.message || 'করা যায়নি');
