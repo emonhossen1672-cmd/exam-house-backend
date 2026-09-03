@@ -130,12 +130,13 @@
   /* ---------- Hero admit card (Demo 6: আর্কাইভড অ্যাডমিট কার্ড) ---------- */
   .hero-ticket{
     position:relative;
-    background:linear-gradient(155deg, #16283F 0%, #1E3554 100%);
+    background:linear-gradient(160deg, #12271F 0%, #1C3A2B 55%, #24462F 100%);
     color:#F3E9CE;
-    border-radius:16px;
+    border-radius:20px;
     padding:26px 18px 4px;
     overflow:visible;
     margin:6px 0 22px;
+    box-shadow:0 10px 24px -12px rgba(18,39,31,0.55);
   }
   .hero-fold{
     position:absolute; top:-13px; left:20px; background:var(--gold);
@@ -157,15 +158,20 @@
     margin-top:16px; padding-top:14px;
     border-top:1px solid rgba(243,233,206,0.18);
     display:flex; justify-content:space-between; align-items:center;
-    position:relative; z-index:2; gap:14px;
+    position:relative; z-index:2; gap:10px;
   }
-  .hero-stat{text-align:left;}
-  .hero-stat b{display:block; font-family:'Space Mono',monospace; font-size:18px; color:var(--gold-soft); font-weight:700;}
-  .hero-stat span{font-size:9.5px; color:#B8A87E; letter-spacing:.2px;}
+  .hero-stat{
+    text-align:left; background:rgba(243,233,206,0.08);
+    border:1px solid rgba(243,233,206,0.16); border-radius:10px;
+    padding:6px 10px;
+  }
+  .hero-stat b{display:block; font-family:'Space Mono',monospace; font-size:17px; color:var(--gold-soft); font-weight:700;}
+  .hero-stat span{font-size:9px; color:#B8A87E; letter-spacing:.2px;}
   .hero-cta{
     background:var(--gold); color:#2B2317; border:none;
-    padding:10px 16px; border-radius:8px; font-family:'Noto Sans Bengali'; font-weight:700;
+    padding:11px 17px; border-radius:22px; font-family:'Noto Sans Bengali'; font-weight:700;
     font-size:12.5px; cursor:pointer; white-space:nowrap;
+    box-shadow:0 4px 10px -3px rgba(184,144,46,0.6);
   }
   .hero-barcode{
     display:flex; align-items:stretch; gap:2px; height:14px; overflow:hidden;
@@ -186,7 +192,8 @@
   .daily-quiz-card{
     display:flex; align-items:center; gap:11px; margin-top:16px;
     background:var(--card); border:1px solid var(--line); border-inline-start:4px solid var(--gold);
-    border-radius:10px; padding:13px 15px; cursor:pointer;
+    border-radius:14px; padding:13px 15px; cursor:pointer;
+    box-shadow:0 2px 10px -6px rgba(0,0,0,0.15);
   }
   .dq-icon{width:30px; height:30px; border-radius:8px; background:var(--paper-deep); color:var(--navy-deep); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
   .dq-icon svg{width:16px; height:16px;}
@@ -198,7 +205,8 @@
   /* ---------- Live exam spotlight ticker (হোমপেজে আজকের লাইভ পরীক্ষা) ---------- */
   .live-spotlight-card{
     background:var(--card); border:1px solid var(--line); border-top:3px solid var(--seal);
-    border-radius:12px; padding:16px; margin-top:10px; cursor:pointer;
+    border-radius:16px; padding:16px; margin-top:10px; cursor:pointer;
+    box-shadow:0 2px 10px -6px rgba(0,0,0,0.15);
   }
   .ls-head{display:flex; align-items:center; gap:10px;}
   .ls-icon{width:36px; height:36px; border-radius:9px; background:var(--paper-deep); color:var(--seal); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
@@ -887,22 +895,26 @@
   }
   .cat-section-bar .cat-bar{width:4px; height:16px; border-radius:2px; background:var(--navy-deep); flex-shrink:0;}
   .cat-section-bar h2{font-family:'Noto Serif Bengali', serif; font-weight:700; font-size:15.5px; color:var(--ink); letter-spacing:.2px;}
-  .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .cat-grid{display:grid; grid-template-columns:1fr 1fr; gap:11px;}
   .cat-tile{
-    position:relative; display:flex; align-items:center; gap:10px;
-    background:var(--t-bg,var(--card)); border:1px solid var(--t-bd,var(--line)); border-radius:10px;
-    padding:12px 11px; font-size:12.5px; font-weight:600; color:var(--t-fg,var(--ink));
-    cursor:pointer; min-height:48px;
+    position:relative; display:flex; flex-direction:column; align-items:center; gap:8px;
+    background:var(--t-bg,var(--card)); border:1px solid var(--t-bd,var(--line)); border-radius:16px;
+    padding:16px 10px 13px; font-size:12px; font-weight:700; color:var(--t-fg,var(--ink));
+    cursor:pointer; min-height:48px; text-align:center;
+    box-shadow:0 2px 0 rgba(0,0,0,0.03);
+    transition:transform .15s ease, box-shadow .15s ease;
   }
-  .cat-tile:active{filter:brightness(0.97);}
+  .cat-tile:active{transform:scale(0.96); box-shadow:none;}
   .cat-tile .ct-ic{
-    width:32px; height:32px; border-radius:8px; flex-shrink:0;
-    background:var(--t-bd,var(--paper-deep)); color:var(--t-fg,var(--navy-deep));
+    width:40px; height:40px; border-radius:50%; flex-shrink:0;
+    background:var(--card); color:var(--t-fg,var(--navy-deep));
     display:flex; align-items:center; justify-content:center;
+    box-shadow:0 1px 0 rgba(0,0,0,0.05), inset 0 0 0 1px var(--t-bd,var(--line));
   }
-  .cat-tile .ct-ic .ic{width:16px; height:16px;}
-  .cat-tile .ct-badge{position:absolute; top:8px; right:8px; font-size:8.5px; background:rgba(255,255,255,0.75); color:var(--t-fg,var(--ink-faint)); padding:1px 6px; border-radius:20px; font-weight:700;}
-  .cat-tile .ct-emoji{position:absolute; top:6px; left:6px; font-size:13px; line-height:1;}
+  .cat-tile .ct-ic .ic{width:18px; height:18px;}
+  .cat-tile span:last-child{line-height:1.35;}
+  .cat-tile .ct-badge{position:absolute; top:7px; right:7px; font-size:8px; background:rgba(255,255,255,0.85); color:var(--t-fg,var(--ink-faint)); padding:1px 6px; border-radius:20px; font-weight:700;}
+  .cat-tile .ct-emoji{display:none;}
 
 
   /* ---------- Packages screen ---------- */
