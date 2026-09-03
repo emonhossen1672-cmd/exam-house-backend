@@ -199,6 +199,11 @@
     <div class="panel active" id="panel-add">
       <h2>নতুন প্রশ্ন যোগ করুন</h2>
       <div class="desc">সব ঘর পূরণ করে জমা দিন।</div>
+      <div class="desc" style="background:var(--paper,#FAF6EC); border:1px solid var(--line,#E4DCC6); border-radius:10px; padding:10px 12px; margin-bottom:14px;">
+        📚 <b>"সাবজেক্ট অনুযায়ী প্রস্তুতি"</b> বাটনে (হোমপেজে) প্রশ্ন দেখাতে চাইলে: নিচে <b>বিষয়</b> ঘরে ১২টার একটা হুবহু লিখুন (যেমন: বাংলা ব্যাকরণ, গণিত)
+        এবং <b>টপিক</b> ঘরে কিছু একটা লিখুন — টপিক ফাঁকা রাখলে প্রশ্নটা শুধু রিডিং লিস্টে থাকবে, ওই বাটনে দেখাবে না।
+        বাল্ক আপলোড ট্যাব থেকেও একসাথে অনেক প্রশ্ন এভাবে যোগ করা যায়।
+      </div>
       <div class="err-box" id="addErr"></div>
       <div class="ok-box" id="addOk"></div>
       <form id="addForm">
@@ -261,6 +266,10 @@
         <b>ধাপ ১:</b> এই ব্যাচের বিষয়/টপিক/সাবটপিক আগে থেকে বেছে নিন, একটা টেমপ্লেট ডাউনলোড করুন —
         প্রতিটা সারিতে বিষয়/টপিক/সাবটপিক আগে থেকেই বসানো থাকবে, শুধু প্রশ্ন-অপশন-উত্তর লিখলেই হবে
         (Google Sheets/Excel-এ খুললে চাইলে যেকোনো সারির বিষয়/টপিক আলাদাও করে দিতে পারবেন)।
+        একটা টপিকের ভিতরে একাধিক সাবটপিক থাকলে সাবটপিক ঘরে সবগুলো কমা (,) দিয়ে লিখুন — যেমন
+        "জীবনী সাহিত্য, নাথ সাহিত্য, অনুবাদ সাহিত্য" — টেমপ্লেটের সারিগুলোতে এই নামগুলো একটার পর একটা
+        পালাক্রমে বসে যাবে (আগে যেমন পুরো লেখাটাই প্রতিটা সারিতে হুবহু বসে যেত এবং একটাই ভুল সাবটপিক
+        তৈরি হতো, সেটা ঠিক করা হয়েছে)। প্রয়োজনে আপলোডের আগে যেকোনো সারির টপিক/সাবটপিক হাতে বদলেও নিতে পারবেন।
       </div>
       <div class="field">
         <label>বিষয়</label>
@@ -268,12 +277,12 @@
       </div>
       <div class="grid-2">
         <div class="field">
-          <label>টপিক (ঐচ্ছিক)</label>
-          <input type="text" id="bt_topic" list="topic-suggestions" placeholder="যেমন: ধ্বনি ও বর্ণ">
+          <label>টপিক (ঐচ্ছিক — একাধিক হলে কমা (,) দিয়ে লিখুন, সারিতে পালাক্রমে বসবে)</label>
+          <input type="text" id="bt_topic" list="topic-suggestions" placeholder="যেমন: ধ্বনি ও বর্ণ  অথবা  প্রাচীন যুগ, মধ্যযুগ, আধুনিক যুগ">
         </div>
         <div class="field">
-          <label>সাবটপিক (ঐচ্ছিক)</label>
-          <input type="text" id="bt_subtopic" list="subtopic-suggestions" placeholder="থাকলে দিন, না থাকলে ফাঁকা">
+          <label>সাবটপিক (ঐচ্ছিক — একাধিক হলে কমা (,) দিয়ে লিখুন, সারিতে পালাক্রমে বসবে)</label>
+          <input type="text" id="bt_subtopic" list="subtopic-suggestions" placeholder="যেমন: চর্যাপদ  অথবা  জীবনী সাহিত্য, নাথ সাহিত্য, অনুবাদ সাহিত্য">
         </div>
       </div>
       <div class="field" style="max-width:160px;">
@@ -440,6 +449,13 @@
     <div class="panel" id="panel-exams">
       <h2>নতুন পরীক্ষা তৈরি করুন</h2>
       <div class="desc">টাইপ, তথ্য দিন এবং নিচ থেকে প্রশ্ন বাছাই করে "পরীক্ষা তৈরি করুন" চাপুন।</div>
+      <div class="desc" style="background:var(--paper,#FAF6EC); border:1px solid var(--line,#E4DCC6); border-radius:10px; padding:10px 12px; margin-bottom:14px;">
+        🎓 <b>"৯ম-২০তম গ্রেডের প্রস্তুতি"</b> বাটনে (হোমপেজে) কোনো পরীক্ষা দেখাতে চাইলে: নিচের ফর্মে পরীক্ষা বানানোর সময়
+        <b>"রুটিন ক্যাটাগরি"</b> ড্রপডাউন থেকে <b>"১১-২০ গ্রেড প্রস্তুতির সিলেবাস"</b> বেছে নিন। এই ক্যাটাগরি বেছে নেওয়া
+        যেকোনো লাইভ পরীক্ষা বা মডেল টেস্ট সরাসরি ওই বাটনের পেজে (আজকের পরীক্ষা + স্ট্যাটস অংশে) দেখাবে। এছাড়া
+        "লাইভ রুটিন" ট্যাব থেকে একই ক্যাটাগরিতে দিনভিত্তিক পড়াশোনার প্ল্যানও (রুটিন) যোগ করতে পারবেন, যেটা ওই
+        বাটনের ভিতরের "রুটিন" অংশে দেখাবে।
+      </div>
       <div class="err-box" id="examErr"></div>
       <div class="ok-box" id="examOk"></div>
       <form id="examForm">
@@ -1148,10 +1164,17 @@ function csvField(val){
   if (/[",\n]/.test(val)) return '"' + val.replace(/"/g, '""') + '"';
   return val;
 }
+// একাধিক টপিক/সাবটপিক কমা (,) দিয়ে আলাদা করে লিখলে প্রতিটা ফাঁকা সারিতে
+// পুরো লেখাটা হুবহু বসিয়ে না দিয়ে, তালিকার নামগুলো পালাক্রমে (round-robin)
+// এক এক সারিতে এক একটা বসানো হয় — যেমন ৩টা সাবটপিক আর ২৫টা সারি চাইলে,
+// সারিগুলোতে ঘুরিয়ে ঘুরিয়ে ৩টা নামই বসবে, একটা মিলিয়ে-লেখা স্ট্রিং না।
+function splitMulti(val){
+  return String(val || '').split(',').map(s => s.trim()).filter(Boolean);
+}
 document.getElementById('bt_downloadBtn').addEventListener('click', () => {
   const subject = document.getElementById('bt_subject').value.trim();
-  const topic = document.getElementById('bt_topic').value.trim();
-  const subtopic = document.getElementById('bt_subtopic').value.trim();
+  const topics = splitMulti(document.getElementById('bt_topic').value);
+  const subtopics = splitMulti(document.getElementById('bt_subtopic').value);
   let rowCount = parseInt(document.getElementById('bt_rows').value, 10);
   if (!Number.isFinite(rowCount) || rowCount < 1) rowCount = 25;
   if (rowCount > 500) rowCount = 500;
@@ -1163,6 +1186,8 @@ document.getElementById('bt_downloadBtn').addEventListener('click', () => {
   const headers = ['ministry', 'grade', 'subject', 'topic', 'subtopic', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct', 'explanation', 'post_name', 'year'];
   const lines = [headers.join(',')];
   for (let i = 0; i < rowCount; i++){
+    const topic = topics.length ? topics[i % topics.length] : '';
+    const subtopic = subtopics.length ? subtopics[i % subtopics.length] : '';
     const row = ['', '', subject, topic, subtopic, '', '', '', '', '', '', '', '', ''];
     lines.push(row.map(csvField).join(','));
   }
