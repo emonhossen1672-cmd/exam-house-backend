@@ -218,8 +218,8 @@
         </div>
         <div class="grid-2">
           <div class="field">
-            <label>টপিক (ঐচ্ছিক)</label>
-            <input type="text" id="q_topic" list="topic-suggestions" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ — টপিকভিত্তিক জব সলুশনে দেখাবে">
+            <label>টপিক (ঐচ্ছিক — দিলে রিডিং লিস্ট + টপিকভিত্তিক দুই জায়গাতেই দেখাবে, ফাঁকা রাখলে শুধু রিডিং লিস্টে)</label>
+            <input type="text" id="q_topic" list="topic-suggestions" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
           </div>
           <div class="field">
             <label>সাবটপিক (ঐচ্ছিক)</label>
@@ -284,7 +284,7 @@
 
       <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
 
-      <div class="desc"><b>ধাপ ২:</b> টেমপ্লেট পূরণ করে এখানে আপলোড করুন। কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক — কোন চাকরির পরীক্ষায় এসেছিল), year (ঐচ্ছিক — কোন সালে), topic (ঐচ্ছিক), subtopic (ঐচ্ছিক) — topic ও subtopic টপিকভিত্তিক জব সলুশনে দেখাবে, post_name ও year প্রশ্নের নিচে উৎস হিসেবে দেখাবে। subject অবশ্যই ১২টার একটার সাথে হুবহু মিলতে হবে (উপরে টাইপ করলে সাজেশন আসবে)।</div>
+      <div class="desc"><b>ধাপ ২:</b> টেমপ্লেট পূরণ করে এখানে আপলোড করুন। কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক — কোন চাকরির পরীক্ষায় এসেছিল), year (ঐচ্ছিক — কোন সালে), topic (ঐচ্ছিক), subtopic (ঐচ্ছিক)। subject অবশ্যই ১২টার একটার সাথে হুবহু মিলতে হবে (উপরে টাইপ করলে সাজেশন আসবে) — <b>রিডিং লিস্ট ও টপিকভিত্তিক জব সলুশন এখন একই ১২-বিষয়ের তালিকা ব্যবহার করে।</b> topic ফাঁকা রাখলে প্রশ্নটা শুধু রিডিং লিস্টে দেখাবে; topic দিলে প্রশ্নটা রিডিং লিস্ট এবং টপিকভিত্তিক জব সলুশন — দুই জায়গাতেই দেখাবে। post_name ও year প্রশ্নের নিচে উৎস হিসেবে দেখাবে।</div>
       <div class="err-box" id="bulkErr"></div>
       <div class="drop-zone">
         <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls">
@@ -313,12 +313,14 @@
       <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
       <h2>বিষয় তালিকা (ডায়াগনস্টিক)</h2>
       <div class="desc">
-        "বিষয়ভিত্তিক" ট্যাব শুধু ৫টা নির্দিষ্ট বিষয় চেনে: বাংলা, ইংরেজি, গণিত, সাধারণ জ্ঞান, বিজ্ঞান ও প্রযুক্তি
-        (এদের যেকোনো একটা দিয়ে subject শুরু হলেই চলবে)। এর বাইরের যেকোনো subject লেখা (যেমন শুধু "কম্পিউটার",
-        "ভূমি বিষয়ক", বানান একটু আলাদা) — সেই প্রশ্নগুলো ব্যাংকে জমা হয় ঠিকই, কিন্তু বিষয়ভিত্তিক লিস্টে দেখায় না,
-        তাই কাউন্ট বাড়তে দেখা যায় না। নতুন আপলোডের পর নিচের বাটনে চেপে চেক করে নাও কোনগুলো "❌ অচেনা" দেখাচ্ছে।
+        রিডিং লিস্ট আর টপিকভিত্তিক জব সলুশন — দুটোই এখন একই ১২টা নির্দিষ্ট subject চেনে (নিচের দিকে বিষয় লেখার
+        সব ঘরে যে ১২টা সাজেশন আসে)। কোনো প্রশ্নের subject এই ১২টার একটার সাথে হুবহু না মিললে সেটা কোথাও দেখাবে না —
+        না রিডিং লিস্টে, না টপিকভিত্তিকে। প্রশ্নে topic দেওয়া থাকলে সেটা রিডিং লিস্ট + টপিকভিত্তিক দুই জায়গাতেই
+        দেখাবে; topic ফাঁকা থাকলে শুধু রিডিং লিস্টে দেখাবে। নতুন আপলোডের পর নিচের বাটনে চেপে চেক করে নাও কোনগুলো
+        "❌ মিলেনি" দেখাচ্ছে।
       </div>
       <button class="btn btn-primary" id="loadSubjectsBtn" style="width:auto; padding-left:26px; padding-right:26px;">🔍 বিষয় তালিকা দেখুন</button>
+      <button class="btn btn-ghost" id="findMismatchBtn" style="width:auto; padding-left:26px; padding-right:26px;">✨ মিসম্যাচড সাবজেক্ট খুঁজে বের করুন</button>
       <div id="subjectsRawResult" style="margin-top:14px;"></div>
     </div>
 
@@ -341,7 +343,7 @@
       </div>
       <div class="grid-2">
         <div class="field">
-          <label>টপিক (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
+          <label>টপিক (ঐচ্ছিক — দিলে রিডিং লিস্ট + টপিকভিত্তিক দুই জায়গাতেই দেখাবে, ফাঁকা রাখলে শুধু রিডিং লিস্টে)</label>
           <input type="text" id="qt_topic" list="topic-suggestions" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
         </div>
         <div class="field">
@@ -414,7 +416,7 @@
             <input type="text" id="retag_subtopic" list="subtopic-suggestions" placeholder="যেমন: চর্যাপদ">
           </div>
         </div>
-        <div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:8px;">টপিক/সাবটপিক মুছে ফেলে "অন্যান্য"-এ পাঠাতে চাইলে ঘরে শুধু একটা স্পেস দিয়ে জমা দিন।</div>
+        <div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:8px;">টপিক মুছে দিয়ে শুধু রিডিং লিস্টে রাখতে চাইলে (টপিকভিত্তিক থেকে সরাতে) ঘরে শুধু একটা স্পেস দিয়ে জমা দিন।</div>
         <button class="btn btn-primary btn-small" id="retagApplyBtn">সিলেক্টেড প্রশ্নে প্রয়োগ করুন</button>
         <button class="btn btn-ghost btn-small" id="retagClearBtn">সিলেকশন বাতিল</button>
         <div id="retagResult" style="margin-top:8px; font-size:12.5px;"></div>
@@ -1242,24 +1244,41 @@ document.getElementById('syncRepeatedBtn').addEventListener('click', async () =>
 });
 
 // ---- বিষয় তালিকা (ডায়াগনস্টিক) ----
-document.getElementById('loadSubjectsBtn').addEventListener('click', loadSubjectsRaw);
+document.getElementById('loadSubjectsBtn').addEventListener('click', () => loadSubjectsRaw(false));
+document.getElementById('findMismatchBtn').addEventListener('click', () => loadSubjectsRaw(true));
 
-async function loadSubjectsRaw(){
-  const btn = document.getElementById('loadSubjectsBtn');
+async function loadSubjectsRaw(onlyMismatched){
+  const btn = onlyMismatched ? document.getElementById('findMismatchBtn') : document.getElementById('loadSubjectsBtn');
   const box = document.getElementById('subjectsRawResult');
   btn.disabled = true; const original = btn.textContent; btn.innerHTML = '<span class="spinner"></span>';
   try{
-    const rows = await api('/api/questions/admin/subjects-raw');
-    if (!rows.length){ box.innerHTML = '<div class="desc">প্রশ্ন ব্যাংক এখনো খালি।</div>'; return; }
-    box.innerHTML = `<table>
-      <tr><th>subject (যেমন লেখা আছে)</th><th>প্রশ্ন</th><th>রিডিং লিস্ট (৫-বিষয়)</th><th>টপিকভিত্তিক জব সলুশন (১২-বিষয়)</th><th></th></tr>
+    let rows = await api('/api/questions/admin/subjects-raw');
+    if (onlyMismatched) rows = rows.filter(r => !r.matches_topic_job_subject);
+
+    if (!rows.length){
+      box.innerHTML = onlyMismatched
+        ? '<div class="desc">✅ সব subject-ই ১২টার একটার সাথে হুবহু মিলছে — কোনো মিসম্যাচ পাওয়া যায়নি।</div>'
+        : '<div class="desc">প্রশ্ন ব্যাংক এখনো খালি।</div>';
+      return;
+    }
+
+    const suggestedCount = rows.filter(r => r.suggested_fixed_subject).length;
+    const summary = onlyMismatched
+      ? `<div class="desc" style="margin-bottom:10px;">${rows.length} টি subject মিলছে না${suggestedCount ? `, এর মধ্যে ${suggestedCount} টির জন্য এক-ট্যাপ ফিক্স আছে (নিচে "✨ ঠিক করুন" চাপুন)` : ''}।</div>`
+      : '';
+
+    box.innerHTML = summary + `<table>
+      <tr><th>subject (যেমন লেখা আছে)</th><th>মোট প্রশ্ন</th><th>টপিক-ট্যাগড (→ টপিকভিত্তিকেও দেখাবে)</th><th>১২-বিষয়ের সাথে মিল</th><th></th></tr>
       ${rows.map(r => `
-        <tr>
+        <tr${r.suggested_fixed_subject ? ' style="background:rgba(255,193,7,0.12);"' : ''}>
           <td class="qtext">${escapeHtml(r.subject || '(খালি)')}</td>
           <td>${r.question_count}</td>
-          <td>${r.canonical ? '✅ ' + escapeHtml(r.canonical) : '❌ অচেনা'}</td>
-          <td>${r.matches_topic_job_subject ? '✅ মিলেছে' : '❌ মিলেনি'}</td>
-          <td>${r.subject ? `<button class="btn btn-ghost btn-small" onclick="renameSubjectPrompt(${JSON.stringify(r.subject)})">রিনেম</button>` : ''}</td>
+          <td>${r.matches_topic_job_subject ? `${r.topic_tagged_count} / ${r.question_count}` : '—'}</td>
+          <td>${r.matches_topic_job_subject ? '✅ মিলেছে' : (r.suggested_fixed_subject ? `❌ মিলেনি — সাজেশন: <b>${escapeHtml(r.suggested_fixed_subject)}</b>` : '❌ মিলেনি')}</td>
+          <td>
+            ${r.suggested_fixed_subject ? `<button class="btn btn-primary btn-small" onclick="applySuggestedFix(${JSON.stringify(r.subject)}, ${JSON.stringify(r.suggested_fixed_subject)})">✨ ঠিক করুন</button>` : ''}
+            ${r.subject ? `<button class="btn btn-ghost btn-small" onclick="renameSubjectPrompt(${JSON.stringify(r.subject)})">রিনেম</button>` : ''}
+          </td>
         </tr>`).join('')}
     </table>`;
   } catch(err){
@@ -1269,13 +1288,27 @@ async function loadSubjectsRaw(){
   }
 }
 
+// One-tap fix — used when the server already found that a mismatched
+// subject normalizes to exactly one of the 12 fixed subjects (invisible
+// character / stray space / Unicode form difference). No typing needed.
+async function applySuggestedFix(from, to){
+  if (!confirm(`"${from}" ট্যাগের সব প্রশ্নকে "${to}"-তে বদলে দেব?`)) return;
+  try{
+    const data = await api('/api/questions/admin/rename-subject', { method: 'PUT', body: JSON.stringify({ from, to }) });
+    alert(`${data.updated} টি প্রশ্নের subject ঠিক করা হয়েছে।`);
+    loadSubjectsRaw(true);
+  } catch(err){
+    alert('সমস্যা: ' + err.message);
+  }
+}
+
 async function renameSubjectPrompt(from){
   const to = prompt(`"${from}" ট্যাগের সব প্রশ্নকে কোন নামে বদলে দেব?\nটপিকভিত্তিক জব সলুশনের জন্য এই ১২টার একটা হুবহু লিখুন:\nবাংলা ব্যাকরণ / বাংলা সাহিত্য / ইংরেজি ব্যাকরণ / ইংরেজি সাহিত্য / ভোকাবুলারি / গণিত / বাংলাদেশ / আন্তর্জাতিক / বিজ্ঞান / তথ্য ও যোগাযোগ প্রযুক্তি / ভূগোল, পরিবেশ ও ব্যবস্থাপনা / নৈতিকতা, মূল্যবোধ ও সুশাসন\n(অথবা রিডিং লিস্টের জন্য: বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান / বিজ্ঞান ও প্রযুক্তি)`, from);
   if (!to || !to.trim() || to.trim() === from) return;
   try{
     const data = await api('/api/questions/admin/rename-subject', { method: 'PUT', body: JSON.stringify({ from, to: to.trim() }) });
     alert(`${data.updated} টি প্রশ্নের subject বদলে গেছে।`);
-    loadSubjectsRaw();
+    loadSubjectsRaw(false);
   } catch(err){
     alert('সমস্যা: ' + err.message);
   }
