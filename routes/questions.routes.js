@@ -3,7 +3,6 @@ const router = express.Router();
 const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
-const { normalizeSubject } = require('../utils/subjectMap');
 const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, snapToFixedSubject, normalizeText } = require('../utils/topicJobSubjects');
 
 // GET /api/questions?ministry_id=&grade=&subject=&topic=&subtopic=&search=  (admin only — includes correct answer)
@@ -128,25 +127,20 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
 
 // GET /api/questions/public/reading-list?subject=X&page=1 — plain paginated
 // listing of a subject's whole question bank, 30 per page, for রিডিং লিস্ট
-// (read-through study, not an exam). Uses the OLD 5-bucket canonical subject
-// grouping (utils/subjectMap.js) — unrelated to টপিকভিত্তিক জব সলুশন's fixed
-// 12-subject list below, do not merge the two.
+// (read-through study, not an exam). `subject` must be one of the 12 fixed
+// টপিকভিত্তিক জব সলুশন subjects (utils/topicJobSubjects.js) — Reading List
+// and টপিকভিত্তিক জব সলুশন now share the exact same subject list. This
+// endpoint shows EVERY question tagged with that subject, whether or not it
+// also has a topic — topic-tagged questions show up here too (superset);
+// see /public/topic-job-subjects etc. below for the topic-only subset.
 const READING_PAGE_SIZE = 30;
 router.get('/public/reading-list', asyncHandler(async (req, res) => {
-  const canonicalSubject = (req.query.subject || '').trim();
+  const subject = (req.query.subject || '').trim();
   let page = parseInt(req.query.page, 10);
   if (!Number.isFinite(page) || page < 1) page = 1;
-  if (!canonicalSubject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
 
-  const distinctRes = await pool.query('SELECT DISTINCT subject FROM questions');
-  const matchingRawSubjects = distinctRes.rows
-    .map(r => r.subject)
-    .filter(s => normalizeSubject(s) === canonicalSubject);
-  if (!matchingRawSubjects.length) {
-    return res.json({ subject: canonicalSubject, page: 1, total_pages: 1, total_count: 0, questions: [] });
-  }
-
-  const countRes = await pool.query('SELECT COUNT(*)::int AS total FROM questions WHERE subject = ANY($1)', [matchingRawSubjects]);
+  const countRes = await pool.query('SELECT COUNT(*)::int AS total FROM questions WHERE subject = $1', [subject]);
   const total = countRes.rows[0].total;
   const totalPages = Math.max(1, Math.ceil(total / READING_PAGE_SIZE));
   if (page > totalPages) page = totalPages;
@@ -157,31 +151,35 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
             q.correct_option, q.explanation, q.post_name, q.exam_year,
             m.name AS ministry_name
      FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
-     WHERE q.subject = ANY($1)
+     WHERE q.subject = $1
      ORDER BY q.id ASC
      LIMIT $2 OFFSET $3`,
-    [matchingRawSubjects, READING_PAGE_SIZE, offset]
+    [subject, READING_PAGE_SIZE, offset]
   );
 
-  res.json({ subject: canonicalSubject, page, total_pages: totalPages, total_count: total, questions: rows });
+  res.json({ subject, page, total_pages: totalPages, total_count: total, questions: rows });
 }));
 
 // ============================================================================
 // টপিকভিত্তিক জব সলুশন — Subject → Topic → Subtopic → Questions
-// Fixed 12-subject list (utils/topicJobSubjects.js), EXACT match against
-// q.subject (no fuzzy normalizing) so questions never leak between subjects.
+// Same fixed 12-subject list as Reading List (utils/topicJobSubjects.js), but
+// ONLY includes questions that also have a non-empty `topic` — a question
+// tagged with just a subject (no topic) is Reading-List-only. Give a
+// question a topic and it appears in BOTH views; leave topic blank and it
+// appears ONLY in রিডিং লিস্ট, never here.
 // ============================================================================
 
 // GET /api/questions/public/topic-job-subjects — subject-card summary for
 // the টপিকভিত্তিক জব সলুশন home screen. Always returns all 12 fixed subjects
-// (even ones with 0 questions yet), each with question_count, topic_count,
-// like_count, liked, and — for a logged-in student — read progress.
+// (even ones with 0 topic-tagged questions yet), each with question_count
+// (topic-tagged questions only — see note above), topic_count, like_count,
+// liked, and — for a logged-in student — read progress.
 router.get('/public/topic-job-subjects', optionalUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT subject, COUNT(*)::int AS question_count,
-            COUNT(DISTINCT COALESCE(NULLIF(TRIM(topic), ''), $1))::int AS topic_count
-     FROM questions WHERE subject = ANY($2) GROUP BY subject`,
-    [UNTAGGED_TOPIC, TOPIC_JOB_SUBJECTS]
+            COUNT(DISTINCT TRIM(topic))::int AS topic_count
+     FROM questions WHERE subject = ANY($1) AND TRIM(COALESCE(topic, '')) <> '' GROUP BY subject`,
+    [TOPIC_JOB_SUBJECTS]
   );
   const bySubject = new Map(rows.map(r => [r.subject, r]));
 
@@ -239,18 +237,20 @@ router.post('/public/topic-job-like', requireUser, asyncHandler(async (req, res)
 
 // GET /api/questions/public/topics?subject=X — topics inside one (exact)
 // subject, each with its own question_count and subtopic_count, so the
-// client shows a topic card (level 2) before drilling into subtopics.
+// client shows a topic card (level 2) before drilling into subtopics. Only
+// topic-tagged questions are considered — a question with no topic never
+// appears here (it's রিডিং লিস্ট-only, see note above).
 router.get('/public/topics', asyncHandler(async (req, res) => {
   const subject = (req.query.subject || '').trim();
   if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
 
   const { rows } = await pool.query(
-    `SELECT COALESCE(NULLIF(TRIM(topic), ''), $2) AS topic,
+    `SELECT TRIM(topic) AS topic,
             COUNT(*)::int AS question_count,
-            COUNT(DISTINCT COALESCE(NULLIF(TRIM(subtopic), ''), $3))::int AS subtopic_count
-     FROM questions WHERE subject = $1
+            COUNT(DISTINCT COALESCE(NULLIF(TRIM(subtopic), ''), $2))::int AS subtopic_count
+     FROM questions WHERE subject = $1 AND TRIM(COALESCE(topic, '')) <> ''
      GROUP BY 1 ORDER BY question_count DESC`,
-    [subject, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC]
+    [subject, UNTAGGED_SUBTOPIC]
   );
   res.json({ subject, topics: rows });
 }));
@@ -299,6 +299,11 @@ router.get('/public/topic-questions', asyncHandler(async (req, res) => {
       params.push(topic);
       clauses.push(`q.topic = $${params.length}`);
     }
+  } else {
+    // "সব প্রশ্ন" at subject level within টপিকভিত্তিক জব সলুশন means all
+    // TOPIC-TAGGED questions for this subject — untagged ones are
+    // রিডিং লিস্ট-only and never appear in this view (see note above).
+    clauses.push(`TRIM(COALESCE(q.topic, '')) <> ''`);
   }
   if (subtopic) {
     if (subtopic === UNTAGGED_SUBTOPIC) {
@@ -348,18 +353,32 @@ router.post('/public/mark-read', requireUser, asyncHandler(async (req, res) => {
 
 // GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
 // in the bank with its question count and which of the 12 fixed টপিকভিত্তিক
-// subjects (if any) it exactly matches. Anything NOT in the fixed list here
-// is invisible to টপিকভিত্তিক জব সলুশন until renamed to one of the 12.
+// GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
+// in the bank with its question count (and how many of those have a topic
+// tag) and which of the 12 fixed subjects (if any) it exactly matches.
+// Reading List and টপিকভিত্তিক জব সলুশন now share this same 12-subject list:
+// a subject NOT in the fixed list is invisible to BOTH until renamed to one
+// of the 12; a subject that IS in the list but has 0 topic-tagged questions
+// shows up in রিডিং লিস্ট only. `suggested_fixed_subject` is set when the raw
+// text merely looks slightly off (stray space, invisible character, NFD vs
+// NFC form) but normalizes to one of the 12 — the admin UI uses this to
+// offer a one-tap fix instead of making the admin retype the exact string.
 router.get('/admin/subjects-raw', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
-    SELECT subject, COUNT(*)::int AS question_count
+    SELECT subject, COUNT(*)::int AS question_count,
+           COUNT(*) FILTER (WHERE TRIM(COALESCE(topic, '')) <> '')::int AS topic_tagged_count
     FROM questions GROUP BY subject ORDER BY question_count DESC
   `);
-  res.json(rows.map(r => ({
-    ...r,
-    canonical: normalizeSubject(r.subject),
-    matches_topic_job_subject: TOPIC_JOB_SUBJECTS.includes(r.subject)
-  })));
+  res.json(rows.map(r => {
+    const matches = TOPIC_JOB_SUBJECTS.includes(r.subject);
+    const snapped = snapToFixedSubject(r.subject);
+    const suggestion = (!matches && TOPIC_JOB_SUBJECTS.includes(snapped)) ? snapped : null;
+    return {
+      ...r,
+      matches_topic_job_subject: matches,
+      suggested_fixed_subject: suggestion
+    };
+  }));
 }));
 
 // PUT /api/questions/admin/rename-subject — bulk-relabels every question
