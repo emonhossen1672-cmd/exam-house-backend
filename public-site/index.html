@@ -380,32 +380,32 @@
     border-radius:10px; padding:9px 12px; font-size:12px; font-weight:700; color:var(--seal); cursor:pointer; text-align:left; font-family:'Noto Sans Bengali';
   }
 
-  /* ---------- Topic job solution — subject card (redesigned) ---------- */
-  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
-  .tj-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  /* ---------- Topic job solution — subject card (redesigned, colorful) ---------- */
+  .tj-banner{display:flex; gap:10px; margin-bottom:16px;}
+  .tj-banner-stat{flex:1; background:var(--seal); border-radius:14px; padding:14px; text-align:center;}
+  .tj-banner-num{font-size:20px; font-weight:700; color:#fff; font-family:'Space Mono',monospace;}
+  .tj-banner-label{font-size:11.5px; color:#F3D9D6; margin-top:2px;}
+  .tj-card{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--seal); border-radius:16px; padding:14px; margin-bottom:12px;}
+  .tj-top{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px;}
+  .tj-name-row{display:flex; align-items:center; gap:10px;}
+  .tj-icon{width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
   .tj-name{font-size:15px; font-weight:700; color:var(--ink);}
-  .tj-like{display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink-faint); cursor:pointer; padding:4px; font-family:'Space Mono',monospace;}
+  .tj-meta{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .tj-like{display:flex; align-items:center; gap:4px; font-size:12px; color:var(--ink-faint); cursor:pointer; padding:4px; font-family:'Space Mono',monospace; flex-shrink:0;}
   .tj-like .tj-heart{font-size:15px; line-height:1; transition:transform .15s ease;}
   .tj-like.on .tj-heart{transform:scale(1.12);}
   .tj-like:active .tj-heart{transform:scale(0.85);}
-  .tj-mid{display:flex; align-items:center; gap:14px; margin-bottom:14px;}
-  .tj-ring{flex-shrink:0; width:64px; height:64px; position:relative;}
-  .tj-ring svg{width:64px; height:64px; transform:rotate(-90deg);}
-  .tj-ring circle{fill:none; stroke-width:6;}
-  .tj-ring .tj-ring-bg{stroke:var(--paper-deep);}
-  .tj-ring .tj-ring-fg{stroke:var(--seal); stroke-linecap:round; transition:stroke-dashoffset .4s ease;}
-  .tj-ring-label{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:var(--ink-soft); font-family:'Space Mono',monospace; text-align:center; line-height:1.25;}
-  .tj-stats{flex:1; min-width:0;}
-  .tj-stat-row{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0;}
-  .tj-stat-row span:first-child{color:var(--ink-faint);}
-  .tj-stat-row span:last-child{color:var(--ink); font-weight:700; font-family:'Space Mono',monospace;}
-  .tj-actions{display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px;}
+  .tj-progress-row{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-faint); margin-bottom:4px;}
+  .tj-progress-track{height:6px; border-radius:4px; overflow:hidden; margin-bottom:12px;}
+  .tj-progress-fill{height:100%; border-radius:4px; transition:width .4s ease;}
+  .tj-actions{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
   .tj-action-btn{
     background:var(--paper-deep); border:none; border-radius:10px; padding:9px 4px;
-    font-size:11px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali'; text-align:center; line-height:1.35;
+    font-size:11.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali'; text-align:center; line-height:1.35;
   }
+  .tj-action-btn.wide{grid-column:1 / -1;}
   .tj-action-btn:active{transform:scale(0.96);}
-  .tj-action-btn.primary{background:var(--seal); color:#fff;}
+  .tj-action-btn.primary{color:#fff;}
 
   /* ---------- Smart practice card ---------- */
   .smart-practice-card{
@@ -2834,39 +2834,84 @@
       return;
     }
 
-    listEl.innerHTML = TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
+    // Real, backend-derived totals only — no invented streaks or numbers
+    // the API doesn't actually provide.
+    const totalQuestions = TOPIC_SUBJECTS_CACHE.reduce((a,s)=>a+s.question_count, 0);
+    const totalRead = TOPIC_SUBJECTS_CACHE.reduce((a,s)=>a+s.read_count, 0);
+    const overallPct = totalQuestions ? Math.round(totalRead / totalQuestions * 100) : 0;
+    const bannerHtml = `
+      <div class="tj-banner">
+        <div class="tj-banner-stat"><div class="tj-banner-num">${toBnDigits(totalQuestions)}</div><div class="tj-banner-label">মোট প্রশ্ন</div></div>
+        <div class="tj-banner-stat"><div class="tj-banner-num">${toBnDigits(overallPct)}%</div><div class="tj-banner-label">মোট অগ্রগতি</div></div>
+      </div>`;
+
+    listEl.innerHTML = bannerHtml + TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
   }
 
-  // One subject card: ❤️ like, circular "পড়া হয়েছে" progress ring, subtopic/
-  // question counts, and the three actions (all questions / all subtopics /
-  // random quiz) from the reference design.
+  // Color + icon per subject, so each subject card is visually distinct at
+  // a glance instead of all looking identical. Palette pulled from the
+  // fixed 12-subject list in utils/topicJobSubjects.js — falls back to a
+  // generic book icon + first palette color for any subject not listed
+  // here (keeps the card working even if the backend list changes).
+  const TJ_SUBJECT_STYLE = {
+    'বাংলা ব্যাকরণ': {icon:'🔤', c:0},
+    'বাংলা সাহিত্য': {icon:'📖', c:1},
+    'ইংরেজি ব্যাকরণ': {icon:'🔠', c:2},
+    'ইংরেজি সাহিত্য': {icon:'📗', c:3},
+    'ভোকাবুলারি': {icon:'🗣️', c:4},
+    'গণিত': {icon:'➗', c:5},
+    'বাংলাদেশ': {icon:'🇧🇩', c:6},
+    'আন্তর্জাতিক': {icon:'🌍', c:2},
+    'বিজ্ঞান': {icon:'🔬', c:1},
+    'তথ্য ও যোগাযোগ প্রযুক্তি': {icon:'💻', c:0},
+    'ভূগোল, পরিবেশ ও ব্যবস্থাপনা': {icon:'🗺️', c:5},
+    'নৈতিকতা, মূল্যবোধ ও সুশাসন': {icon:'⚖️', c:3}
+  };
+  const TJ_PALETTE = [
+    {bg:'#FAECE7', text:'#993C1D', fill:'#D85A30'}, // coral
+    {bg:'#E1F5EE', text:'#0F6E56', fill:'#1D9E75'}, // teal
+    {bg:'#E6F1FB', text:'#185FA5', fill:'#378ADD'}, // blue
+    {bg:'#EEEDFE', text:'#534AB7', fill:'#7F77DD'}, // purple
+    {bg:'#FBEAF0', text:'#993556', fill:'#D4537E'}, // pink
+    {bg:'#FAEEDA', text:'#854F0B', fill:'#BA7517'}, // amber
+    {bg:'#EAF3DE', text:'#3B6D11', fill:'#639922'}  // green
+  ];
+  function tjStyleFor(subject){
+    const s = TJ_SUBJECT_STYLE[subject] || {icon:'📚', c:0};
+    return {icon:s.icon, ...TJ_PALETTE[s.c % TJ_PALETTE.length]};
+  }
+
+  // One subject card: colored icon badge, ❤️ like, linear progress bar,
+  // topic/question counts, and the three actions (all questions / all
+  // subtopics / random quiz).
   function renderTjCard(s){
     const pct = s.question_count ? s.read_count / s.question_count : 0;
     const pctLabel = toBnDigits(Math.round(pct * 100)) + '%';
     const subjArg = JSON.stringify(s.subject);
+    const st = tjStyleFor(s.subject);
     return `
-      <div class="tj-card">
+      <div class="tj-card" style="border-left-color:${st.fill}">
         <div class="tj-top">
-          <div class="tj-name">${escapeHtml(s.subject)}</div>
+          <div class="tj-name-row">
+            <div class="tj-icon" style="background:${st.bg}; color:${st.text}">${st.icon}</div>
+            <div>
+              <div class="tj-name">${escapeHtml(s.subject)}</div>
+              <div class="tj-meta">${toBnDigits(s.topic_count)} সাবটপিক · ${toBnDigits(s.question_count)} প্রশ্ন</div>
+            </div>
+          </div>
           <div class="tj-like${s.liked ? ' on' : ''}" id="tj-like-${cssId(s.subject)}" onclick='toggleTopicLike(${subjArg}, event)'>
             <span class="tj-heart">${s.liked ? '❤️' : '🤍'}</span>
             <span class="tj-like-count">${toBnDigits(s.like_count)}</span>
           </div>
         </div>
-        <div class="tj-mid">
-          <div class="tj-ring">
-            ${tjRingSvg(pct)}
-            <div class="tj-ring-label">${toBnDigits(s.read_count)}/${toBnDigits(s.question_count)}<br>${pctLabel}</div>
-          </div>
-          <div class="tj-stats">
-            <div class="tj-stat-row"><span>Subtopics</span><span>${toBnDigits(s.subtopic_count)}</span></div>
-            <div class="tj-stat-row"><span>Questions</span><span>${toBnDigits(s.question_count)}</span></div>
-          </div>
+        <div class="tj-progress-row"><span>অগ্রগতি</span><span style="color:${st.text}; font-weight:700">${pctLabel}</span></div>
+        <div class="tj-progress-track" style="background:${st.bg}">
+          <div class="tj-progress-fill" style="width:${Math.round(pct*100)}%; background:${st.fill}"></div>
         </div>
         <div class="tj-actions">
-          <button class="tj-action-btn" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
+          <button class="tj-action-btn wide" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
           <button class="tj-action-btn" onclick='openTopicSubject(${subjArg})'>সব সাবটপিক</button>
-          <button class="tj-action-btn primary" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
+          <button class="tj-action-btn primary" style="background:${st.fill}" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
         </div>
       </div>`;
   }
@@ -2875,15 +2920,6 @@
   // text, not identifier-safe on their own).
   function cssId(str){
     return String(str).split('').map(c=>c.charCodeAt(0)).join('');
-  }
-
-  function tjRingSvg(pct){
-    const r = 26, c = 2 * Math.PI * r;
-    const dash = c * Math.min(1, Math.max(0, pct || 0));
-    return `<svg viewBox="0 0 64 64">
-      <circle class="tj-ring-bg" cx="32" cy="32" r="${r}"></circle>
-      <circle class="tj-ring-fg" cx="32" cy="32" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c - dash).toFixed(2)}"></circle>
-    </svg>`;
   }
 
   async function toggleTopicLike(subject, ev){
