@@ -256,7 +256,35 @@
 
     <div class="panel" id="panel-bulk">
       <h2>CSV / Excel থেকে বাল্ক আপলোড</h2>
-      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক), year (ঐচ্ছিক), topic (ঐচ্ছিক), subtopic (ঐচ্ছিক) — topic ও subtopic টপিকভিত্তিক জব সলুশনে দেখাবে। subject অবশ্যই নিচের ১২টার একটার সাথে হুবহু মিলতে হবে (উপরে টাইপ করলে সাজেশন আসবে)।</div>
+
+      <div class="desc" style="margin-bottom:14px;">
+        <b>ধাপ ১:</b> এই ব্যাচের বিষয়/টপিক/সাবটপিক আগে থেকে বেছে নিন, একটা টেমপ্লেট ডাউনলোড করুন —
+        প্রতিটা সারিতে বিষয়/টপিক/সাবটপিক আগে থেকেই বসানো থাকবে, শুধু প্রশ্ন-অপশন-উত্তর লিখলেই হবে
+        (Google Sheets/Excel-এ খুললে চাইলে যেকোনো সারির বিষয়/টপিক আলাদাও করে দিতে পারবেন)।
+      </div>
+      <div class="field">
+        <label>বিষয়</label>
+        <input type="text" id="bt_subject" list="fixed-subjects-list" placeholder="যেমন: বাংলা ব্যাকরণ">
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>টপিক (ঐচ্ছিক)</label>
+          <input type="text" id="bt_topic" list="topic-suggestions" placeholder="যেমন: ধ্বনি ও বর্ণ">
+        </div>
+        <div class="field">
+          <label>সাবটপিক (ঐচ্ছিক)</label>
+          <input type="text" id="bt_subtopic" list="subtopic-suggestions" placeholder="থাকলে দিন, না থাকলে ফাঁকা">
+        </div>
+      </div>
+      <div class="field" style="max-width:160px;">
+        <label>কতগুলো ফাঁকা সারি লাগবে</label>
+        <input type="number" id="bt_rows" value="25" min="1" max="500">
+      </div>
+      <button type="button" class="btn btn-ghost" id="bt_downloadBtn" style="width:auto; padding-left:22px; padding-right:22px;">📥 CSV টেমপ্লেট ডাউনলোড করুন</button>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
+
+      <div class="desc"><b>ধাপ ২:</b> টেমপ্লেট পূরণ করে এখানে আপলোড করুন। কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক — কোন চাকরির পরীক্ষায় এসেছিল), year (ঐচ্ছিক — কোন সালে), topic (ঐচ্ছিক), subtopic (ঐচ্ছিক) — topic ও subtopic টপিকভিত্তিক জব সলুশনে দেখাবে, post_name ও year প্রশ্নের নিচে উৎস হিসেবে দেখাবে। subject অবশ্যই ১২টার একটার সাথে হুবহু মিলতে হবে (উপরে টাইপ করলে সাজেশন আসবে)।</div>
       <div class="err-box" id="bulkErr"></div>
       <div class="drop-zone">
         <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls">
@@ -1110,6 +1138,43 @@ document.getElementById('addForm').addEventListener('submit', async (e) => {
   } finally {
     btn.disabled = false; btn.textContent = 'প্রশ্ন যোগ করুন';
   }
+});
+
+// ---- CSV টেমপ্লেট ডাউনলোড (ধাপ ১: বিষয়/টপিক/সাবটপিক প্রি-ফিল করা ফাঁকা টেমপ্লেট) ----
+function csvField(val){
+  val = (val === null || val === undefined) ? '' : String(val);
+  if (/[",\n]/.test(val)) return '"' + val.replace(/"/g, '""') + '"';
+  return val;
+}
+document.getElementById('bt_downloadBtn').addEventListener('click', () => {
+  const subject = document.getElementById('bt_subject').value.trim();
+  const topic = document.getElementById('bt_topic').value.trim();
+  const subtopic = document.getElementById('bt_subtopic').value.trim();
+  let rowCount = parseInt(document.getElementById('bt_rows').value, 10);
+  if (!Number.isFinite(rowCount) || rowCount < 1) rowCount = 25;
+  if (rowCount > 500) rowCount = 500;
+  if (!subject){
+    alert('অন্তত বিষয়টা লিখুন — খালি রাখলে আপলোডের সময় বাতিল হয়ে যাবে');
+    return;
+  }
+
+  const headers = ['ministry', 'grade', 'subject', 'topic', 'subtopic', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct', 'explanation', 'post_name', 'year'];
+  const lines = [headers.join(',')];
+  for (let i = 0; i < rowCount; i++){
+    const row = ['', '', subject, topic, subtopic, '', '', '', '', '', '', '', '', ''];
+    lines.push(row.map(csvField).join(','));
+  }
+  // BOM যোগ করা হলো যাতে Excel-এ বাংলা লেখা ভাঙাচোরা না দেখায়
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = subject.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'questions';
+  a.href = url;
+  a.download = `template-${safeName}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 });
 
 document.getElementById('bulkBtn').addEventListener('click', async () => {
