@@ -4,10 +4,11 @@ const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { normalizeSubject } = require('../utils/subjectMap');
+const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC } = require('../utils/topicJobSubjects');
 
-// GET /api/questions?ministry_id=&grade=&subject=&topic=&search=  (admin only — includes correct answer)
+// GET /api/questions?ministry_id=&grade=&subject=&topic=&subtopic=&search=  (admin only — includes correct answer)
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { ministry_id, grade, subject, topic, search } = req.query;
+  const { ministry_id, grade, subject, topic, subtopic, search } = req.query;
   const clauses = [];
   const params = [];
 
@@ -15,6 +16,7 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
   if (grade) { params.push(grade); clauses.push(`q.grade = $${params.length}`); }
   if (subject) { params.push(subject); clauses.push(`q.subject = $${params.length}`); }
   if (topic) { params.push(topic); clauses.push(`q.topic = $${params.length}`); }
+  if (subtopic) { params.push(subtopic); clauses.push(`q.subtopic = $${params.length}`); }
   if (search) { params.push(`%${search}%`); clauses.push(`q.question_text ILIKE $${params.length}`); }
 
   const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
@@ -29,26 +31,26 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
 
 // POST /api/questions  — add a single question
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { ministry_id, grade, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
+  const { ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
   if (!subject || !question_text || !option_a || !option_b || !option_c || !option_d || !correct_option) {
     return res.status(400).json({ error: 'সব ঘর পূরণ করুন' });
   }
   const { rows } = await pool.query(
-    `INSERT INTO questions (ministry_id, grade, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-    [ministry_id || null, grade || null, subject, (topic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
+    `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+    [ministry_id || null, grade || null, subject, (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null]
   );
   res.status(201).json(rows[0]);
 }));
 
 // PUT /api/questions/:id — edit a question
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { ministry_id, grade, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
+  const { ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation } = req.body;
   const { rows } = await pool.query(
-    `UPDATE questions SET ministry_id=$1, grade=$2, subject=$3, topic=$4, question_text=$5,
-     option_a=$6, option_b=$7, option_c=$8, option_d=$9, correct_option=$10, explanation=$11
-     WHERE id=$12 RETURNING *`,
-    [ministry_id || null, grade || null, subject, (topic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
+    `UPDATE questions SET ministry_id=$1, grade=$2, subject=$3, topic=$4, subtopic=$5, question_text=$6,
+     option_a=$7, option_b=$8, option_c=$9, option_d=$10, correct_option=$11, explanation=$12
+     WHERE id=$13 RETURNING *`,
+    [ministry_id || null, grade || null, subject, (topic || '').trim() || null, (subtopic || '').trim() || null, question_text, option_a, option_b, option_c, option_d, correct_option.toUpperCase(), explanation || null, req.params.id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -77,8 +79,16 @@ router.post('/ministries', requireAdmin, asyncHandler(async (req, res) => {
   res.status(201).json(rows[0]);
 }));
 
+// GET /api/questions/topic-job-subjects/list — fixed 12-subject list, for
+// the admin form's subject dropdown (single source of truth, shared with
+// utils/topicJobSubjects.js) so admins can't typo a subject that then never
+// shows up on টপিকভিত্তিক জব সলুশন.
+router.get('/topic-job-subjects/list', requireAdmin, asyncHandler(async (req, res) => {
+  res.json(TOPIC_JOB_SUBJECTS);
+}));
+
 // POST /api/questions/bulk — insert many already-structured questions at once
-// body: { questions: [{ ministry_id, grade, subject, topic, question_text, option_a..d, correct_option, explanation, post_name, exam_year }] }
+// body: { questions: [{ ministry_id, grade, subject, topic, subtopic, question_text, option_a..d, correct_option, explanation, post_name, exam_year }] }
 router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
   const { questions } = req.body;
   if (!Array.isArray(questions) || !questions.length) {
@@ -98,9 +108,9 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
         continue;
       }
       await client.query(
-        `INSERT INTO questions (ministry_id, grade, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-        [q.ministry_id || null, q.grade || null, q.subject, (q.topic || '').trim() || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+        `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+        [q.ministry_id || null, q.grade || null, q.subject, (q.topic || '').trim() || null, (q.subtopic || '').trim() || null, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
          q.correct_option.toUpperCase(), q.explanation || null, (q.post_name || '').toString().trim() || null, q.exam_year || null]
       );
       added++;
@@ -118,10 +128,9 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
 
 // GET /api/questions/public/reading-list?subject=X&page=1 — plain paginated
 // listing of a subject's whole question bank, 30 per page, for রিডিং লিস্ট
-// (read-through study, not an exam). Answer/explanation are included in the
-// payload — the reveal is a client-side tap, same trust level as the archive
-// endpoint in exams.routes.js which already sends correct_option once a
-// window has closed. Ordered by id so pagination is stable across requests.
+// (read-through study, not an exam). Uses the OLD 5-bucket canonical subject
+// grouping (utils/subjectMap.js) — unrelated to টপিকভিত্তিক জব সলুশন's fixed
+// 12-subject list below, do not merge the two.
 const READING_PAGE_SIZE = 30;
 router.get('/public/reading-list', asyncHandler(async (req, res) => {
   const canonicalSubject = (req.query.subject || '').trim();
@@ -129,9 +138,6 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
   if (!Number.isFinite(page) || page < 1) page = 1;
   if (!canonicalSubject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
 
-  // The subject passed in is a canonical name (বাংলা, ইংরেজি, ...) — find every
-  // raw subject value in the database that normalizes to it (e.g. বাংলা also
-  // covers বাংলা (ধ্বনি ও বর্ণ), ইংরেজি also covers English) and match against all of them.
   const distinctRes = await pool.query('SELECT DISTINCT subject FROM questions');
   const matchingRawSubjects = distinctRes.rows
     .map(r => r.subject)
@@ -160,115 +166,28 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
   res.json({ subject: canonicalSubject, page, total_pages: totalPages, total_count: total, questions: rows });
 }));
 
-// GET /api/questions/public/topics?subject=X — for টপিকভিত্তিক জব সলুশন:
-// distinct topics inside one canonical subject, with question counts, so the
-// client can list topics before drilling into any one of them. Questions with
-// no topic set are grouped under "অন্যান্য" rather than dropped, so older
-// data (uploaded before topics existed) is still reachable.
-const UNTAGGED_TOPIC = 'অন্যান্য';
-router.get('/public/topics', asyncHandler(async (req, res) => {
-  const canonicalSubject = (req.query.subject || '').trim();
-  if (!canonicalSubject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+// ============================================================================
+// টপিকভিত্তিক জব সলুশন — Subject → Topic → Subtopic → Questions
+// Fixed 12-subject list (utils/topicJobSubjects.js), EXACT match against
+// q.subject (no fuzzy normalizing) so questions never leak between subjects.
+// ============================================================================
 
-  const distinctRes = await pool.query('SELECT DISTINCT subject FROM questions');
-  const matchingRawSubjects = distinctRes.rows
-    .map(r => r.subject)
-    .filter(s => normalizeSubject(s) === canonicalSubject);
-  if (!matchingRawSubjects.length) {
-    return res.json({ subject: canonicalSubject, topics: [] });
-  }
-
-  const { rows } = await pool.query(
-    `SELECT COALESCE(NULLIF(TRIM(topic), ''), $2) AS topic, COUNT(*)::int AS question_count
-     FROM questions WHERE subject = ANY($1)
-     GROUP BY 1 ORDER BY question_count DESC`,
-    [matchingRawSubjects, UNTAGGED_TOPIC]
-  );
-  res.json({ subject: canonicalSubject, topics: rows });
-}));
-
-// GET /api/questions/public/topic-questions?subject=X&topic=Y&page=1 — paginated
-// (30/page, same page size and payload shape as reading-list) listing of one
-// topic's questions within a subject, each tagged with which exam/post/year it
-// came from — the "টপিকভিত্তিক জব সলুশন" reading view. Pass topic=অন্যান্য to
-// get untagged questions for that subject.
-const TOPIC_PAGE_SIZE = 30;
-router.get('/public/topic-questions', asyncHandler(async (req, res) => {
-  const canonicalSubject = (req.query.subject || '').trim();
-  const topic = (req.query.topic || '').trim();
-  let page = parseInt(req.query.page, 10);
-  if (!Number.isFinite(page) || page < 1) page = 1;
-  if (!canonicalSubject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
-  if (!topic) return res.status(400).json({ error: 'টপিক নির্বাচন করুন' });
-
-  const distinctRes = await pool.query('SELECT DISTINCT subject FROM questions');
-  const matchingRawSubjects = distinctRes.rows
-    .map(r => r.subject)
-    .filter(s => normalizeSubject(s) === canonicalSubject);
-  if (!matchingRawSubjects.length) {
-    return res.json({ subject: canonicalSubject, topic, page: 1, total_pages: 1, total_count: 0, questions: [] });
-  }
-
-  const topicClause = topic === UNTAGGED_TOPIC
-    ? `(q.topic IS NULL OR TRIM(q.topic) = '')`
-    : `q.topic = $2`;
-  const topicParams = topic === UNTAGGED_TOPIC ? [] : [topic];
-
-  const countRes = await pool.query(
-    `SELECT COUNT(*)::int AS total FROM questions q WHERE q.subject = ANY($1) AND ${topicClause}`,
-    [matchingRawSubjects, ...topicParams]
-  );
-  const total = countRes.rows[0].total;
-  const totalPages = Math.max(1, Math.ceil(total / TOPIC_PAGE_SIZE));
-  if (page > totalPages) page = totalPages;
-  const offset = (page - 1) * TOPIC_PAGE_SIZE;
-
-  const { rows } = await pool.query(
-    `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
-            q.correct_option, q.explanation, q.post_name, q.exam_year,
-            m.name AS ministry_name
-     FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
-     WHERE q.subject = ANY($1) AND ${topicClause}
-     ORDER BY q.id ASC
-     LIMIT $${topicParams.length + 2} OFFSET $${topicParams.length + 3}`,
-    [matchingRawSubjects, ...topicParams, TOPIC_PAGE_SIZE, offset]
-  );
-
-  res.json({ subject: canonicalSubject, topic, page, total_pages: totalPages, total_count: total, questions: rows });
-}));
-
-// GET /api/questions/public/topic-job-subjects — subject-card summary for the
-// টপিকভিত্তিক জব সলুশন home screen: per canonical subject, total question
-// count, distinct subtopic (topic) count, subject-level ❤️ count, and — for a
-// logged-in student — how many of that subject's questions they've read so
-// far (question_reads) and whether they've liked the subject. Guests get
-// counts but no personal read progress.
+// GET /api/questions/public/topic-job-subjects — subject-card summary for
+// the টপিকভিত্তিক জব সলুশন home screen. Always returns all 12 fixed subjects
+// (even ones with 0 questions yet), each with question_count, topic_count,
+// like_count, liked, and — for a logged-in student — read progress.
 router.get('/public/topic-job-subjects', optionalUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT subject, COALESCE(NULLIF(TRIM(topic), ''), $1) AS topic, COUNT(*)::int AS question_count
-     FROM questions GROUP BY subject, 2`,
-    [UNTAGGED_TOPIC]
+    `SELECT subject, COUNT(*)::int AS question_count,
+            COUNT(DISTINCT COALESCE(NULLIF(TRIM(topic), ''), $1))::int AS topic_count
+     FROM questions WHERE subject = ANY($2) GROUP BY subject`,
+    [UNTAGGED_TOPIC, TOPIC_JOB_SUBJECTS]
   );
-
-  const bySubject = new Map(); // canonical subject -> { question_count, topics:Set }
-  for (const row of rows) {
-    const canonical = normalizeSubject(row.subject);
-    if (!canonical) continue;
-    if (!bySubject.has(canonical)) bySubject.set(canonical, { question_count: 0, topics: new Set() });
-    const entry = bySubject.get(canonical);
-    entry.question_count += row.question_count;
-    entry.topics.add(row.topic);
-  }
-
-  const subjects = [...bySubject.entries()].map(([subject, v]) => ({
-    subject, question_count: v.question_count, subtopic_count: v.topics.size
-  }));
-  if (!subjects.length) return res.json([]);
-  const subjectNames = subjects.map(s => s.subject);
+  const bySubject = new Map(rows.map(r => [r.subject, r]));
 
   const likeRes = await pool.query(
     'SELECT subject, COUNT(*)::int AS like_count FROM subject_likes WHERE subject = ANY($1) GROUP BY subject',
-    [subjectNames]
+    [TOPIC_JOB_SUBJECTS]
   );
   const likeMap = new Map(likeRes.rows.map(r => [r.subject, r.like_count]));
 
@@ -278,35 +197,32 @@ router.get('/public/topic-job-subjects', optionalUser, asyncHandler(async (req, 
     const readRes = await pool.query(
       `SELECT q.subject, COUNT(*)::int AS read_count
        FROM question_reads qr JOIN questions q ON q.id = qr.question_id
-       WHERE qr.user_id = $1 GROUP BY q.subject`,
-      [req.user.id]
+       WHERE qr.user_id = $1 AND q.subject = ANY($2) GROUP BY q.subject`,
+      [req.user.id, TOPIC_JOB_SUBJECTS]
     );
-    for (const r of readRes.rows) {
-      const canonical = normalizeSubject(r.subject);
-      if (!canonical) continue;
-      readMap.set(canonical, (readMap.get(canonical) || 0) + r.read_count);
-    }
-    const likedRes = await pool.query('SELECT subject FROM subject_likes WHERE user_id=$1 AND subject = ANY($2)', [req.user.id, subjectNames]);
+    readMap = new Map(readRes.rows.map(r => [r.subject, r.read_count]));
+    const likedRes = await pool.query('SELECT subject FROM subject_likes WHERE user_id=$1 AND subject = ANY($2)', [req.user.id, TOPIC_JOB_SUBJECTS]);
     likedSet = new Set(likedRes.rows.map(r => r.subject));
   }
 
-  const result = subjects
-    .map(s => ({
-      subject: s.subject,
-      question_count: s.question_count,
-      subtopic_count: s.subtopic_count,
-      like_count: likeMap.get(s.subject) || 0,
-      liked: likedSet.has(s.subject),
-      read_count: Math.min(readMap.get(s.subject) || 0, s.question_count)
-    }))
-    .sort((a, b) => b.question_count - a.question_count);
+  const result = TOPIC_JOB_SUBJECTS.map(subject => {
+    const row = bySubject.get(subject);
+    const question_count = row ? row.question_count : 0;
+    return {
+      subject,
+      question_count,
+      topic_count: row ? row.topic_count : 0,
+      like_count: likeMap.get(subject) || 0,
+      liked: likedSet.has(subject),
+      read_count: Math.min(readMap.get(subject) || 0, question_count)
+    };
+  });
 
   res.json(result);
 }));
 
 // POST /api/questions/public/topic-job-like  body: { subject } — toggles the
-// logged-in student's ❤️ on a subject (subject_likes) and returns the new
-// state + total count, for the টপিকভিত্তিক জব সলুশন subject card.
+// logged-in student's ❤️ on a subject.
 router.post('/public/topic-job-like', requireUser, asyncHandler(async (req, res) => {
   const subject = (req.body.subject || '').trim();
   if (!subject) return res.status(400).json({ error: 'বিষয় প্রয়োজন' });
@@ -321,11 +237,101 @@ router.post('/public/topic-job-like', requireUser, asyncHandler(async (req, res)
   res.json({ liked: !existing.rows.length, like_count: countRes.rows[0].c });
 }));
 
+// GET /api/questions/public/topics?subject=X — topics inside one (exact)
+// subject, each with its own question_count and subtopic_count, so the
+// client shows a topic card (level 2) before drilling into subtopics.
+router.get('/public/topics', asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+
+  const { rows } = await pool.query(
+    `SELECT COALESCE(NULLIF(TRIM(topic), ''), $2) AS topic,
+            COUNT(*)::int AS question_count,
+            COUNT(DISTINCT COALESCE(NULLIF(TRIM(subtopic), ''), $3))::int AS subtopic_count
+     FROM questions WHERE subject = $1
+     GROUP BY 1 ORDER BY question_count DESC`,
+    [subject, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC]
+  );
+  res.json({ subject, topics: rows });
+}));
+
+// GET /api/questions/public/subtopics?subject=X&topic=Y — subtopics inside
+// one topic, each with question_count (level 3, leaf list before questions).
+router.get('/public/subtopics', asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  const topic = (req.query.topic || '').trim();
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+  if (!topic) return res.status(400).json({ error: 'টপিক নির্বাচন করুন' });
+
+  const topicClause = topic === UNTAGGED_TOPIC ? `(topic IS NULL OR TRIM(topic) = '')` : `topic = $2`;
+  const topicParams = topic === UNTAGGED_TOPIC ? [] : [topic];
+
+  const { rows } = await pool.query(
+    `SELECT COALESCE(NULLIF(TRIM(subtopic), ''), $${topicParams.length + 2}) AS subtopic, COUNT(*)::int AS question_count
+     FROM questions WHERE subject = $1 AND ${topicClause}
+     GROUP BY 1 ORDER BY question_count DESC`,
+    [subject, ...topicParams, UNTAGGED_SUBTOPIC]
+  );
+  res.json({ subject, topic, subtopics: rows });
+}));
+
+// GET /api/questions/public/topic-questions?subject=X&topic=Y&subtopic=Z&page=1
+// Paginated (30/page) question listing. `topic` and `subtopic` are both
+// optional filters within `subject` — omit topic for "সব প্রশ্ন" at subject
+// level, provide topic but omit subtopic for all of a topic's questions,
+// provide both for one subtopic's questions.
+const TOPIC_PAGE_SIZE = 30;
+router.get('/public/topic-questions', asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  const topic = (req.query.topic || '').trim();
+  const subtopic = (req.query.subtopic || '').trim();
+  let page = parseInt(req.query.page, 10);
+  if (!Number.isFinite(page) || page < 1) page = 1;
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+
+  const clauses = ['q.subject = $1'];
+  const params = [subject];
+
+  if (topic) {
+    if (topic === UNTAGGED_TOPIC) {
+      clauses.push(`(q.topic IS NULL OR TRIM(q.topic) = '')`);
+    } else {
+      params.push(topic);
+      clauses.push(`q.topic = $${params.length}`);
+    }
+  }
+  if (subtopic) {
+    if (subtopic === UNTAGGED_SUBTOPIC) {
+      clauses.push(`(q.subtopic IS NULL OR TRIM(q.subtopic) = '')`);
+    } else {
+      params.push(subtopic);
+      clauses.push(`q.subtopic = $${params.length}`);
+    }
+  }
+  const where = clauses.join(' AND ');
+
+  const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM questions q WHERE ${where}`, params);
+  const total = countRes.rows[0].total;
+  const totalPages = Math.max(1, Math.ceil(total / TOPIC_PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+  const offset = (page - 1) * TOPIC_PAGE_SIZE;
+
+  const { rows } = await pool.query(
+    `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+            q.correct_option, q.explanation, q.post_name, q.exam_year,
+            m.name AS ministry_name
+     FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
+     WHERE ${where}
+     ORDER BY q.id ASC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, TOPIC_PAGE_SIZE, offset]
+  );
+
+  res.json({ subject, topic: topic || null, subtopic: subtopic || null, page, total_pages: totalPages, total_count: total, questions: rows });
+}));
+
 // POST /api/questions/public/mark-read  body: { question_ids: [...] } —
-// best-effort: records that the logged-in student has opened/revealed these
-// questions (question_reads), so their subject card's "পড়া হয়েছে" progress
-// ring advances. Silently a no-op for guests on the client side — this
-// endpoint itself still requires login since there's nothing to track otherwise.
+// records that the logged-in student has opened/revealed these questions.
 router.post('/public/mark-read', requireUser, asyncHandler(async (req, res) => {
   const ids = Array.isArray(req.body.question_ids)
     ? req.body.question_ids.map(Number).filter(Number.isFinite)
@@ -341,28 +347,55 @@ router.post('/public/mark-read', requireUser, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
-// in the bank with its question count and which canonical subject (if any)
-// it maps to. Diagnostic tool: when a bulk upload's questions don't show up
-// under বিষয়ভিত্তিক, it's almost always because their subject text doesn't
-// start with one of the 5 recognized prefixes (see utils/subjectMap.js) —
-// this view makes that visible instead of the count silently not moving.
+// in the bank with its question count and which of the 12 fixed টপিকভিত্তিক
+// subjects (if any) it exactly matches. Anything NOT in the fixed list here
+// is invisible to টপিকভিত্তিক জব সলুশন until renamed to one of the 12.
 router.get('/admin/subjects-raw', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT subject, COUNT(*)::int AS question_count
     FROM questions GROUP BY subject ORDER BY question_count DESC
   `);
-  res.json(rows.map(r => ({ ...r, canonical: normalizeSubject(r.subject) })));
+  res.json(rows.map(r => ({
+    ...r,
+    canonical: normalizeSubject(r.subject),
+    matches_topic_job_subject: TOPIC_JOB_SUBJECTS.includes(r.subject)
+  })));
 }));
 
 // PUT /api/questions/admin/rename-subject — bulk-relabels every question
-// currently tagged with one raw subject string to another, so an admin can
-// fix a mismatched spelling (e.g. "কম্পিউটার" -> "বিজ্ঞান ও প্রযুক্তি") for
-// every affected question at once, without re-uploading anything.
+// currently tagged with one raw subject string to another (e.g. to fix a
+// mismatched spelling so it lines up with one of the 12 fixed subjects).
 router.put('/admin/rename-subject', requireAdmin, asyncHandler(async (req, res) => {
   const from = (req.body.from || '').trim();
   const to = (req.body.to || '').trim();
   if (!from || !to) return res.status(400).json({ error: 'from ও to দুটোই দিতে হবে' });
   const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE subject=$2', [to, from]);
+  res.json({ updated: rowCount });
+}));
+
+// PUT /api/questions/admin/bulk-retag — body: { question_ids: [...], subject?, topic?, subtopic? }
+// Bulk-reassign topic/subtopic (and optionally subject) for a hand-picked
+// set of question ids — the fix for questions that ended up under the wrong
+// topic. Only the fields actually present in the body get updated; pass an
+// empty string for topic/subtopic to clear it back to "অন্যান্য".
+router.put('/admin/bulk-retag', requireAdmin, asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body.question_ids)
+    ? req.body.question_ids.map(Number).filter(Number.isFinite)
+    : [];
+  if (!ids.length) return res.status(400).json({ error: 'question_ids প্রয়োজন' });
+
+  const sets = [];
+  const params = [];
+  if (req.body.subject !== undefined) { params.push(req.body.subject.trim()); sets.push(`subject = $${params.length}`); }
+  if (req.body.topic !== undefined) { params.push(req.body.topic.trim() || null); sets.push(`topic = $${params.length}`); }
+  if (req.body.subtopic !== undefined) { params.push(req.body.subtopic.trim() || null); sets.push(`subtopic = $${params.length}`); }
+  if (!sets.length) return res.status(400).json({ error: 'subject, topic বা subtopic — অন্তত একটা দিন' });
+
+  params.push(ids);
+  const { rowCount } = await pool.query(
+    `UPDATE questions SET ${sets.join(', ')} WHERE id = ANY($${params.length})`,
+    params
+  );
   res.json({ updated: rowCount });
 }));
 
