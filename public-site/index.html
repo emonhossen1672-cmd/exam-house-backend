@@ -385,16 +385,17 @@
   .tj-banner-stat{flex:1; background:var(--seal); border-radius:14px; padding:14px; text-align:center;}
   .tj-banner-num{font-size:20px; font-weight:700; color:#fff; font-family:'Space Mono',monospace;}
   .tj-banner-label{font-size:11.5px; color:#F3D9D6; margin-top:2px;}
-  .tj-card{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--seal); border-radius:16px; padding:14px; margin-bottom:12px;}
-  .tj-top{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px;}
+  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:12px;}
+  .tj-card-head{display:flex; align-items:flex-start; justify-content:space-between; padding:12px 14px;}
   .tj-name-row{display:flex; align-items:center; gap:10px;}
-  .tj-icon{width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
-  .tj-name{font-size:15px; font-weight:700; color:var(--ink);}
-  .tj-meta{font-size:12px; color:var(--ink-faint); margin-top:2px;}
-  .tj-like{display:flex; align-items:center; gap:4px; font-size:12px; color:var(--ink-faint); cursor:pointer; padding:4px; font-family:'Space Mono',monospace; flex-shrink:0;}
+  .tj-icon{width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;}
+  .tj-name{font-size:15px; font-weight:700; color:#fff;}
+  .tj-meta{font-size:11.5px; color:rgba(255,255,255,0.85); margin-top:2px;}
+  .tj-like{display:flex; align-items:center; gap:4px; font-size:12px; color:rgba(255,255,255,0.85); cursor:pointer; padding:4px; font-family:'Space Mono',monospace; flex-shrink:0;}
   .tj-like .tj-heart{font-size:15px; line-height:1; transition:transform .15s ease;}
   .tj-like.on .tj-heart{transform:scale(1.12);}
   .tj-like:active .tj-heart{transform:scale(0.85);}
+  .tj-body{padding:14px;}
   .tj-progress-row{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-faint); margin-bottom:4px;}
   .tj-progress-track{height:6px; border-radius:4px; overflow:hidden; margin-bottom:12px;}
   .tj-progress-fill{height:100%; border-radius:4px; transition:width .4s ease;}
@@ -2881,19 +2882,19 @@
     return {icon:s.icon, ...TJ_PALETTE[s.c % TJ_PALETTE.length]};
   }
 
-  // One subject card: colored icon badge, ❤️ like, linear progress bar,
-  // topic/question counts, and the three actions (all questions / all
-  // subtopics / random quiz).
+  // One subject card: solid-colored header band (icon, name, like) so the
+  // subject's color reads immediately, then a white body with progress bar
+  // and the three actions (all questions / all subtopics / random quiz).
   function renderTjCard(s){
     const pct = s.question_count ? s.read_count / s.question_count : 0;
     const pctLabel = toBnDigits(Math.round(pct * 100)) + '%';
     const subjArg = JSON.stringify(s.subject);
     const st = tjStyleFor(s.subject);
     return `
-      <div class="tj-card" style="border-left-color:${st.fill}">
-        <div class="tj-top">
+      <div class="tj-card">
+        <div class="tj-card-head" style="background:${st.fill}">
           <div class="tj-name-row">
-            <div class="tj-icon" style="background:${st.bg}; color:${st.text}">${st.icon}</div>
+            <div class="tj-icon">${st.icon}</div>
             <div>
               <div class="tj-name">${escapeHtml(s.subject)}</div>
               <div class="tj-meta">${toBnDigits(s.topic_count)} সাবটপিক · ${toBnDigits(s.question_count)} প্রশ্ন</div>
@@ -2904,14 +2905,16 @@
             <span class="tj-like-count">${toBnDigits(s.like_count)}</span>
           </div>
         </div>
-        <div class="tj-progress-row"><span>অগ্রগতি</span><span style="color:${st.text}; font-weight:700">${pctLabel}</span></div>
-        <div class="tj-progress-track" style="background:${st.bg}">
-          <div class="tj-progress-fill" style="width:${Math.round(pct*100)}%; background:${st.fill}"></div>
-        </div>
-        <div class="tj-actions">
-          <button class="tj-action-btn wide" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
-          <button class="tj-action-btn" onclick='openTopicSubject(${subjArg})'>সব সাবটপিক</button>
-          <button class="tj-action-btn primary" style="background:${st.fill}" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
+        <div class="tj-body">
+          <div class="tj-progress-row"><span>অগ্রগতি</span><span style="color:${st.text}; font-weight:700">${pctLabel}</span></div>
+          <div class="tj-progress-track" style="background:${st.bg}">
+            <div class="tj-progress-fill" style="width:${Math.round(pct*100)}%; background:${st.fill}"></div>
+          </div>
+          <div class="tj-actions">
+            <button class="tj-action-btn wide" onclick='openTopicAllQuestions(${subjArg})'>সব প্রশ্ন</button>
+            <button class="tj-action-btn" style="background:${st.bg}; color:${st.text}" onclick='openTopicSubject(${subjArg})'>সব সাবটপিক</button>
+            <button class="tj-action-btn primary" style="background:${st.fill}" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
+          </div>
         </div>
       </div>`;
   }
