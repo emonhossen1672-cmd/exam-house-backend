@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
-const { normalizeSubject } = require('../utils/subjectMap');
+const { TOPIC_JOB_SUBJECTS } = require('../utils/topicJobSubjects');
 
 function genSerial(type) {
   const prefix = type === 'live' ? 'EH-LV' : 'EH-MT';
@@ -301,27 +301,26 @@ router.get('/public/circulars', asyncHandler(async (req, res) => {
   res.json(rows);
 }));
 
-// GET /api/exams/public/subjects — distinct subjects in the question bank with
-// their question counts, so Reading List / Duel mode / Smart Practice can list
-// them to pick from. Raw subject values entered inconsistently over time
-// (English vs ইংরেজি, বাংলা vs বাংলা (ধ্বনি ও বর্ণ)) are merged into the 5
-// canonical subjects here — counts are summed across every raw variant, and
-// anything outside the 5 (ভূমি বিষয়ক, ইসলাম শিক্ষা, ...) is left out entirely.
+// GET /api/exams/public/subjects — the 12 fixed টপিকভিত্তিক জব সলুশন subjects
+// with their question counts, used by Reading List / Duel mode / Smart
+// Practice to list subjects to pick from. Reading List and টপিকভিত্তিক জব
+// সলুশন now share the exact same 12-subject list (utils/topicJobSubjects.js)
+// so a question only needs one subject tag to be findable from both places —
+// see routes/questions.routes.js for how topic-tagging decides which of the
+// two views a question actually shows up in. Always returns all 12 (even
+// with 0 questions yet) so the buttons never disappear, matching
+// /api/questions/public/topic-job-subjects's behavior.
 router.get('/public/subjects', asyncHandler(async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT subject, COUNT(*)::int AS question_count
-    FROM questions
-    GROUP BY subject
-  `);
-  const merged = new Map();
-  for (const row of rows) {
-    const canonical = normalizeSubject(row.subject);
-    if (!canonical) continue;
-    merged.set(canonical, (merged.get(canonical) || 0) + row.question_count);
-  }
-  const result = [...merged.entries()]
-    .map(([subject, question_count]) => ({ subject, question_count }))
-    .sort((a, b) => b.question_count - a.question_count);
+  const { rows } = await pool.query(
+    `SELECT subject, COUNT(*)::int AS question_count
+     FROM questions WHERE subject = ANY($1) GROUP BY subject`,
+    [TOPIC_JOB_SUBJECTS]
+  );
+  const bySubject = new Map(rows.map(r => [r.subject, r.question_count]));
+  const result = TOPIC_JOB_SUBJECTS.map(subject => ({
+    subject,
+    question_count: bySubject.get(subject) || 0
+  }));
   res.json(result);
 }));
 
