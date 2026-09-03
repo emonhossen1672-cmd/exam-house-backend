@@ -2994,11 +2994,10 @@
     window.scrollTo(0,0);
   }
 
-  // "সব প্রশ্ন" — every question in the subject, ungrouped by subtopic.
-  // Uses টপিকভিত্তিক জব সলুশনের নিজস্ব endpoint (exact 12-subject match) —
-  // NOT রিডিং লিস্টের reading-list endpoint, যেটা ৫টা canonical বিষয়ের
-  // সাথে মেলায় আর তাই "বাংলা ব্যাকরণ"-এর মতো ১২-বিষয়ের নাম দিলে কখনো মেলে না
-  // (খালি ফলাফল দেখাতো — এই বাগটাই ফিক্স করা হলো)।
+  // "সব প্রশ্ন" — every TOPIC-TAGGED question in the subject (untagged
+  // questions are রিডিং লিস্ট-only, see routes/questions.routes.js), ungrouped
+  // by subtopic. Uses টপিকভিত্তিক জব সলুশনের নিজস্ব endpoint — same 12-subject
+  // list as রিডিং লিস্ট now, but filtered to topic-tagged questions only.
   async function renderTopicAllQuestionsPage(){
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
