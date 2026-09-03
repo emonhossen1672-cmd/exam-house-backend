@@ -208,9 +208,15 @@
           <label>বিষয়</label>
           <input type="text" id="q_subject" list="fixed-subjects-list" placeholder="বাংলা ব্যাকরণ / বাংলা সাহিত্য / গণিত ইত্যাদি" required>
         </div>
-        <div class="field">
-          <label>টপিক (ঐচ্ছিক)</label>
-          <input type="text" id="q_topic" placeholder="যেমন: সন্ধি, বাগধারা, ভগ্নাংশ — টপিকভিত্তিক জব সলুশনে দেখাবে">
+        <div class="grid-2">
+          <div class="field">
+            <label>টপিক (ঐচ্ছিক)</label>
+            <input type="text" id="q_topic" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ — টপিকভিত্তিক জব সলুশনে দেখাবে">
+          </div>
+          <div class="field">
+            <label>সাবটপিক (ঐচ্ছিক)</label>
+            <input type="text" id="q_subtopic" placeholder="যেমন: চর্যাপদ — টপিকের ভিতরে আরেক ধাপ">
+          </div>
         </div>
         <div class="field">
           <label>প্রশ্ন</label>
@@ -242,7 +248,7 @@
 
     <div class="panel" id="panel-bulk">
       <h2>CSV / Excel থেকে বাল্ক আপলোড</h2>
-      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক), year (ঐচ্ছিক), topic (ঐচ্ছিক — টপিকভিত্তিক জব সলুশনে দেখাবে)</div>
+      <div class="desc">কলাম: ministry, grade, subject, question, option_a, option_b, option_c, option_d, correct (A/B/C/D), explanation (ঐচ্ছিক), post_name (ঐচ্ছিক), year (ঐচ্ছিক), topic (ঐচ্ছিক), subtopic (ঐচ্ছিক) — topic ও subtopic টপিকভিত্তিক জব সলুশনে দেখাবে। subject অবশ্যই নিচের ১২টার একটার সাথে হুবহু মিলতে হবে (উপরে টাইপ করলে সাজেশন আসবে)।</div>
       <div class="err-box" id="bulkErr"></div>
       <div class="drop-zone">
         <input type="file" id="bulkFile" accept=".csv,.xlsx,.xls">
@@ -300,16 +306,22 @@
       <div class="grid-2">
         <div class="field">
           <label>টপিক (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
-          <input type="text" id="qt_topic" placeholder="যেমন: সন্ধি, বাগধারা">
+          <input type="text" id="qt_topic" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
         </div>
+        <div class="field">
+          <label>সাবটপিক (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
+          <input type="text" id="qt_subtopic" placeholder="যেমন: চর্যাপদ">
+        </div>
+      </div>
+      <div class="grid-2">
         <div class="field">
           <label>পদের নাম (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
           <input type="text" id="qt_post_name" placeholder="যেমন: সহকারী শিক্ষক">
         </div>
-      </div>
-      <div class="field" style="max-width:200px;">
-        <label>সাল (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
-        <input type="number" id="qt_year" placeholder="যেমন: 2023">
+        <div class="field">
+          <label>সাল (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
+          <input type="number" id="qt_year" placeholder="যেমন: 2023">
+        </div>
       </div>
       <div class="field">
         <label>প্রশ্নসমূহ (নিচের ফরম্যাট মেনে লিখুন)</label>
@@ -328,7 +340,7 @@
 গ) জানালা
 ঘ) ছবি
 উত্তর: ক"></textarea>
-        <div style="font-size:12px; color:var(--ink-faint); margin-top:6px;">প্রতিটা প্রশ্ন <b>প্রশ্ন:</b> দিয়ে শুরু করুন, তারপর ক) খ) গ) ঘ) (বা A) B) C) D)) দিয়ে অপশন, তারপর <b>উত্তর:</b> এবং ঐচ্ছিকভাবে <b>ব্যাখ্যা:</b>। কোনো একটা প্রশ্নের টপিক উপরের শেয়ার্ড টপিক থেকে আলাদা হলে সেই প্রশ্নের নিচে <b>টপিক:</b> লিখে দিন — এটা শুধু ওই একটা প্রশ্নের জন্য প্রযোজ্য হবে, বাকিদের জন্য উপরের ঘরের মান ব্যবহার হবে। প্রশ্নগুলোর মাঝে একটা ফাঁকা লাইন রাখলে ভালো হয়।</div>
+        <div style="font-size:12px; color:var(--ink-faint); margin-top:6px;">প্রতিটা প্রশ্ন <b>প্রশ্ন:</b> দিয়ে শুরু করুন, তারপর ক) খ) গ) ঘ) (বা A) B) C) D)) দিয়ে অপশন, তারপর <b>উত্তর:</b> এবং ঐচ্ছিকভাবে <b>ব্যাখ্যা:</b>। কোনো একটা প্রশ্নের টপিক/সাবটপিক উপরের শেয়ার্ড মান থেকে আলাদা হলে সেই প্রশ্নের নিচে <b>টপিক:</b> এবং/অথবা <b>সাবটপিক:</b> লিখে দিন — এটা শুধু ওই একটা প্রশ্নের জন্য প্রযোজ্য হবে, বাকিদের জন্য উপরের ঘরের মান ব্যবহার হবে। প্রশ্নগুলোর মাঝে একটা ফাঁকা লাইন রাখলে ভালো হয়।</div>
       </div>
       <button type="button" class="btn btn-ghost" id="qtPreviewBtn" style="width:auto; padding-left:22px; padding-right:22px;">প্রিভিউ দেখুন</button>
       <div id="qtPreviewWrap" style="margin-top:16px; display:none;">
@@ -343,11 +355,31 @@
       <h2>সব প্রশ্ন</h2>
       <div class="filters">
         <input type="text" id="f_search" placeholder="প্রশ্ন খুঁজুন...">
-        <input type="text" id="f_subject" placeholder="বিষয়">
+        <input type="text" id="f_subject" list="fixed-subjects-list" placeholder="বিষয়">
         <input type="text" id="f_topic" placeholder="টপিক">
+        <input type="text" id="f_subtopic" placeholder="সাবটপিক">
         <input type="number" id="f_grade" placeholder="গ্রেড">
         <button class="btn btn-ghost btn-small" id="f_go">খুঁজুন</button>
       </div>
+
+      <div id="retagBar" style="display:none; margin:14px 0; padding:12px; border:1px solid var(--line, #E4DCC6); border-radius:10px; background:var(--paper, #FBF8F0);">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><span id="retagCount">0</span>টি প্রশ্ন সিলেক্ট করা হয়েছে — নতুন টপিক/সাবটপিকে সরান</div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:8px;">
+            <label>নতুন টপিক (ফাঁকা রাখলে বদলাবে না)</label>
+            <input type="text" id="retag_topic" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <label>নতুন সাবটপিক (ফাঁকা রাখলে বদলাবে না)</label>
+            <input type="text" id="retag_subtopic" placeholder="যেমন: চর্যাপদ">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:8px;">টপিক/সাবটপিক মুছে ফেলে "অন্যান্য"-এ পাঠাতে চাইলে ঘরে শুধু একটা স্পেস দিয়ে জমা দিন।</div>
+        <button class="btn btn-primary btn-small" id="retagApplyBtn">সিলেক্টেড প্রশ্নে প্রয়োগ করুন</button>
+        <button class="btn btn-ghost btn-small" id="retagClearBtn">সিলেকশন বাতিল</button>
+        <div id="retagResult" style="margin-top:8px; font-size:12.5px;"></div>
+      </div>
+
       <div id="listWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
     </div>
 
@@ -996,6 +1028,7 @@ document.getElementById('addForm').addEventListener('submit', async (e) => {
       grade: document.getElementById('q_grade').value || null,
       subject: document.getElementById('q_subject').value.trim(),
       topic: document.getElementById('q_topic').value.trim() || null,
+      subtopic: document.getElementById('q_subtopic').value.trim() || null,
       question_text: document.getElementById('q_text').value.trim(),
       explanation: document.getElementById('q_explanation').value.trim() || null,
       option_a: document.getElementById('q_a').value.trim(),
@@ -1091,12 +1124,13 @@ async function loadSubjectsRaw(){
     const rows = await api('/api/questions/admin/subjects-raw');
     if (!rows.length){ box.innerHTML = '<div class="desc">প্রশ্ন ব্যাংক এখনো খালি।</div>'; return; }
     box.innerHTML = `<table>
-      <tr><th>subject (যেমন লেখা আছে)</th><th>প্রশ্ন</th><th>চেনা বিষয়?</th><th></th></tr>
+      <tr><th>subject (যেমন লেখা আছে)</th><th>প্রশ্ন</th><th>রিডিং লিস্ট (৫-বিষয়)</th><th>টপিকভিত্তিক জব সলুশন (১২-বিষয়)</th><th></th></tr>
       ${rows.map(r => `
         <tr>
           <td class="qtext">${escapeHtml(r.subject || '(খালি)')}</td>
           <td>${r.question_count}</td>
           <td>${r.canonical ? '✅ ' + escapeHtml(r.canonical) : '❌ অচেনা'}</td>
+          <td>${r.matches_topic_job_subject ? '✅ মিলেছে' : '❌ মিলেনি'}</td>
           <td>${r.subject ? `<button class="btn btn-ghost btn-small" onclick="renameSubjectPrompt(${JSON.stringify(r.subject)})">রিনেম</button>` : ''}</td>
         </tr>`).join('')}
     </table>`;
@@ -1108,7 +1142,7 @@ async function loadSubjectsRaw(){
 }
 
 async function renameSubjectPrompt(from){
-  const to = prompt(`"${from}" ট্যাগের সব প্রশ্নকে কোন নামে বদলে দেব?\nচেনা বিষয়ের একটা লিখুন (হুবহু): বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান / বিজ্ঞান ও প্রযুক্তি`, from);
+  const to = prompt(`"${from}" ট্যাগের সব প্রশ্নকে কোন নামে বদলে দেব?\nটপিকভিত্তিক জব সলুশনের জন্য এই ১২টার একটা হুবহু লিখুন:\nবাংলা ব্যাকরণ / বাংলা সাহিত্য / ইংরেজি ব্যাকরণ / ইংরেজি সাহিত্য / ভোকাবুলারি / গণিত / বাংলাদেশ / আন্তর্জাতিক / বিজ্ঞান / তথ্য ও যোগাযোগ প্রযুক্তি / ভূগোল, পরিবেশ ও ব্যবস্থাপনা / নৈতিকতা, মূল্যবোধ ও সুশাসন\n(অথবা রিডিং লিস্টের জন্য: বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান / বিজ্ঞান ও প্রযুক্তি)`, from);
   if (!to || !to.trim() || to.trim() === from) return;
   try{
     const data = await api('/api/questions/admin/rename-subject', { method: 'PUT', body: JSON.stringify({ from, to: to.trim() }) });
@@ -1137,7 +1171,7 @@ function parseQuickText(raw){
 
   blocks.forEach((block, idx) => {
     const lines = block.split('\n').map(l => l.trim()).filter(l => l.length);
-    let question_text = '', option_a = '', option_b = '', option_c = '', option_d = '', correct_option = '', explanation = '', topic = '';
+    let question_text = '', option_a = '', option_b = '', option_c = '', option_d = '', correct_option = '', explanation = '', topic = '', subtopic = '';
     let optCount = 0, capturingExplanation = false;
 
     lines.forEach(line => {
@@ -1163,6 +1197,9 @@ function parseQuickText(raw){
       if ((m = line.match(/^টপিক\s*[:ঃ]\s*(.*)$/))) {
         topic = m[1].trim(); capturingExplanation = false; return;
       }
+      if ((m = line.match(/^সাবটপিক\s*[:ঃ]\s*(.*)$/))) {
+        subtopic = m[1].trim(); capturingExplanation = false; return;
+      }
       if (capturingExplanation) explanation += ' ' + line;
       else if (question_text && optCount === 0) question_text += ' ' + line;
     });
@@ -1171,7 +1208,7 @@ function parseQuickText(raw){
       errors.push({ idx: idx + 1, reason: 'তথ্য অসম্পূর্ণ বা ফরম্যাট ভুল', raw: block.slice(0, 80) });
       return;
     }
-    questions.push({ question_text, option_a, option_b, option_c, option_d, correct_option, explanation: explanation || null, topic: topic || null });
+    questions.push({ question_text, option_a, option_b, option_c, option_d, correct_option, explanation: explanation || null, topic: topic || null, subtopic: subtopic || null });
   });
 
   return { questions, errors };
@@ -1200,7 +1237,7 @@ document.getElementById('qtPreviewBtn').addEventListener('click', () => {
   questions.forEach((q, i) => {
     html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;">
       <b>${i+1}.</b> ${escapeHtml(q.question_text)}
-      <div style="color:var(--ink-faint); margin-top:2px;">ক) ${escapeHtml(q.option_a)} · খ) ${escapeHtml(q.option_b)} · গ) ${escapeHtml(q.option_c)} · ঘ) ${escapeHtml(q.option_d)} — <span class="pill correct-pill">উত্তর: ${q.correct_option}</span>${q.topic ? ` · <span class="pill">টপিক: ${escapeHtml(q.topic)}</span>` : ''}</div>
+      <div style="color:var(--ink-faint); margin-top:2px;">ক) ${escapeHtml(q.option_a)} · খ) ${escapeHtml(q.option_b)} · গ) ${escapeHtml(q.option_c)} · ঘ) ${escapeHtml(q.option_d)} — <span class="pill correct-pill">উত্তর: ${q.correct_option}</span>${q.topic ? ` · <span class="pill">টপিক: ${escapeHtml(q.topic)}</span>` : ''}${q.subtopic ? ` · <span class="pill">সাবটপিক: ${escapeHtml(q.subtopic)}</span>` : ''}</div>
     </div>`;
   });
   errors.forEach(e => {
@@ -1222,12 +1259,14 @@ document.getElementById('qtSubmitBtn').addEventListener('click', async () => {
   const grade = document.getElementById('qt_grade').value || null;
   const subject = document.getElementById('qt_subject').value.trim();
   const sharedTopic = document.getElementById('qt_topic').value.trim() || null;
+  const sharedSubtopic = document.getElementById('qt_subtopic').value.trim() || null;
   const sharedPostName = document.getElementById('qt_post_name').value.trim() || null;
   const sharedYear = document.getElementById('qt_year').value || null;
 
   const payload = QT_PARSED.map(q => ({
     ...q, ministry_id, grade, subject,
     topic: q.topic || sharedTopic || null,
+    subtopic: q.subtopic || sharedSubtopic || null,
     post_name: sharedPostName,
     exam_year: sharedYear
   }));
@@ -1367,18 +1406,24 @@ async function deleteRoutineDay(id){
 
 document.getElementById('rt_category').addEventListener('change', loadRoutineDaysList);
 
+const SELECTED_QIDS = new Set();
+
 async function loadQuestions(){
   const wrap = document.getElementById('listWrap');
   wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  SELECTED_QIDS.clear();
+  updateRetagBar();
   try{
     const params = new URLSearchParams();
     const search = document.getElementById('f_search').value.trim();
     const subject = document.getElementById('f_subject').value.trim();
     const topic = document.getElementById('f_topic').value.trim();
+    const subtopic = document.getElementById('f_subtopic').value.trim();
     const grade = document.getElementById('f_grade').value.trim();
     if (search) params.set('search', search);
     if (subject) params.set('subject', subject);
     if (topic) params.set('topic', topic);
+    if (subtopic) params.set('subtopic', subtopic);
     if (grade) params.set('grade', grade);
     const list = await api('/api/questions?' + params.toString());
     if (!list.length){
@@ -1386,12 +1431,14 @@ async function loadQuestions(){
       return;
     }
     wrap.innerHTML = `<table>
-      <tr><th>প্রশ্ন</th><th>বিষয়</th><th>টপিক</th><th>গ্রেড</th><th>সঠিক</th><th>মন্ত্রণালয়</th><th></th></tr>
+      <tr><th><input type="checkbox" id="selectAllQ"></th><th>প্রশ্ন</th><th>বিষয়</th><th>টপিক</th><th>সাবটপিক</th><th>গ্রেড</th><th>সঠিক</th><th>মন্ত্রণালয়</th><th></th></tr>
       ${list.map(q => `
         <tr>
+          <td><input type="checkbox" class="qSelectBox" data-id="${q.id}" onchange="toggleQSelect(${q.id}, this.checked)"></td>
           <td class="qtext">${escapeHtml(q.question_text)}</td>
           <td><span class="pill">${escapeHtml(q.subject)}</span></td>
           <td>${q.topic ? escapeHtml(q.topic) : '-'}</td>
+          <td>${q.subtopic ? escapeHtml(q.subtopic) : '-'}</td>
           <td>${q.grade || '-'}</td>
           <td><span class="pill correct-pill">${q.correct_option}</span></td>
           <td>${q.ministry_name ? escapeHtml(q.ministry_name) : '-'}</td>
@@ -1399,11 +1446,67 @@ async function loadQuestions(){
         </tr>
       `).join('')}
     </table>`;
+    document.getElementById('selectAllQ').addEventListener('change', (e) => {
+      document.querySelectorAll('.qSelectBox').forEach(box => {
+        box.checked = e.target.checked;
+        toggleQSelect(Number(box.dataset.id), e.target.checked, false);
+      });
+      updateRetagBar();
+    });
   } catch(err){
     wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
   }
 }
 document.getElementById('f_go').addEventListener('click', loadQuestions);
+
+function toggleQSelect(id, checked, refresh = true){
+  if (checked) SELECTED_QIDS.add(id); else SELECTED_QIDS.delete(id);
+  if (refresh) updateRetagBar();
+}
+
+function updateRetagBar(){
+  const bar = document.getElementById('retagBar');
+  document.getElementById('retagCount').textContent = SELECTED_QIDS.size;
+  bar.style.display = SELECTED_QIDS.size ? 'block' : 'none';
+}
+
+document.getElementById('retagClearBtn').addEventListener('click', () => {
+  SELECTED_QIDS.clear();
+  document.querySelectorAll('.qSelectBox').forEach(box => box.checked = false);
+  const selectAll = document.getElementById('selectAllQ');
+  if (selectAll) selectAll.checked = false;
+  updateRetagBar();
+});
+
+document.getElementById('retagApplyBtn').addEventListener('click', async () => {
+  const resultBox = document.getElementById('retagResult');
+  const btn = document.getElementById('retagApplyBtn');
+  if (!SELECTED_QIDS.size) return;
+
+  const topicRaw = document.getElementById('retag_topic').value;
+  const subtopicRaw = document.getElementById('retag_subtopic').value;
+  const body = { question_ids: [...SELECTED_QIDS] };
+  if (topicRaw !== '') body.topic = topicRaw;
+  if (subtopicRaw !== '') body.subtopic = subtopicRaw;
+
+  if (topicRaw === '' && subtopicRaw === ''){
+    alert('নতুন টপিক বা সাবটপিক অন্তত একটা দিন');
+    return;
+  }
+
+  btn.disabled = true; const original = btn.textContent; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const data = await api('/api/questions/admin/bulk-retag', { method: 'PUT', body: JSON.stringify(body) });
+    resultBox.textContent = `${data.updated} টি প্রশ্ন আপডেট হয়েছে ✓`;
+    document.getElementById('retag_topic').value = '';
+    document.getElementById('retag_subtopic').value = '';
+    loadQuestions();
+  } catch(err){
+    resultBox.textContent = 'সমস্যা: ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+});
 
 async function deleteQuestion(id){
   if (!confirm('আপনি কি নিশ্চিত এই প্রশ্নটি মুছে ফেলতে চান?')) return;
