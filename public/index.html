@@ -146,6 +146,14 @@
     <option value="নৈতিকতা, মূল্যবোধ ও সুশাসন">
   </datalist>
 
+  <!-- Populated dynamically (see refreshTopicSuggestions/refreshSubtopicSuggestions
+       below) from GET /api/questions/public/topics|subtopics — as soon as a subject
+       (and topic) field loses focus, this fills with topic/subtopic names already
+       used under that exact subject, so typing a new question reuses the same
+       spelling instead of accidentally creating a near-duplicate topic. -->
+  <datalist id="topic-suggestions"></datalist>
+  <datalist id="subtopic-suggestions"></datalist>
+
 <div id="loginScreen">
   <div class="login-card">
     <h1>Exam House</h1>
@@ -211,11 +219,11 @@
         <div class="grid-2">
           <div class="field">
             <label>টপিক (ঐচ্ছিক)</label>
-            <input type="text" id="q_topic" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ — টপিকভিত্তিক জব সলুশনে দেখাবে">
+            <input type="text" id="q_topic" list="topic-suggestions" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ — টপিকভিত্তিক জব সলুশনে দেখাবে">
           </div>
           <div class="field">
             <label>সাবটপিক (ঐচ্ছিক)</label>
-            <input type="text" id="q_subtopic" placeholder="যেমন: চর্যাপদ — টপিকের ভিতরে আরেক ধাপ">
+            <input type="text" id="q_subtopic" list="subtopic-suggestions" placeholder="যেমন: চর্যাপদ — টপিকের ভিতরে আরেক ধাপ">
           </div>
         </div>
         <div class="field">
@@ -306,11 +314,11 @@
       <div class="grid-2">
         <div class="field">
           <label>টপিক (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
-          <input type="text" id="qt_topic" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
+          <input type="text" id="qt_topic" list="topic-suggestions" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
         </div>
         <div class="field">
           <label>সাবটপিক (ঐচ্ছিক, সব প্রশ্নে প্রযোজ্য)</label>
-          <input type="text" id="qt_subtopic" placeholder="যেমন: চর্যাপদ">
+          <input type="text" id="qt_subtopic" list="subtopic-suggestions" placeholder="যেমন: চর্যাপদ">
         </div>
       </div>
       <div class="grid-2">
@@ -356,8 +364,8 @@
       <div class="filters">
         <input type="text" id="f_search" placeholder="প্রশ্ন খুঁজুন...">
         <input type="text" id="f_subject" list="fixed-subjects-list" placeholder="বিষয়">
-        <input type="text" id="f_topic" placeholder="টপিক">
-        <input type="text" id="f_subtopic" placeholder="সাবটপিক">
+        <input type="text" id="f_topic" list="topic-suggestions" placeholder="টপিক">
+        <input type="text" id="f_subtopic" list="subtopic-suggestions" placeholder="সাবটপিক">
         <input type="number" id="f_grade" placeholder="গ্রেড">
         <button class="btn btn-ghost btn-small" id="f_go">খুঁজুন</button>
       </div>
@@ -367,11 +375,11 @@
         <div class="grid-2">
           <div class="field" style="margin-bottom:8px;">
             <label>নতুন টপিক (ফাঁকা রাখলে বদলাবে না)</label>
-            <input type="text" id="retag_topic" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
+            <input type="text" id="retag_topic" list="topic-suggestions" placeholder="যেমন: বাংলা সাহিত্যের প্রাচীন যুগ">
           </div>
           <div class="field" style="margin-bottom:8px;">
             <label>নতুন সাবটপিক (ফাঁকা রাখলে বদলাবে না)</label>
-            <input type="text" id="retag_subtopic" placeholder="যেমন: চর্যাপদ">
+            <input type="text" id="retag_subtopic" list="subtopic-suggestions" placeholder="যেমন: চর্যাপদ">
           </div>
         </div>
         <div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:8px;">টপিক/সাবটপিক মুছে ফেলে "অন্যান্য"-এ পাঠাতে চাইলে ঘরে শুধু একটা স্পেস দিয়ে জমা দিন।</div>
@@ -594,6 +602,55 @@ async function api(path, opts = {}){
     throw new Error((data && data.error) || 'একটি সমস্যা হয়েছে');
   }
   return data;
+}
+
+// টপিক/সাবটপিক অটোসাজেশন — বিষয় (এবং টপিক) ঘর থেকে ফোকাস সরলেই সেই বিষয়ে
+// আগে থেকে ব্যবহৃত টপিক/সাবটপিক নামগুলো ডেটালিস্টে বসিয়ে দেয়, যাতে বানান
+// এদিক-ওদিক করে একই টপিকের ডুপ্লিকেট তৈরি না হয়। শুধু সাজেশন — নতুন নাম
+// টাইপ করাও যাবে, জোর করে পুরনোটার একটা বাছতে হবে না।
+let _lastTopicSubject = null;
+async function refreshTopicSuggestions(subject){
+  subject = (subject || '').trim();
+  if (!subject || subject === _lastTopicSubject) return;
+  _lastTopicSubject = subject;
+  try{
+    const data = await api('/api/questions/public/topics?subject=' + encodeURIComponent(subject));
+    document.getElementById('topic-suggestions').innerHTML = (data.topics || [])
+      .filter(t => t.topic && t.topic !== 'অন্যান্য')
+      .map(t => `<option value="${escapeHtml(t.topic)}">`).join('');
+  } catch(e){ /* সাজেশন না এলেও ফর্ম ব্যবহারে সমস্যা নেই, চুপচাপ বাদ দাও */ }
+}
+let _lastSubtopicKey = null;
+async function refreshSubtopicSuggestions(subject, topic){
+  subject = (subject || '').trim(); topic = (topic || '').trim();
+  const key = subject + '||' + topic;
+  if (!subject || !topic || key === _lastSubtopicKey) return;
+  _lastSubtopicKey = key;
+  try{
+    const data = await api('/api/questions/public/subtopics?subject=' + encodeURIComponent(subject) + '&topic=' + encodeURIComponent(topic));
+    document.getElementById('subtopic-suggestions').innerHTML = (data.subtopics || [])
+      .filter(s => s.subtopic && s.subtopic !== 'অন্যান্য')
+      .map(s => `<option value="${escapeHtml(s.subtopic)}">`).join('');
+  } catch(e){ /* নীরবে বাদ দাও */ }
+}
+[
+  ['q_subject', 'q_topic'],
+  ['qt_subject', 'qt_topic'],
+  ['f_subject', 'f_topic'],
+].forEach(([subjectId, topicId]) => {
+  const subjectEl = document.getElementById(subjectId);
+  const topicEl = document.getElementById(topicId);
+  if (!subjectEl || !topicEl) return;
+  subjectEl.addEventListener('blur', () => refreshTopicSuggestions(subjectEl.value));
+  topicEl.addEventListener('blur', () => refreshSubtopicSuggestions(subjectEl.value, topicEl.value));
+});
+// রিটেগ বার-এর subject কনটেক্সট আসে তালিকার ফিল্টার (f_subject) থেকে
+const retagTopicEl = document.getElementById('retag_topic');
+if (retagTopicEl){
+  retagTopicEl.addEventListener('blur', () => {
+    const subjectEl = document.getElementById('f_subject');
+    refreshSubtopicSuggestions(subjectEl ? subjectEl.value : '', retagTopicEl.value);
+  });
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
