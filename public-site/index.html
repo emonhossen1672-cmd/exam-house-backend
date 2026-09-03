@@ -384,7 +384,7 @@
   .tj-banner{display:flex; gap:10px; margin-bottom:16px;}
   .tj-banner-stat{flex:1; background:var(--seal); border-radius:14px; padding:14px; text-align:center;}
   .tj-banner-num{font-size:20px; font-weight:700; color:#fff; font-family:'Space Mono',monospace;}
-  .tj-banner-label{font-size:11.5px; color:#F3D9D6; margin-top:2px;}
+  .tj-banner-label{font-size:11.5px; color:rgba(255,255,255,0.85); margin-top:2px;}
   .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:12px;}
   .tj-card-head{display:flex; align-items:flex-start; justify-content:space-between; padding:12px 14px;}
   .tj-name-row{display:flex; align-items:center; gap:10px;}
@@ -2842,8 +2842,8 @@
     const overallPct = totalQuestions ? Math.round(totalRead / totalQuestions * 100) : 0;
     const bannerHtml = `
       <div class="tj-banner">
-        <div class="tj-banner-stat"><div class="tj-banner-num">${toBnDigits(totalQuestions)}</div><div class="tj-banner-label">মোট প্রশ্ন</div></div>
-        <div class="tj-banner-stat"><div class="tj-banner-num">${toBnDigits(overallPct)}%</div><div class="tj-banner-label">মোট অগ্রগতি</div></div>
+        <div class="tj-banner-stat" style="background:${TJ_PALETTE[0].fill}"><div class="tj-banner-num">${toBnDigits(totalQuestions)}</div><div class="tj-banner-label">মোট প্রশ্ন</div></div>
+        <div class="tj-banner-stat" style="background:${TJ_PALETTE[1].fill}"><div class="tj-banner-num">${toBnDigits(overallPct)}%</div><div class="tj-banner-label">মোট অগ্রগতি</div></div>
       </div>`;
 
     listEl.innerHTML = bannerHtml + TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
