@@ -126,6 +126,25 @@
 </style>
 </head>
 <body>
+  <!-- The 12 fixed সাবজেক্ট অনুযায়ী প্রস্তুতি subject buttons on the public
+       site (routes/exams.routes.js FIXED_SUBJECTS) — attached to every
+       subject text input below so typing here suggests the exact matching
+       spelling. Still free text; picking the exact suggestion is what makes
+       a question/exam count toward that subject's button. -->
+  <datalist id="fixed-subjects-list">
+    <option value="বাংলা ব্যাকরণ">
+    <option value="বাংলা সাহিত্য">
+    <option value="ইংরেজি ব্যাকরণ">
+    <option value="ইংরেজি সাহিত্য">
+    <option value="ভোকাবুলারি">
+    <option value="গণিত">
+    <option value="বাংলাদেশ">
+    <option value="আন্তর্জাতিক">
+    <option value="বিজ্ঞান">
+    <option value="তথ্য ও যোগাযোগ প্রযুক্তি">
+    <option value="ভূগোল, পরিবেশ ও ব্যবস্থাপনা">
+    <option value="নৈতিকতা, মূল্যবোধ ও সুশাসন">
+  </datalist>
 
 <div id="loginScreen">
   <div class="login-card">
@@ -187,7 +206,7 @@
         </div>
         <div class="field">
           <label>বিষয়</label>
-          <input type="text" id="q_subject" placeholder="বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান" required>
+          <input type="text" id="q_subject" list="fixed-subjects-list" placeholder="বাংলা ব্যাকরণ / বাংলা সাহিত্য / গণিত ইত্যাদি" required>
         </div>
         <div class="field">
           <label>টপিক (ঐচ্ছিক)</label>
@@ -276,7 +295,7 @@
       </div>
       <div class="field">
         <label>বিষয় (সব প্রশ্নে প্রযোজ্য)</label>
-        <input type="text" id="qt_subject" placeholder="বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান" required>
+        <input type="text" id="qt_subject" list="fixed-subjects-list" placeholder="বাংলা ব্যাকরণ / বাংলা সাহিত্য / গণিত ইত্যাদি" required>
       </div>
       <div class="grid-2">
         <div class="field">
@@ -375,7 +394,7 @@
         </div>
         <div class="field" id="e_subject_wrap">
           <label>বিষয়ভিত্তিক মডেল টেস্ট (ঐচ্ছিক)</label>
-          <input type="text" id="e_subject" placeholder="যেমন: বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান — পূরণ করলে এটি বিষয়ভিত্তিক মডেল টেস্ট হিসেবে দেখাবে">
+          <input type="text" id="e_subject" list="fixed-subjects-list" placeholder="যেমন: বাংলা ব্যাকরণ / গণিত — পূরণ করলে এটি বিষয়ভিত্তিক মডেল টেস্ট হিসেবে দেখাবে">
         </div>
         <div class="grid-2">
           <div class="field">
