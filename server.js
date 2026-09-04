@@ -1,3 +1,9 @@
+// Fix: exam times were drifting by ~6 hours from what the admin typed —
+// see the longer explanation in db.js. Pinning this here, before any other
+// module loads, guarantees every Date/timestamp operation in the whole app
+// (not just database reads) uses Bangladesh time consistently.
+process.env.TZ = process.env.TZ || 'Asia/Dhaka';
+
 // Load and validate required env vars FIRST — this exits the process
 // immediately with a clear message if JWT_SECRET / ADMIN_PASSWORD aren't set,
 // instead of silently running with insecure defaults.
