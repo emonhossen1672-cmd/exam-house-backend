@@ -917,6 +917,36 @@
   .cat-tile .ct-badge{position:absolute; top:7px; right:7px; font-size:8px; background:rgba(255,255,255,0.85); color:var(--t-fg,var(--ink-faint)); padding:1px 6px; border-radius:20px; font-weight:700;}
   .cat-tile .ct-emoji{display:none;}
 
+  /* Small dynamic red dot — shown on a home category tile only while a live
+     exam is currently running under that tile's category. Toggled purely by
+     JS (refreshHomeLiveDots) via the .has-live-now class; no page reload
+     needed, it re-checks against the clock every 30s. */
+  .cat-tile .ct-live-dot{
+    position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%;
+    background:#E0393E; display:none; z-index:2;
+  }
+  .cat-tile.has-live-now .ct-live-dot{ display:block; animation:ct-live-pulse 1.6s infinite; }
+  @keyframes ct-live-pulse{
+    0%{ box-shadow:0 0 0 0 rgba(224,57,62,0.55); }
+    70%{ box-shadow:0 0 0 7px rgba(224,57,62,0); }
+    100%{ box-shadow:0 0 0 0 rgba(224,57,62,0); }
+  }
+
+  /* ---------- Homepage category buttons only: slightly smaller tiles with
+     one unified brand color instead of each tile's own pastel, a bigger
+     label, and a colorful gradient frame showing through the grid gaps. ---------- */
+  #screen-home .cat-grid{
+    background:linear-gradient(135deg, #FDE9C8, #E9F1FA 45%, #E8F5EC 75%, #F7E9E7);
+    padding:11px; border-radius:22px;
+  }
+  #screen-home .cat-tile{
+    --t-bg:var(--card) !important; --t-bd:var(--seal) !important; --t-fg:var(--seal) !important;
+    padding:12px 8px 10px !important; min-height:38px !important; gap:6px !important;
+    font-size:13px !important;
+  }
+  #screen-home .cat-tile .ct-ic{ width:34px !important; height:34px !important; }
+  #screen-home .cat-tile .ct-ic .ic{ width:16px !important; height:16px !important; }
+
 
   /* ---------- Packages screen ---------- */
   .pkg-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
@@ -1071,13 +1101,13 @@
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="goScreen('live')"><span class="ct-emoji">🎯</span><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="goRoutineScreen()"><span class="ct-emoji">📅</span><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
-      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="startDailyQuiz()"><span class="ct-emoji">🎁</span><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>ফ্রি সাপ্তাহিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" data-live-cat="__any_live__" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="goScreen('live')"><span class="ct-live-dot"></span><span class="ct-emoji">🎯</span><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" data-live-cat="__any_routine__" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="goRoutineScreen()"><span class="ct-live-dot"></span><span class="ct-emoji">📅</span><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
+      <div class="cat-tile" data-live-cat="weekly-model-test" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openCategoryHub('weekly-model-test','সাপ্তাহিক মডেল টেস্ট')"><span class="ct-live-dot"></span><span class="ct-emoji">🎁</span><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>সাপ্তাহিক মডেল টেস্ট</span></div>
       <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-emoji">⚔️</span><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
       <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="goScreen('history')"><span class="ct-emoji">✅</span><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>সেন্ট্রাল রেজাল্ট</span></div>
       <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openCategoryHub('grade-syllabus','৯ম-২০তম গ্রেডের প্রস্তুতি')"><span class="ct-emoji">🎓</span><span class="ct-ic"><svg class="ic"><use href="#i-chart"/></svg></span><span>৯ম-২০তম গ্রেডের প্রস্তুতি</span></div>
+      <div class="cat-tile" data-live-cat="grade-syllabus" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openCategoryHub('grade-syllabus','৯ম-২০তম গ্রেডের প্রস্তুতি')"><span class="ct-live-dot"></span><span class="ct-emoji">🎓</span><span class="ct-ic"><svg class="ic"><use href="#i-chart"/></svg></span><span>৯ম-২০তম গ্রেডের প্রস্তুতি</span></div>
       <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
       <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="openSubjectPrepList()"><span class="ct-emoji">📚</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>সাবজেক্ট অনুযায়ী প্রস্তুতি</span></div>
       <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📜</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>৫১তম বিসিএস প্রস্তুতি</span></div>
@@ -3871,11 +3901,33 @@
       loadLiveCategoryList();
       renderModelScreen();
       startHomeLiveTicker(live);
+      refreshHomeLiveDots();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
   }
   loadHome();
+
+  // Homepage category tiles that carry a data-live-cat attribute get a small
+  // red dot the moment a live exam is actually running (examStatus().live)
+  // under that category — '__any_live__' / '__any_routine__' are catch-alls
+  // for the general লাইভ পরীক্ষা / লাইভ রুটিন tiles. Re-checked every 30s so
+  // the dot appears/disappears on its own as exam windows open and close,
+  // without needing a page reload.
+  function refreshHomeLiveDots(){
+    const tiles = document.querySelectorAll('#screen-home .cat-tile[data-live-cat]');
+    if(!tiles.length) return;
+    const liveNow = ALL_EXAMS.filter(e => e.type === 'live' && examStatus(e).live);
+    tiles.forEach(t => {
+      const key = t.dataset.liveCat;
+      let on = false;
+      if(key === '__any_live__') on = liveNow.length > 0;
+      else if(key === '__any_routine__') on = liveNow.some(e => !!e.routine_category);
+      else on = liveNow.some(e => e.routine_category === key);
+      t.classList.toggle('has-live-now', on);
+    });
+  }
+  setInterval(refreshHomeLiveDots, 30000);
 
   // Homepage আজকের লাইভ পরীক্ষা ticker — cycles through today's live exam
   // titles one at a time inside the spotlight card, instead of a static list.
