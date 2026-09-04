@@ -5,6 +5,11 @@ const { requireUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 
 // POST /api/bookmarks — save a question for later revision. body: { question_id }
+// Also auto-enrolls the question into the spaced-repetition deck, due
+// immediately (interval_days=0) since bookmarking signals "I want to revisit
+// this soon", unlike a wrong answer which is scheduled a day out. Skipped
+// entirely if the question is already in the deck (e.g. from a wrong
+// answer) so a real revision schedule already in progress isn't reset.
 router.post('/', requireUser, asyncHandler(async (req, res) => {
   const { question_id } = req.body;
   if (!question_id) return res.status(400).json({ error: 'question_id প্রয়োজন' });
@@ -12,6 +17,11 @@ router.post('/', requireUser, asyncHandler(async (req, res) => {
     'INSERT INTO bookmarks (user_id, question_id) VALUES ($1,$2) ON CONFLICT (user_id, question_id) DO NOTHING',
     [req.user.id, question_id]
   );
+  await pool.query(`
+    INSERT INTO revision_cards (user_id, question_id, repetitions, ease_factor, interval_days, due_date, source)
+    VALUES ($1, $2, 0, 2.5, 0, CURRENT_DATE, 'bookmark')
+    ON CONFLICT (user_id, question_id) DO NOTHING
+  `, [req.user.id, question_id]);
   res.status(201).json({ ok: true });
 }));
 
