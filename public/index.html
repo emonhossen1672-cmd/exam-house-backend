@@ -191,6 +191,7 @@
     <button class="tab-btn" data-tab="exams">পরীক্ষা তৈরি করুন</button>
     <button class="tab-btn" data-tab="results">ফলাফল ও মেরিট লিস্ট</button>
     <button class="tab-btn" data-tab="routines">লাইভ রুটিন</button>
+    <button class="tab-btn" data-tab="templates">লাইভ পরীক্ষা টেমপ্লেট</button>
     <button class="tab-btn" data-tab="reports">রিপোর্ট</button>
   </div>
 
@@ -613,6 +614,91 @@
       <div id="rtListWrap"><div class="empty-state">একটা ক্যাটাগরি নির্বাচন করুন</div></div>
     </div>
 
+    <div class="panel" id="panel-templates">
+      <h2>লাইভ পরীক্ষা টেমপ্লেট</h2>
+      <div class="desc">একবার টেমপ্লেট বানিয়ে রাখলে প্রতি সপ্তাহে হাত দিতে হবে না — নির্ধারিত দিনে-সময়ে নিজে থেকেই একটা নতুন লাইভ পরীক্ষা তৈরি হয়ে যাবে (সঠিক duration সহ)।</div>
+
+      <div class="err-box" id="tplErr"></div>
+      <div class="ok-box" id="tplOk"></div>
+
+      <form id="tplForm">
+        <input type="hidden" id="tpl_id">
+        <div class="field">
+          <label>শিরোনাম (যা দিয়ে প্রতিবার পরীক্ষাটা তৈরি হবে)</label>
+          <input type="text" id="tpl_title" placeholder="যেমন: ফ্রি সাপ্তাহিক মডেল টেস্ট" required>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>মন্ত্রণালয় (ঐচ্ছিক — খালি রাখলে সব)</label>
+            <select id="tpl_ministry"><option value="">— যেকোনো —</option></select>
+          </div>
+          <div class="field">
+            <label>পদের নাম (ঐচ্ছিক)</label>
+            <input type="text" id="tpl_post_name">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>বিষয় (ঐচ্ছিক — খালি রাখলে সব)</label>
+            <input type="text" id="tpl_subject" list="fixed-subjects-list">
+          </div>
+          <div class="field">
+            <label>গ্রেড (ঐচ্ছিক)</label>
+            <input type="number" id="tpl_grade">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>প্রশ্ন সংখ্যা</label>
+            <input type="number" id="tpl_question_count" min="1" required>
+          </div>
+          <div class="field">
+            <label>সময়কাল (মিনিট)</label>
+            <input type="number" id="tpl_duration" min="1" required>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>নেগেটিভ মার্কিং (ঐচ্ছিক, ০ = নেই)</label>
+            <input type="number" id="tpl_negative" value="0" step="0.05" min="0" max="1">
+          </div>
+          <div class="field">
+            <label>শুরুর সময় (প্রতিদিন, স্থানীয় সময়)</label>
+            <input type="time" id="tpl_run_time" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>সপ্তাহের কোন কোন দিন চলবে</label>
+          <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="0"> রবি</label>
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="1"> সোম</label>
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="2"> মঙ্গল</label>
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="3"> বুধ</label>
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="4"> বৃহস্পতি</label>
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="5"> শুক্র</label>
+            <label style="display:flex; align-items:center; gap:5px; font-weight:400;"><input type="checkbox" class="tpl_wd" value="6"> শনি</label>
+          </div>
+        </div>
+        <div class="field" style="max-width:320px;">
+          <label>রুটিন ক্যাটাগরি (ঐচ্ছিক)</label>
+          <select id="tpl_routine_category">
+            <option value="">— কোনোটা না —</option>
+            <option value="grade-syllabus">১১-২০ গ্রেড প্রস্তুতির সিলেবাস</option>
+            <option value="bcs-200">২০০ দিনে বিসিএস প্রস্তুতি</option>
+            <option value="subject-wise">সাবজেক্ট ভিত্তিক রুটিন</option>
+            <option value="topic-wise">টপিকভিত্তিক রুটিন</option>
+            <option value="job-solution">জব সলুশন শেষ করার রুটিন</option>
+            <option value="weekly-model-test">সাপ্তাহিক মডেল টেস্ট</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" id="tplSubmitBtn" style="width:auto; padding-left:26px; padding-right:26px;">টেমপ্লেট সংরক্ষণ করুন</button>
+        <button type="button" class="btn btn-ghost" id="tplCancelBtn" style="display:none;" onclick="resetTplForm()">বাতিল করুন</button>
+      </form>
+
+      <h2 style="margin-top:32px;">বিদ্যমান টেমপ্লেটসমূহ</h2>
+      <div id="tplListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
+    </div>
+
     <div class="panel" id="panel-reports">
       <h2>প্রশ্ন রিপোর্ট</h2>
       <div class="desc">শিক্ষার্থীরা যেসব প্রশ্নে সমস্যা মনে করে রিপোর্ট করেছে।</div>
@@ -757,6 +843,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'results') { loadResultsExamList(); }
     if (btn.dataset.tab === 'quicktext') { loadQuickTextMinistries(); }
     if (btn.dataset.tab === 'routines') { loadRoutineDaysList(); }
+    if (btn.dataset.tab === 'templates') { loadTplMinistries(); loadTemplatesList(); }
     if (btn.dataset.tab === 'reports') { loadReports(); }
   });
 });
@@ -1746,6 +1833,147 @@ async function deleteQuestion(id){
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// ---------- Live exam templates (recurring auto-generated live exams) ----------
+const TPL_WEEKDAY_LABELS = ['রবি','সোম','মঙ্গল','বুধ','বৃহস্পতি','শুক্র','শনি'];
+
+async function loadTplMinistries(){
+  try{
+    const list = await api('/api/questions/ministries/list');
+    const sel = document.getElementById('tpl_ministry');
+    sel.innerHTML = '<option value="">— যেকোনো —</option>' +
+      list.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  } catch(err){ /* silent */ }
+}
+
+function resetTplForm(){
+  document.getElementById('tplForm').reset();
+  document.getElementById('tpl_id').value = '';
+  document.querySelectorAll('.tpl_wd').forEach(cb => cb.checked = false);
+  document.getElementById('tplSubmitBtn').textContent = 'টেমপ্লেট সংরক্ষণ করুন';
+  document.getElementById('tplCancelBtn').style.display = 'none';
+  document.getElementById('tplErr').style.display = 'none';
+  document.getElementById('tplOk').style.display = 'none';
+}
+
+function editTemplate(t){
+  document.getElementById('tpl_id').value = t.id;
+  document.getElementById('tpl_title').value = t.title_pattern;
+  document.getElementById('tpl_ministry').value = t.ministry_id || '';
+  document.getElementById('tpl_post_name').value = t.post_name || '';
+  document.getElementById('tpl_subject').value = t.subject || '';
+  document.getElementById('tpl_grade').value = t.grade || '';
+  document.getElementById('tpl_question_count').value = t.question_count;
+  document.getElementById('tpl_duration').value = t.duration_minutes;
+  document.getElementById('tpl_negative').value = t.negative_marks || 0;
+  document.getElementById('tpl_run_time').value = String(t.run_time).slice(0,5);
+  document.getElementById('tpl_routine_category').value = t.routine_category || '';
+  document.querySelectorAll('.tpl_wd').forEach(cb => cb.checked = (t.weekdays || []).includes(Number(cb.value)));
+  document.getElementById('tplSubmitBtn').textContent = 'টেমপ্লেট আপডেট করুন';
+  document.getElementById('tplCancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: document.getElementById('tplForm').offsetTop - 80, behavior: 'smooth' });
+}
+
+async function loadTemplatesList(){
+  const box = document.getElementById('tplListWrap');
+  box.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const list = await api('/api/exam-templates/admin/list');
+    if (!list.length){
+      box.innerHTML = '<div class="empty-state">কোনো টেমপ্লেট তৈরি করা হয়নি</div>';
+      return;
+    }
+    box.innerHTML = list.map(t => `
+      <div class="ok-box" style="display:block; background:var(--paper); border:1px solid var(--line); margin-bottom:12px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; gap:10px;">
+          <div>
+            <b>${escapeHtml(t.title_pattern)}</b> ${t.active ? '' : '<span style="color:#B33; font-size:12px;">(নিষ্ক্রিয়)</span>'}<br>
+            <span style="font-size:12.5px; color:var(--ink-faint);">
+              ${t.ministry_name ? escapeHtml(t.ministry_name) + ' · ' : ''}${t.subject ? escapeHtml(t.subject) + ' · ' : ''}${t.grade ? 'গ্রেড ' + t.grade + ' · ' : ''}
+              ${t.question_count} প্রশ্ন · ${t.duration_minutes} মিনিট · প্রতি ${(t.weekdays || []).map(w => TPL_WEEKDAY_LABELS[w]).join(', ')}বার ${String(t.run_time).slice(0,5)}-এ
+              · এ পর্যন্ত তৈরি হয়েছে: ${t.generated_count}টি ${t.last_generated_date ? '· সর্বশেষ: ' + t.last_generated_date : ''}
+            </span>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button type="button" class="btn btn-ghost btn-small" onclick='editTemplate(${JSON.stringify(t).replace(/'/g, "&#39;")})'>এডিট</button>
+            <button type="button" class="btn btn-ghost btn-small" onclick="toggleTemplateActive(${t.id}, ${!t.active})">${t.active ? 'বন্ধ করুন' : 'চালু করুন'}</button>
+            <button type="button" class="btn btn-ghost btn-small" onclick="runTemplateNow(${t.id})">এখনই চালান</button>
+            <button type="button" class="btn btn-ghost btn-small" style="color:#B33;" onclick="deleteTemplate(${t.id})">মুছুন</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(err){
+    box.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function toggleTemplateActive(id, active){
+  try{
+    await api('/api/exam-templates/' + id, { method: 'PUT', body: JSON.stringify({ active }) });
+    loadTemplatesList();
+  } catch(err){ alert(err.message); }
+}
+
+async function runTemplateNow(id){
+  if (!confirm('এখনই এই টেমপ্লেট থেকে একটা লাইভ পরীক্ষা তৈরি করতে চান?')) return;
+  try{
+    const exam = await api('/api/exam-templates/' + id + '/run-now', { method: 'POST' });
+    alert('তৈরি হয়েছে: ' + exam.title);
+    loadTemplatesList();
+  } catch(err){ alert(err.message); }
+}
+
+async function deleteTemplate(id){
+  if (!confirm('টেমপ্লেটটি মুছে ফেলতে চান? (এটা থেকে আগে তৈরি হওয়া পরীক্ষাগুলো মুছে যাবে না)')) return;
+  try{
+    await api('/api/exam-templates/' + id, { method: 'DELETE' });
+    loadTemplatesList();
+  } catch(err){ alert(err.message); }
+}
+
+document.getElementById('tplForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('tplErr');
+  const okBox = document.getElementById('tplOk');
+  errBox.style.display = 'none'; okBox.style.display = 'none';
+
+  const weekdays = Array.from(document.querySelectorAll('.tpl_wd:checked')).map(cb => Number(cb.value));
+  if (!weekdays.length){
+    errBox.textContent = 'অন্তত একটা দিন নির্বাচন করুন';
+    errBox.style.display = 'block';
+    return;
+  }
+  const body = {
+    title_pattern: document.getElementById('tpl_title').value.trim(),
+    ministry_id: document.getElementById('tpl_ministry').value || null,
+    post_name: document.getElementById('tpl_post_name').value.trim() || null,
+    subject: document.getElementById('tpl_subject').value.trim() || null,
+    grade: document.getElementById('tpl_grade').value || null,
+    question_count: Number(document.getElementById('tpl_question_count').value),
+    duration_minutes: Number(document.getElementById('tpl_duration').value),
+    negative_marks: Number(document.getElementById('tpl_negative').value || 0),
+    run_time: document.getElementById('tpl_run_time').value + ':00',
+    routine_category: document.getElementById('tpl_routine_category').value || null,
+    weekdays
+  };
+  const id = document.getElementById('tpl_id').value;
+  try{
+    if (id){
+      await api('/api/exam-templates/' + id, { method: 'PUT', body: JSON.stringify(body) });
+      okBox.textContent = 'টেমপ্লেট আপডেট হয়েছে।';
+    } else {
+      await api('/api/exam-templates', { method: 'POST', body: JSON.stringify(body) });
+      okBox.textContent = 'টেমপ্লেট তৈরি হয়েছে — নির্ধারিত দিনে-সময়ে এখন থেকে নিজে থেকেই লাইভ পরীক্ষা তৈরি হবে।';
+    }
+    okBox.style.display = 'block';
+    resetTplForm();
+    loadTemplatesList();
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+});
 
 async function loadReports(status){
   status = status || 'open';
