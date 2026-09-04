@@ -36,6 +36,10 @@
     --wrong-bg:#F7E9E7;
     --navy-deep:#10182C;
     --radius:18px;
+    --neu-shadow:6px 6px 14px rgba(163,153,120,0.28), -6px -6px 14px rgba(255,255,255,0.85);
+    --neu-shadow-inset:inset 4px 4px 9px rgba(163,153,120,0.28), inset -4px -4px 9px rgba(255,255,255,0.85);
+    --neu-shadow-sm:3px 3px 7px rgba(163,153,120,0.26), -3px -3px 7px rgba(255,255,255,0.8);
+    --neu-shadow-sm-inset:inset 2px 2px 5px rgba(163,153,120,0.26), inset -2px -2px 5px rgba(255,255,255,0.8);
   }
   /* ---------- Dark mode ---------- */
   /* Only the "surface" tokens (page/card backgrounds, borders, body text)
@@ -52,6 +56,10 @@
     --ink:#EDEFF6;
     --ink-soft:#AEB6CC;
     --ink-faint:#7C87A3;
+    --neu-shadow:6px 6px 14px rgba(0,0,0,0.45), -6px -6px 14px rgba(255,255,255,0.04);
+    --neu-shadow-inset:inset 4px 4px 9px rgba(0,0,0,0.45), inset -4px -4px 9px rgba(255,255,255,0.04);
+    --neu-shadow-sm:3px 3px 7px rgba(0,0,0,0.42), -3px -3px 7px rgba(255,255,255,0.04);
+    --neu-shadow-sm-inset:inset 2px 2px 5px rgba(0,0,0,0.42), inset -2px -2px 5px rgba(255,255,255,0.04);
   }
   html[data-theme="dark"] .device{ box-shadow:0 0 60px rgba(0,0,0,0.6); }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -273,20 +281,21 @@
   /* ---------- Exam ticket cards ---------- */
   .ticket{
     position:relative;
-    background:var(--card);
-    border:1px solid var(--line);
+    background:var(--paper-deep);
+    border:none;
     border-radius:16px;
-    margin-bottom:14px;
+    margin-bottom:16px;
     overflow:hidden;
+    box-shadow:var(--neu-shadow);
   }
   .ticket-top{padding:16px 16px 14px; display:flex; justify-content:space-between; gap:10px;}
   .ticket-tags{display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;}
   .tag{font-size:10px; padding:3px 8px; border-radius:20px; font-weight:600;}
-  .tag.ministry{background:var(--paper-deep); color:var(--ink-soft);}
+  .tag.ministry{background:var(--card); color:var(--ink-soft);}
   .tag.grade{background:var(--gold-soft); color:#7A5E12;}
   .tag.live{background:var(--seal); color:#fff; display:flex; align-items:center; gap:4px;}
   .tag.live::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.4s infinite;}
-  .tag.closed{background:var(--paper-deep); color:var(--ink-faint);}
+  .tag.closed{background:var(--card); color:var(--ink-faint);}
   .ticket-name{font-family:'Baloo Da 2', 'Noto Serif Bengali', serif; font-size:15.5px; color:var(--ink); line-height:1.4;}
   .ticket-meta{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
   .ticket-cd{text-align:center; flex-shrink:0; min-width:64px;}
@@ -303,11 +312,13 @@
   .btn-enter{
     background:var(--ink); color:#fff; border:none; padding:9px 16px;
     border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Noto Sans Bengali';
+    box-shadow:var(--neu-shadow-sm);
+    transition:transform .12s ease, box-shadow .12s ease;
   }
   .btn-enter.model{background:var(--success);}
   .btn-enter.archive{background:var(--gold);}
-  .btn-enter:disabled{background:var(--ink-faint); cursor:not-allowed;}
-  .btn-enter:active{opacity:0.85;}
+  .btn-enter:disabled{background:var(--ink-faint); cursor:not-allowed; box-shadow:none;}
+  .btn-enter:active{transform:scale(0.96); box-shadow:var(--neu-shadow-sm-inset);}
   .ticket-btn-group{display:flex; gap:8px;}
   .btn-enter.practice{background:var(--gold, #C9973B);}
   .remind-btn{
@@ -401,36 +412,40 @@
   .tj-banner-stat{flex:1; background:var(--seal); border-radius:14px; padding:14px; text-align:center;}
   .tj-banner-num{font-size:20px; font-weight:700; color:#fff; font-family:'Space Mono',monospace;}
   .tj-banner-label{font-size:11.5px; color:rgba(255,255,255,0.85); margin-top:2px;}
-  .tj-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px;}
+  .tj-card{background:var(--paper-deep); border:none; border-radius:16px; padding:14px; margin-bottom:14px; box-shadow:var(--neu-shadow);}
   .tj-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
   .tj-name-row{display:flex; align-items:center; gap:11px; min-width:0;}
   .tj-icon{
     width:42px; height:42px; border-radius:50%; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
     font-size:14px; font-weight:700; font-family:'Space Mono',monospace;
+    box-shadow:var(--neu-shadow-sm);
   }
   .tj-name{font-size:15px; font-weight:700; color:var(--ink);}
   .tj-meta{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
   .tj-like{
     display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;
     padding:5px 10px; border-radius:20px; font-family:'Space Mono',monospace; flex-shrink:0;
+    box-shadow:var(--neu-shadow-sm); transition:box-shadow .12s ease, transform .12s ease;
   }
+  .tj-like:active{box-shadow:var(--neu-shadow-sm-inset); transform:scale(0.96);}
   .tj-like .tj-heart{width:14px; height:14px; display:flex;}
   .tj-like .tj-heart svg{width:14px; height:14px;}
   .tj-like:active .tj-heart{transform:scale(0.85);}
   .tj-progress-row{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:6px;}
-  .tj-progress-track{height:6px; border-radius:4px; overflow:hidden; margin-bottom:12px; background:var(--paper-deep);}
+  .tj-progress-track{height:6px; border-radius:4px; overflow:hidden; margin-bottom:12px; background:var(--paper-deep); box-shadow:var(--neu-shadow-sm-inset);}
   .tj-progress-fill{height:100%; border-radius:4px; transition:width .4s ease;}
   .tj-actions{display:flex; gap:7px;}
   .tj-action-btn{
     background:var(--paper-deep); border:none; border-radius:20px; padding:9px 12px;
     font-size:11.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:'Noto Sans Bengali';
     text-align:center; line-height:1.2; display:flex; align-items:center; justify-content:center; gap:4px;
+    box-shadow:var(--neu-shadow-sm); transition:box-shadow .12s ease, transform .12s ease;
   }
   .tj-action-btn .ic{width:14px; height:14px; flex-shrink:0;}
   .tj-action-btn.wide{flex:1.3;}
   .tj-action-btn.mid{flex:1;}
-  .tj-action-btn:active{transform:scale(0.96);}
+  .tj-action-btn:active{transform:scale(0.96); box-shadow:var(--neu-shadow-sm-inset);}
   .tj-action-btn.primary{color:#fff; flex:0.9;}
 
 
@@ -446,18 +461,18 @@
   .smart-practice-card .sp-sub{font-size:11px; color:#F5C4B3; margin-top:3px; line-height:1.5;}
 
   /* ---------- Reading list (subject-wise question reading) ---------- */
-  .rl-q-card{background:var(--card); border:1px solid var(--line); border-radius:16px 16px 16px 5px; padding:16px 15px; margin-bottom:12px;}
+  .rl-q-card{background:var(--paper-deep); border:none; border-radius:16px 16px 16px 5px; padding:16px 15px; margin-bottom:14px; box-shadow:var(--neu-shadow);}
   .rl-q-top{display:flex; gap:10px; align-items:flex-start; margin-bottom:8px;}
-  .rl-q-num{font-family:'Baloo Da 2'; font-weight:700; font-size:12.5px; color:var(--seal); background:var(--success-bg); width:25px; height:25px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rl-q-num{font-family:'Baloo Da 2'; font-weight:700; font-size:12.5px; color:var(--seal); background:var(--success-bg); width:25px; height:25px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:var(--neu-shadow-sm);}
   .rl-q-text{font-size:14.5px; font-weight:600; line-height:1.75; color:var(--ink); padding-top:1px;}
   .rl-q-meta{font-size:10.5px; color:var(--ink-faint); opacity:.8; margin:2px 0 12px 35px;}
   .rl-q-opts{display:flex; flex-direction:column; gap:8px; margin-bottom:12px;}
-  .rl-q-opt{display:flex; gap:9px; align-items:flex-start; font-size:13.5px; padding:10px 12px; border-radius:11px; background:var(--paper); border:1px solid var(--line); color:var(--ink-soft); line-height:1.55;}
+  .rl-q-opt{display:flex; gap:9px; align-items:flex-start; font-size:13.5px; padding:10px 12px; border-radius:11px; background:var(--card); border:none; color:var(--ink-soft); line-height:1.55; box-shadow:var(--neu-shadow-sm); transition:box-shadow .12s ease;}
   .rl-q-opt b{font-family:'Noto Sans Bengali'; font-weight:700; width:20px; height:20px; border-radius:50%; border:1.5px solid var(--ink-faint); color:var(--ink-faint); font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;}
-  .rl-q-opt.correct{background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700;}
+  .rl-q-opt.correct{background:var(--success-bg); border:none; color:var(--success); font-weight:700; box-shadow:var(--neu-shadow-sm-inset);}
   .rl-q-opt.correct b{background:var(--success); border-color:var(--success); color:#fff;}
   .rl-q-reveal{width:100%; background:transparent; color:var(--seal); border:1.5px dashed var(--seal); padding:10px; margin-top:2px; border-radius:11px; font-size:13px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
-  .rl-q-explain{font-size:12.5px; color:var(--ink); background:var(--gold-soft); border-radius:11px; padding:11px 12px; margin-top:10px; line-height:1.7;}
+  .rl-q-explain{font-size:12.5px; color:var(--ink); background:var(--gold-soft); border-radius:11px; padding:11px 12px; margin-top:10px; line-height:1.7; box-shadow:var(--neu-shadow-sm-inset);}
   .rl-pager{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:14px 0 18px;}
   .rl-pager-btn{flex:1; background:var(--card); border:1.5px solid var(--line); color:var(--ink); padding:11px; border-radius:11px; font-weight:700; font-size:13px; cursor:pointer; font-family:'Noto Sans Bengali';}
   .rl-pager-btn:disabled{opacity:.4;}
