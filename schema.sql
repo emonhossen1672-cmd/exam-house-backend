@@ -397,6 +397,7 @@ CREATE TABLE IF NOT EXISTS exam_templates (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_exam_templates_active ON exam_templates(active);
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS topic VARCHAR(200);
 
 -- Marks which template auto-created a given exam (NULL for manually-created
 -- exams), so the admin dashboard can show "টেমপ্লেট থেকে তৈরি" and so a
