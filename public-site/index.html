@@ -171,7 +171,12 @@
     background:var(--gold); color:#2B2317; border:none;
     padding:11px 17px; border-radius:22px; font-family:'Noto Sans Bengali'; font-weight:700;
     font-size:12.5px; cursor:pointer; white-space:nowrap;
-    box-shadow:0 4px 10px -3px rgba(184,144,46,0.6);
+    box-shadow:0 4px 10px -3px rgba(184,144,46,0.6), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.15);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .hero-cta:active{
+    transform:translateY(1px) scale(0.98);
+    box-shadow:0 1px 3px -1px rgba(184,144,46,0.5), inset 0 2px 5px rgba(0,0,0,0.25);
   }
   .hero-barcode{
     display:flex; align-items:stretch; gap:2px; height:14px; overflow:hidden;
@@ -932,20 +937,41 @@
     100%{ box-shadow:0 0 0 0 rgba(224,57,62,0); }
   }
 
-  /* ---------- Homepage category buttons only: slightly smaller tiles with
-     one unified brand color instead of each tile's own pastel, a bigger
-     label, and a colorful gradient frame showing through the grid gaps. ---------- */
+  /* ---------- Homepage category buttons only: soft neumorphic tiles —
+     background matches the surface they sit on, depth comes from a dual
+     light/dark shadow instead of a border, and pressing one sinks it in
+     (shadow flips to inset). Each tile keeps its own icon/label accent
+     color (set inline via --t-fg per tile) for a bit of variety. ---------- */
   #screen-home .cat-grid{
-    background:linear-gradient(135deg, #FDE9C8, #E9F1FA 45%, #E8F5EC 75%, #F7E9E7);
-    padding:11px; border-radius:22px;
+    background:var(--paper-deep);
+    padding:14px; border-radius:22px;
   }
   #screen-home .cat-tile{
-    --t-bg:var(--card) !important; --t-bd:var(--seal) !important; --t-fg:var(--seal) !important;
-    padding:12px 8px 10px !important; min-height:38px !important; gap:6px !important;
+    background:var(--paper-deep) !important; border:none !important; border-radius:16px !important;
+    padding:14px 8px 12px !important; min-height:38px !important; gap:6px !important;
     font-size:13px !important;
+    box-shadow:5px 5px 10px rgba(163,153,120,0.28), -5px -5px 10px rgba(255,255,255,0.85) !important;
+    transition:box-shadow .12s ease, transform .12s ease;
   }
-  #screen-home .cat-tile .ct-ic{ width:34px !important; height:34px !important; }
+  #screen-home .cat-tile:active{
+    box-shadow:inset 3px 3px 7px rgba(163,153,120,0.28), inset -3px -3px 7px rgba(255,255,255,0.85) !important;
+    transform:scale(0.98);
+  }
+  #screen-home .cat-tile .ct-ic{
+    width:34px !important; height:34px !important;
+    background:var(--paper-deep) !important;
+    box-shadow:2px 2px 4px rgba(163,153,120,0.25), -2px -2px 4px rgba(255,255,255,0.8) !important;
+  }
   #screen-home .cat-tile .ct-ic .ic{ width:16px !important; height:16px !important; }
+  html[data-theme="dark"] #screen-home .cat-tile{
+    box-shadow:5px 5px 10px rgba(0,0,0,0.45), -5px -5px 10px rgba(255,255,255,0.04) !important;
+  }
+  html[data-theme="dark"] #screen-home .cat-tile:active{
+    box-shadow:inset 3px 3px 7px rgba(0,0,0,0.45), inset -3px -3px 7px rgba(255,255,255,0.04) !important;
+  }
+  html[data-theme="dark"] #screen-home .cat-tile .ct-ic{
+    box-shadow:2px 2px 4px rgba(0,0,0,0.4), -2px -2px 4px rgba(255,255,255,0.04) !important;
+  }
 
 
   /* ---------- Packages screen ---------- */
