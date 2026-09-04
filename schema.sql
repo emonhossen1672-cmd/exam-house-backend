@@ -369,3 +369,37 @@ CREATE INDEX IF NOT EXISTS idx_exams_routine_category ON exams(routine_category)
 -- Subtopic layer for টপিকভিত্তিক জব সলুশন (Subject → Topic → Subtopic → Questions)
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS subtopic VARCHAR(200);
 CREATE INDEX IF NOT EXISTS idx_questions_subtopic ON questions(subtopic);
+
+-- ===== Feature: Recurring live exam templates =====
+-- An admin defines a template ONCE — which weekdays it should run, what time
+-- of day, and which questions to draw from (ministry/subject/grade filters,
+-- all optional/nullable = "any") — and services/examTemplateScheduler.js
+-- creates a real 'live' exams row automatically each time it comes due, with
+-- the correct duration/start_time already set (this is what a template
+-- replaces: an admin manually re-creating "ফ্রি সাপ্তাহিক মডেল টেস্ট" every
+-- single Friday, which is also how the duration_minutes default-60 bug from
+-- an earlier session kept recurring).
+CREATE TABLE IF NOT EXISTS exam_templates (
+  id SERIAL PRIMARY KEY,
+  title_pattern VARCHAR(250) NOT NULL, -- exact exam title to use each time it fires
+  ministry_id INTEGER REFERENCES ministries(id) ON DELETE SET NULL, -- NULL = any ministry
+  post_name VARCHAR(200),
+  subject VARCHAR(30), -- NULL = any subject
+  grade INTEGER, -- NULL = any grade
+  routine_category VARCHAR(40), -- optional, same 5 slugs as routine_days.category
+  question_count INTEGER NOT NULL,
+  duration_minutes INTEGER NOT NULL,
+  negative_marks NUMERIC(4,2) NOT NULL DEFAULT 0,
+  weekdays SMALLINT[] NOT NULL, -- 0=Sunday..6=Saturday (matches JS Date#getDay())
+  run_time TIME NOT NULL, -- local (Asia/Dhaka) time of day the live exam should start
+  active BOOLEAN NOT NULL DEFAULT true,
+  last_generated_date DATE, -- guards against firing twice for the same calendar day
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_exam_templates_active ON exam_templates(active);
+
+-- Marks which template auto-created a given exam (NULL for manually-created
+-- exams), so the admin dashboard can show "টেমপ্লেট থেকে তৈরি" and so a
+-- template's own history can be listed.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_template_id INTEGER REFERENCES exam_templates(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_exams_template ON exams(exam_template_id);
