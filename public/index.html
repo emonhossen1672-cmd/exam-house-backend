@@ -643,9 +643,13 @@
             <input type="text" id="tpl_subject" list="fixed-subjects-list">
           </div>
           <div class="field">
-            <label>গ্রেড (ঐচ্ছিক)</label>
-            <input type="number" id="tpl_grade">
+            <label>টপিক (ঐচ্ছিক — খালি রাখলে সব বিষয়)</label>
+            <input type="text" id="tpl_topic">
           </div>
+        </div>
+        <div class="field" style="max-width:200px;">
+          <label>গ্রেড (ঐচ্ছিক)</label>
+          <input type="number" id="tpl_grade">
         </div>
         <div class="grid-2">
           <div class="field">
@@ -1862,6 +1866,7 @@ function editTemplate(t){
   document.getElementById('tpl_ministry').value = t.ministry_id || '';
   document.getElementById('tpl_post_name').value = t.post_name || '';
   document.getElementById('tpl_subject').value = t.subject || '';
+  document.getElementById('tpl_topic').value = t.topic || '';
   document.getElementById('tpl_grade').value = t.grade || '';
   document.getElementById('tpl_question_count').value = t.question_count;
   document.getElementById('tpl_duration').value = t.duration_minutes;
@@ -1889,7 +1894,7 @@ async function loadTemplatesList(){
           <div>
             <b>${escapeHtml(t.title_pattern)}</b> ${t.active ? '' : '<span style="color:#B33; font-size:12px;">(নিষ্ক্রিয়)</span>'}<br>
             <span style="font-size:12.5px; color:var(--ink-faint);">
-              ${t.ministry_name ? escapeHtml(t.ministry_name) + ' · ' : ''}${t.subject ? escapeHtml(t.subject) + ' · ' : ''}${t.grade ? 'গ্রেড ' + t.grade + ' · ' : ''}
+              ${t.ministry_name ? escapeHtml(t.ministry_name) + ' · ' : ''}${t.subject ? escapeHtml(t.subject) + ' · ' : ''}${t.topic ? escapeHtml(t.topic) + ' · ' : ''}${t.grade ? 'গ্রেড ' + t.grade + ' · ' : ''}
               ${t.question_count} প্রশ্ন · ${t.duration_minutes} মিনিট · প্রতি ${(t.weekdays || []).map(w => TPL_WEEKDAY_LABELS[w]).join(', ')}বার ${String(t.run_time).slice(0,5)}-এ
               · এ পর্যন্ত তৈরি হয়েছে: ${t.generated_count}টি ${t.last_generated_date ? '· সর্বশেষ: ' + t.last_generated_date : ''}
             </span>
@@ -1949,6 +1954,7 @@ document.getElementById('tplForm').addEventListener('submit', async (e) => {
     ministry_id: document.getElementById('tpl_ministry').value || null,
     post_name: document.getElementById('tpl_post_name').value.trim() || null,
     subject: document.getElementById('tpl_subject').value.trim() || null,
+    topic: document.getElementById('tpl_topic').value.trim() || null,
     grade: document.getElementById('tpl_grade').value || null,
     question_count: Number(document.getElementById('tpl_question_count').value),
     duration_minutes: Number(document.getElementById('tpl_duration').value),
