@@ -3659,10 +3659,20 @@
            <button class="btn-enter model" onclick="openNameSheet(${exam.id})">📝 পরীক্ষা দিন</button>
          </div>`
       : (() => {
-          const btnClass = st.archive ? 'btn-enter archive' : 'btn-enter';
+          // Live exam whose window has closed: offer BOTH options, same
+          // pattern as model tests (practice + real attempt) — view the
+          // solution/archive, or take the exam now as a fresh attempt.
+          // The backend already allows this (/public/:id/questions only
+          // blocks a future start_time or an admin-closed exam, it does
+          // NOT block on the live window having ended).
+          if(st.archive){
+            return `<div class="ticket-btn-group">
+                 <button class="btn-enter archive" onclick="openArchive(${exam.id})">🧾 সমাধান দেখুন</button>
+                 <button class="btn-enter" onclick="openNameSheet(${exam.id})">📝 পরীক্ষা দিন</button>
+               </div>`;
+          }
           const disabled = st.canEnter ? '' : 'disabled';
-          const clickFn = st.archive ? `openArchive(${exam.id})` : `openNameSheet(${exam.id})`;
-          const enterBtn = `<button class="${btnClass}" ${disabled} onclick="${clickFn}">${st.cta}</button>`;
+          const enterBtn = `<button class="btn-enter" ${disabled} onclick="openNameSheet(${exam.id})">${st.cta}</button>`;
           // Reminder bell: only for a logged-in student, only while the exam
           // hasn't started yet (st.countdown is set precisely in that window).
           if(USER_TOKEN && st.countdown !== undefined){
