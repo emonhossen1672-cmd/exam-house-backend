@@ -13,6 +13,7 @@ const CATEGORIES = [
   { slug: 'subject-wise', title: 'সাবজেক্ট ভিত্তিক রুটিন', subtitle: 'একটা একটা বিষয় ধরে শেষ করুন', icon: '📘' },
   { slug: 'topic-wise', title: 'টপিকভিত্তিক রুটিন', subtitle: 'টপিক ধরে ধরে পরিকল্পিত পড়াশোনা', icon: '🗂️' },
   { slug: 'job-solution', title: 'জব সলুশন শেষ করার রুটিন', subtitle: 'নির্দিষ্ট সময়ে সম্পূর্ণ জব সলুশন', icon: '✅' },
+  { slug: 'weekly-model-test', title: 'সাপ্তাহিক মডেল টেস্ট', subtitle: 'প্রতি সপ্তাহে নতুন মডেল টেস্ট', icon: '📝' },
 ];
 const CATEGORY_SLUGS = CATEGORIES.map(c => c.slug);
 
