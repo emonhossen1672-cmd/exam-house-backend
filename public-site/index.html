@@ -7,9 +7,14 @@
   // Applied before the stylesheet paints anything, so switching between
   // sessions never shows a flash of the wrong theme. Reads the same
   // localStorage key the in-app toggle button (further down) writes to.
+  // NOTE: auto-matching the device/browser's system dark-mode preference is
+  // intentionally disabled — the header (and its theme-toggle button) is
+  // hidden from users, so there is currently no in-app way to switch back
+  // to light if a phone's system dark mode forced it on. Always defaults
+  // to light (Pastel Sky) unless a saved explicit choice says otherwise.
   (function(){
     var saved = localStorage.getItem('eh_theme');
-    if(saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+    if(saved === 'dark'){
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   })();
@@ -19,22 +24,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;600;700;800&family=Noto+Serif+Bengali:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#FAF6EC;
-    --paper-deep:#F2EBD8;
+    --paper:#F6F8FB;
+    --paper-deep:#EAEFF5;
     --card:#FFFFFF;
-    --line:#E4DCC6;
+    --line:#E1E7EF;
     --ink:#17223B;
     --ink-soft:#5B6580;
     --ink-faint:#8A93A8;
-    --seal:#1F4E3D;
-    --seal-deep:#163A2D;
-    --gold:#B8902E;
-    --gold-soft:#E7D6A3;
+    --seal:#1B5FA8;
+    --seal-deep:#123F73;
+    --gold:#E3A83D;
+    --gold-soft:#F3D9A0;
     --success:#2F7A4F;
     --success-bg:#E6F1EA;
     --wrong:#A6332B;
     --wrong-bg:#F7E9E7;
-    --navy-deep:#10182C;
+    --navy-deep:#123464;
     --radius:18px;
     --neu-shadow:6px 6px 14px rgba(163,153,120,0.28), -6px -6px 14px rgba(255,255,255,0.85);
     --neu-shadow-inset:inset 4px 4px 9px rgba(163,153,120,0.28), inset -4px -4px 9px rgba(255,255,255,0.85);
@@ -140,7 +145,7 @@
   /* ---------- Hero admit card (Demo 6: আর্কাইভড অ্যাডমিট কার্ড) ---------- */
   .hero-ticket{
     position:relative;
-    background:linear-gradient(160deg, #12271F 0%, #1C3A2B 55%, #24462F 100%);
+    background:linear-gradient(160deg, #08192E 0%, #123F73 55%, #1D5FA8 100%);
     color:#F3E9CE;
     border-radius:20px;
     padding:26px 18px 4px;
@@ -960,34 +965,34 @@
      (shadow flips to inset). Each tile keeps its own icon/label accent
      color (set inline via --t-fg per tile) for a bit of variety. ---------- */
   #screen-home .cat-grid{
-    background:var(--paper-deep);
-    padding:14px; border-radius:22px;
+    background:transparent;
+    padding:0; border-radius:0;
   }
   #screen-home .cat-tile{
-    background:var(--paper-deep) !important; border:none !important; border-radius:16px !important;
-    padding:14px 8px 12px !important; min-height:38px !important; gap:6px !important;
-    font-size:13px !important;
-    box-shadow:5px 5px 10px rgba(163,153,120,0.28), -5px -5px 10px rgba(255,255,255,0.85) !important;
+    background:var(--t-bg,var(--card)) !important; border:none !important; border-radius:16px !important;
+    padding:16px 8px 13px !important; min-height:38px !important; gap:8px !important;
+    font-size:13px !important; color:var(--ink) !important;
+    box-shadow:0 3px 10px -6px rgba(20,40,80,0.18) !important;
     transition:box-shadow .12s ease, transform .12s ease;
   }
   #screen-home .cat-tile:active{
-    box-shadow:inset 3px 3px 7px rgba(163,153,120,0.28), inset -3px -3px 7px rgba(255,255,255,0.85) !important;
+    box-shadow:0 1px 4px -2px rgba(20,40,80,0.25) !important;
     transform:scale(0.98);
   }
   #screen-home .cat-tile .ct-ic{
     width:34px !important; height:34px !important;
-    background:var(--paper-deep) !important;
-    box-shadow:2px 2px 4px rgba(163,153,120,0.25), -2px -2px 4px rgba(255,255,255,0.8) !important;
+    background:rgba(255,255,255,0.55) !important; color:var(--t-fg,var(--navy-deep)) !important;
+    box-shadow:none !important;
   }
   #screen-home .cat-tile .ct-ic .ic{ width:16px !important; height:16px !important; }
   html[data-theme="dark"] #screen-home .cat-tile{
-    box-shadow:5px 5px 10px rgba(0,0,0,0.45), -5px -5px 10px rgba(255,255,255,0.04) !important;
+    box-shadow:0 3px 10px -6px rgba(0,0,0,0.55) !important;
   }
   html[data-theme="dark"] #screen-home .cat-tile:active{
-    box-shadow:inset 3px 3px 7px rgba(0,0,0,0.45), inset -3px -3px 7px rgba(255,255,255,0.04) !important;
+    box-shadow:0 1px 4px -2px rgba(0,0,0,0.6) !important;
   }
   html[data-theme="dark"] #screen-home .cat-tile .ct-ic{
-    box-shadow:2px 2px 4px rgba(0,0,0,0.4), -2px -2px 4px rgba(255,255,255,0.04) !important;
+    background:rgba(255,255,255,0.12) !important;
   }
 
 
@@ -1144,36 +1149,36 @@
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" data-live-cat="__any_live__" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="goScreen('live')"><span class="ct-live-dot"></span><span class="ct-emoji">🎯</span><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
-      <div class="cat-tile" data-live-cat="__any_routine__" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="goRoutineScreen()"><span class="ct-live-dot"></span><span class="ct-emoji">📅</span><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
-      <div class="cat-tile" data-live-cat="weekly-model-test" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openCategoryHub('weekly-model-test','সাপ্তাহিক মডেল টেস্ট')"><span class="ct-live-dot"></span><span class="ct-emoji">🎁</span><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>সাপ্তাহিক মডেল টেস্ট</span></div>
-      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-emoji">⚔️</span><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
-      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="goScreen('history')"><span class="ct-emoji">✅</span><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>সেন্ট্রাল রেজাল্ট</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
-      <div class="cat-tile" data-live-cat="grade-syllabus" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openCategoryHub('grade-syllabus','৯ম-২০তম গ্রেডের প্রস্তুতি')"><span class="ct-live-dot"></span><span class="ct-emoji">🎓</span><span class="ct-ic"><svg class="ic"><use href="#i-chart"/></svg></span><span>৯ম-২০তম গ্রেডের প্রস্তুতি</span></div>
-      <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
-      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="openSubjectPrepList()"><span class="ct-emoji">📚</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>সাবজেক্ট অনুযায়ী প্রস্তুতি</span></div>
-      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📜</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>৫১তম বিসিএস প্রস্তুতি</span></div>
-      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🌱</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>নতুনদের বিসিএস প্রস্তুতি</span></div>
-      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📝</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>প্রিলি ও লিখিত সমন্বিত প্রস্তুতি</span></div>
-      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12; grid-column:1/2;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🍎</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>শিক্ষক নিয়োগ ও নিবন্ধন</span></div>
+      <div class="cat-tile" data-live-cat="__any_live__" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78;" onclick="goScreen('live')"><span class="ct-live-dot"></span><span class="ct-emoji">🎯</span><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
+      <div class="cat-tile" data-live-cat="__any_routine__" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="goRoutineScreen()"><span class="ct-live-dot"></span><span class="ct-emoji">📅</span><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>লাইভ রুটিন</span></div>
+      <div class="cat-tile" data-live-cat="weekly-model-test" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="openCategoryHub('weekly-model-test','সাপ্তাহিক মডেল টেস্ট')"><span class="ct-live-dot"></span><span class="ct-emoji">🎁</span><span class="ct-ic"><svg class="ic"><use href="#i-gift"/></svg></span><span>সাপ্তাহিক মডেল টেস্ট</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-emoji">⚔️</span><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
+      <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="goScreen('history')"><span class="ct-emoji">✅</span><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>সেন্ট্রাল রেজাল্ট</span></div>
+      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
+      <div class="cat-tile" data-live-cat="grade-syllabus" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="openCategoryHub('grade-syllabus','৯ম-২০তম গ্রেডের প্রস্তুতি')"><span class="ct-live-dot"></span><span class="ct-emoji">🎓</span><span class="ct-ic"><svg class="ic"><use href="#i-chart"/></svg></span><span>৯ম-২০তম গ্রেডের প্রস্তুতি</span></div>
+      <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
+      <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="openSubjectPrepList()"><span class="ct-emoji">📚</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>সাবজেক্ট অনুযায়ী প্রস্তুতি</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📜</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>৫১তম বিসিএস প্রস্তুতি</span></div>
+      <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🌱</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>নতুনদের বিসিএস প্রস্তুতি</span></div>
+      <div class="cat-tile" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📝</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>প্রিলি ও লিখিত সমন্বিত প্রস্তুতি</span></div>
+      <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12; grid-column:1/2;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🍎</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>শিক্ষক নিয়োগ ও নিবন্ধন</span></div>
     </div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পড়াশোনা বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">⭐</span><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
-      <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-emoji">❌</span><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
-      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">🏛️</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>১১-২০ জব সলুশন চর্চা</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
-      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12; grid-column:1/2;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
+      <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">⭐</span><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
+      <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-emoji">❌</span><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
+      <div class="cat-tile" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-emoji">🏛️</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>১১-২০ জব সলুশন চর্চা</span></div>
+      <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
+      <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12; grid-column:1/2;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
     </div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>প্রিমিয়াম বিভাগ</h2></div>
     <div class="cat-grid">
-      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-emoji">📂</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
-      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">❤️</span><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🔍</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
-      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">💡</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-emoji">📂</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>জব সলুশন (টপিকভিত্তিক)</span></div>
+      <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">❤️</span><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
+      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🔍</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
+      <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">💡</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
@@ -1206,15 +1211,15 @@
 
     <div class="sec-head" style="margin:22px 0 10px;"><h2>দ্রুত অ্যাক্সেস</h2></div>
     <div class="cat-grid" style="grid-template-columns:1fr 1fr;">
-      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openRoutineCategory(CURRENT_CAT_SLUG)"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
+      <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="openRoutineCategory(CURRENT_CAT_SLUG)"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
       <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="openCatLiveExams()"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
       <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="openCatModelTests()"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
-      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="openCatResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="openCatArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
-      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="openCatFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
-      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>Syllabus</span></div>
-      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openCatMeritList()"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>Merit List</span></div>
-      <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E; grid-column:1/3;" onclick="openCatWrongQuestions()"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>Wrong &amp; Unanswered</span></div>
+      <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="openCatResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
+      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="openCatArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="openCatFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
+      <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>Syllabus</span></div>
+      <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="openCatMeritList()"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>Merit List</span></div>
+      <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E; grid-column:1/3;" onclick="openCatWrongQuestions()"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>Wrong &amp; Unanswered</span></div>
     </div>
   </div>
 
@@ -1244,17 +1249,17 @@
 
     <div class="sec-head" style="margin:22px 0 10px;"><h2>দ্রুত অ্যাক্সেস</h2></div>
     <div class="cat-grid" style="grid-template-columns:1fr 1fr;">
-      <div class="cat-tile" style="--t-bg:#E8F5EC; --t-bd:#C9E8D2; --t-fg:#245C3B;" onclick="openRoutineCategory('subject-wise')"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
+      <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="openRoutineCategory('subject-wise')"><span class="ct-ic"><svg class="ic"><use href="#i-calendar"/></svg></span><span>Routine</span></div>
       <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="openSubjLiveExams()"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
       <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="openSubjModelTests()"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
-      <div class="cat-tile" style="--t-bg:#EFE9F7; --t-bd:#D8C9EE; --t-fg:#4E3B7A;" onclick="openSubjResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
-      <div class="cat-tile" style="--t-bg:#E8F2F2; --t-bd:#C6E3E3; --t-fg:#1F6B6B;" onclick="openSubjArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
-      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="openSubjFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
-      <div class="cat-tile" style="--t-bg:#FCEEE3; --t-bd:#F0D3B8; --t-fg:#8A4E1D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>Syllabus</span></div>
-      <div class="cat-tile" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openSubjMeritList()"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>Merit List</span></div>
-      <div class="cat-tile" style="--t-bg:#F0F1E6; --t-bd:#DADCC0; --t-fg:#565E2E;" onclick="openSubjWrongQuestions()"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>Wrong &amp; Unans...</span></div>
-      <div class="cat-tile" style="--t-bg:#E9F1FA; --t-bd:#CFE1F1; --t-fg:#1E4F78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-play"/></svg></span><span>Videos</span></div>
-      <div class="cat-tile" style="--t-bg:#F7E9E7; --t-bd:#EAC9C6; --t-fg:#7E241D;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>PDFs</span></div>
+      <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="openSubjResults()"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>Result</span></div>
+      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="openSubjArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>Archive</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="openSubjFavorites()"><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>Favorite</span></div>
+      <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>Syllabus</span></div>
+      <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="openSubjMeritList()"><span class="ct-ic"><svg class="ic"><use href="#i-trophy"/></svg></span><span>Merit List</span></div>
+      <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="openSubjWrongQuestions()"><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>Wrong &amp; Unans...</span></div>
+      <div class="cat-tile" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-play"/></svg></span><span>Videos</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>PDFs</span></div>
     </div>
   </div>
 
@@ -2727,7 +2732,7 @@
 
     const repeatedBank = ALL_EXAMS.find(e=>e.is_repeated_bank);
     const repeatedHtml = repeatedBank ? `
-        <div class="group-card" style="--t-bg:#FBF2DC; --t-bd:#EEDCA8; --t-fg:#7A5E12;" onclick="openNameSheet(${repeatedBank.id})">
+        <div class="group-card" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="openNameSheet(${repeatedBank.id})">
           <div class="gc-left">
             <div class="gc-ic">🔁</div>
             <div>
