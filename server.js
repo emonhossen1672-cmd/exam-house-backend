@@ -54,6 +54,7 @@ app.use('/api/duels', require('./routes/duels.routes'));
 app.use('/api/push', require('./routes/push.routes'));
 app.use('/api/routines', require('./routes/routines.routes'));
 app.use('/api/exam-templates', require('./routes/examTemplates.routes'));
+app.use('/api/revision', require('./routes/revision.routes'));
 
 // ----- 404 handler — any /api/* route that didn't match above -----
 app.use('/api/', (req, res) => {
