@@ -40,6 +40,7 @@
     --neu-shadow-inset:inset 4px 4px 9px rgba(163,153,120,0.28), inset -4px -4px 9px rgba(255,255,255,0.85);
     --neu-shadow-sm:3px 3px 7px rgba(163,153,120,0.26), -3px -3px 7px rgba(255,255,255,0.8);
     --neu-shadow-sm-inset:inset 2px 2px 5px rgba(163,153,120,0.26), inset -2px -2px 5px rgba(255,255,255,0.8);
+    --opt-blue:#1E4F78;
   }
   /* ---------- Dark mode ---------- */
   /* Only the "surface" tokens (page/card backgrounds, borders, body text)
@@ -60,6 +61,7 @@
     --neu-shadow-inset:inset 4px 4px 9px rgba(0,0,0,0.45), inset -4px -4px 9px rgba(255,255,255,0.04);
     --neu-shadow-sm:3px 3px 7px rgba(0,0,0,0.42), -3px -3px 7px rgba(255,255,255,0.04);
     --neu-shadow-sm-inset:inset 2px 2px 5px rgba(0,0,0,0.42), inset -2px -2px 5px rgba(255,255,255,0.04);
+    --opt-blue:#6FA8DC;
   }
   html[data-theme="dark"] .device{ box-shadow:0 0 60px rgba(0,0,0,0.6); }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -465,10 +467,10 @@
   .rl-q-top{display:flex; gap:10px; align-items:flex-start; margin-bottom:8px;}
   .rl-q-num{font-family:'Baloo Da 2'; font-weight:700; font-size:12.5px; color:var(--seal); background:var(--success-bg); width:25px; height:25px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:var(--neu-shadow-sm);}
   .rl-q-text{font-size:14.5px; font-weight:600; line-height:1.75; color:var(--ink); padding-top:1px;}
-  .rl-q-meta{font-size:10.5px; color:var(--ink-faint); opacity:.8; margin:2px 0 12px 35px;}
+  .rl-q-meta{font-size:11.5px; color:var(--wrong); font-weight:600; margin:2px 0 12px 35px;}
   .rl-q-opts{display:flex; flex-direction:column; gap:8px; margin-bottom:12px;}
-  .rl-q-opt{display:flex; gap:9px; align-items:flex-start; font-size:13.5px; padding:10px 12px; border-radius:11px; background:var(--card); border:none; color:var(--ink-soft); line-height:1.55; box-shadow:var(--neu-shadow-sm); transition:box-shadow .12s ease;}
-  .rl-q-opt b{font-family:'Noto Sans Bengali'; font-weight:700; width:20px; height:20px; border-radius:50%; border:1.5px solid var(--ink-faint); color:var(--ink-faint); font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;}
+  .rl-q-opt{display:flex; gap:9px; align-items:flex-start; font-size:13.5px; padding:10px 12px; border-radius:11px; background:var(--card); border:none; color:var(--opt-blue); line-height:1.55; box-shadow:var(--neu-shadow-sm); transition:box-shadow .12s ease;}
+  .rl-q-opt b{font-family:'Noto Sans Bengali'; font-weight:700; width:20px; height:20px; border-radius:50%; border:1.5px solid var(--opt-blue); color:var(--opt-blue); font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;}
   .rl-q-opt.correct{background:var(--success-bg); border:none; color:var(--success); font-weight:700; box-shadow:var(--neu-shadow-sm-inset);}
   .rl-q-opt.correct b{background:var(--success); border-color:var(--success); color:#fff;}
   .rl-q-reveal{width:100%; background:transparent; color:var(--seal); border:1.5px dashed var(--seal); padding:10px; margin-top:2px; border-radius:11px; font-size:13px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
