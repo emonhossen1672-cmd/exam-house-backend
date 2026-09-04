@@ -53,6 +53,7 @@ app.use('/api/syllabus', require('./routes/syllabus.routes'));
 app.use('/api/duels', require('./routes/duels.routes'));
 app.use('/api/push', require('./routes/push.routes'));
 app.use('/api/routines', require('./routes/routines.routes'));
+app.use('/api/exam-templates', require('./routes/examTemplates.routes'));
 
 // ----- 404 handler — any /api/* route that didn't match above -----
 app.use('/api/', (req, res) => {
@@ -74,10 +75,12 @@ const PORT = process.env.PORT || 4000;
 const autoInit = require('./autoInit');
 const { startReminderScheduler } = require('./services/reminderScheduler');
 const { startDailyQuizPush } = require('./services/dailyQuizPush');
+const { startExamTemplateScheduler } = require('./services/examTemplateScheduler');
 autoInit().finally(() => {
   app.listen(PORT, () => console.log(`Exam House API running on port ${PORT}`));
   startReminderScheduler();
   startDailyQuizPush();
+  startExamTemplateScheduler();
 });
 
 // ----- Process-level safety nets -----
