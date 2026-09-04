@@ -92,6 +92,25 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
     streak = await updateStreak(userId);
   }
 
+  // Spaced-repetition auto-enroll: every question just answered wrong joins
+  // the revision deck (due tomorrow) if it isn't already being tracked.
+  // ON CONFLICT DO NOTHING deliberately — a question already in the deck
+  // keeps whatever schedule utils/spacedRepetition.js has already given it;
+  // re-answering wrong in an unrelated exam here shouldn't reset progress
+  // made by actually reviewing it (that only happens via POST
+  // /api/revision/:questionId/review, which recomputes the schedule
+  // properly instead of just resetting to day 1).
+  if (userId) {
+    const wrongIds = review.filter(q => q.status === 'wrong').map(q => q.id);
+    if (wrongIds.length) {
+      await pool.query(`
+        INSERT INTO revision_cards (user_id, question_id, repetitions, ease_factor, interval_days, due_date, last_result, source)
+        SELECT $1, unnest($2::int[]), 0, 2.5, 1, CURRENT_DATE + INTERVAL '1 day', 'wrong', 'wrong'
+        ON CONFLICT (user_id, question_id) DO NOTHING
+      `, [userId, wrongIds]);
+    }
+  }
+
   // Duel mode: if this submission belongs to an in-progress duel (this user is
   // the challenger or the accepted opponent, and hasn't submitted their side
   // yet), link this result to that side. Once both sides have a result,
