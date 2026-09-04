@@ -405,3 +405,28 @@ ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS subtopic VARCHAR(200);
 -- template's own history can be listed.
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS exam_template_id INTEGER REFERENCES exam_templates(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_exams_template ON exams(exam_template_id);
+
+-- ===== Feature: Spaced-repetition revision ("ভুলে যাওয়ার আগে আবার দেখাও") =====
+-- One row per (user, question) a student is actively revising. A card is
+-- auto-enrolled the moment a question is bookmarked or answered wrong in any
+-- exam (see routes/bookmarks.routes.js and routes/results.routes.js) — no
+-- separate "add to revision" action needed. utils/spacedRepetition.js (a
+-- simplified SM-2) recomputes repetitions/ease_factor/interval_days/due_date
+-- every time the student reviews a card via POST /api/revision/:questionId/review.
+-- due_date <= today = "show this again"; a well-known question's due_date
+-- drifts further and further into the future until it stops surfacing.
+CREATE TABLE IF NOT EXISTS revision_cards (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  repetitions INTEGER NOT NULL DEFAULT 0,
+  ease_factor NUMERIC(3,2) NOT NULL DEFAULT 2.5,
+  interval_days INTEGER NOT NULL DEFAULT 0,
+  due_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  last_result VARCHAR(10), -- 'correct' | 'wrong' — most recent review outcome
+  source VARCHAR(20) NOT NULL DEFAULT 'wrong', -- 'wrong' | 'bookmark' — how it entered the deck
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, question_id)
+);
+CREATE INDEX IF NOT EXISTS idx_revision_cards_due ON revision_cards(user_id, due_date);
