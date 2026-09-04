@@ -500,9 +500,15 @@
           <label>নেগেটিভ মার্কিং (প্রতিটি ভুল উত্তরে যত মার্ক কাটা যাবে, ০ = নেগেটিভ মার্কিং নেই)</label>
           <input type="number" id="e_negative_marks" value="0" step="0.05" min="0" max="1">
         </div>
-        <div class="field" id="e_start_time_wrap">
-          <label>শুরুর সময় (শুধু লাইভ পরীক্ষার জন্য)</label>
-          <input type="datetime-local" id="e_start_time">
+        <div class="grid-2" id="e_start_time_wrap">
+          <div class="field">
+            <label>শুরুর সময় (শুধু লাইভ পরীক্ষার জন্য)</label>
+            <input type="datetime-local" id="e_start_time">
+          </div>
+          <div class="field">
+            <label>শেষ হওয়ার সময় (ঐচ্ছিক — দিলে সময়কাল অটো হিসাব হবে)</label>
+            <input type="datetime-local" id="e_end_time">
+          </div>
         </div>
 
         <div class="grid-2">
@@ -754,10 +760,39 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 document.getElementById('e_type').addEventListener('change', (e) => {
-  document.getElementById('e_start_time_wrap').style.display = e.target.value === 'live' ? 'block' : 'none';
+  document.getElementById('e_start_time_wrap').style.display = e.target.value === 'live' ? 'grid' : 'none';
   document.getElementById('e_subject_wrap').style.display = e.target.value === 'model' ? 'block' : 'none';
 });
 document.getElementById('e_start_time_wrap').style.display = 'none';
+
+// ---- Live exam: keep শুরুর সময় / শেষ হওয়ার সময় / সময়কাল(মিনিট) in sync ----
+// Admin can fill in either an end time (then duration is computed for them)
+// or a duration (then the end-time field updates to match) — whichever they
+// touch last wins, so there's no fixed input order to follow.
+(function(){
+  const startEl = document.getElementById('e_start_time');
+  const endEl = document.getElementById('e_end_time');
+  const durEl = document.getElementById('e_duration');
+
+  function fromEndTime(){
+    if (!startEl.value || !endEl.value) return;
+    const start = new Date(startEl.value);
+    const end = new Date(endEl.value);
+    const diffMin = Math.round((end - start) / 60000);
+    if (diffMin > 0) durEl.value = diffMin;
+  }
+  function fromDuration(){
+    if (!startEl.value || !durEl.value) return;
+    const start = new Date(startEl.value);
+    const end = new Date(start.getTime() + Number(durEl.value) * 60000);
+    // Format as the value a <input type="datetime-local"> expects: YYYY-MM-DDTHH:mm
+    const pad = n => String(n).padStart(2, '0');
+    endEl.value = `${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+  }
+  endEl.addEventListener('input', fromEndTime);
+  durEl.addEventListener('input', fromDuration);
+  startEl.addEventListener('input', () => { if (endEl.value) fromEndTime(); else fromDuration(); });
+})();
 
 async function loadMinistries(){
   try{
