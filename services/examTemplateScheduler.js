@@ -45,8 +45,9 @@ async function generateFromTemplate(template, { force = false } = {}) {
        AND ($2::text IS NULL OR post_name = $2)
        AND ($3::text IS NULL OR subject = $3)
        AND ($4::int IS NULL OR grade = $4)
-     ORDER BY RANDOM() LIMIT $5`,
-    [template.ministry_id, template.post_name, template.subject, template.grade, template.question_count]
+       AND ($5::text IS NULL OR topic = $5)
+     ORDER BY RANDOM() LIMIT $6`,
+    [template.ministry_id, template.post_name, template.subject, template.grade, template.topic, template.question_count]
   );
   if (qRows.length < template.question_count) {
     throw new Error(`প্রশ্ন যথেষ্ট নেই — দরকার ${template.question_count}টি, পাওয়া গেছে ${qRows.length}টি`);
