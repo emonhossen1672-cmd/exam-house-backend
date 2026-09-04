@@ -36,7 +36,7 @@ router.get('/admin/:id/history', requireAdmin, asyncHandler(async (req, res) => 
 // body: { title_pattern, ministry_id, post_name, subject, grade, routine_category,
 //         question_count, duration_minutes, negative_marks, weekdays: [0-6], run_time: 'HH:MM' }
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { title_pattern, ministry_id, post_name, subject, grade, routine_category,
+  const { title_pattern, ministry_id, post_name, subject, topic, grade, routine_category,
           question_count, duration_minutes, negative_marks, weekdays, run_time } = req.body;
 
   if (!title_pattern || !question_count || !duration_minutes || !Array.isArray(weekdays) || !weekdays.length || !run_time) {
@@ -45,10 +45,10 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 
   const { rows } = await pool.query(
     `INSERT INTO exam_templates
-       (title_pattern, ministry_id, post_name, subject, grade, routine_category,
+       (title_pattern, ministry_id, post_name, subject, topic, grade, routine_category,
         question_count, duration_minutes, negative_marks, weekdays, run_time, active)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true) RETURNING *`,
-    [title_pattern, ministry_id || null, post_name || null, subject || null, grade || null,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,true) RETURNING *`,
+    [title_pattern, ministry_id || null, post_name || null, subject || null, topic || null, grade || null,
      routine_category || null, question_count, duration_minutes, negative_marks || 0, weekdays, run_time]
   );
   res.status(201).json(rows[0]);
@@ -56,7 +56,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 
 // PUT /api/exam-templates/:id — edit a template (same body shape as create; also accepts { active })
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { title_pattern, ministry_id, post_name, subject, grade, routine_category,
+  const { title_pattern, ministry_id, post_name, subject, topic, grade, routine_category,
           question_count, duration_minutes, negative_marks, weekdays, run_time, active } = req.body;
 
   const { rows } = await pool.query(
@@ -65,16 +65,17 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
        ministry_id = $2,
        post_name = $3,
        subject = $4,
-       grade = $5,
-       routine_category = $6,
-       question_count = COALESCE($7, question_count),
-       duration_minutes = COALESCE($8, duration_minutes),
-       negative_marks = COALESCE($9, negative_marks),
-       weekdays = COALESCE($10, weekdays),
-       run_time = COALESCE($11, run_time),
-       active = COALESCE($12, active)
-     WHERE id = $13 RETURNING *`,
-    [title_pattern || null, ministry_id ?? null, post_name ?? null, subject ?? null, grade ?? null,
+       topic = $5,
+       grade = $6,
+       routine_category = $7,
+       question_count = COALESCE($8, question_count),
+       duration_minutes = COALESCE($9, duration_minutes),
+       negative_marks = COALESCE($10, negative_marks),
+       weekdays = COALESCE($11, weekdays),
+       run_time = COALESCE($12, run_time),
+       active = COALESCE($13, active)
+     WHERE id = $14 RETURNING *`,
+    [title_pattern || null, ministry_id ?? null, post_name ?? null, subject ?? null, topic ?? null, grade ?? null,
      routine_category ?? null, question_count || null, duration_minutes || null, negative_marks ?? null,
      weekdays || null, run_time || null, active === undefined ? null : active, req.params.id]
   );
