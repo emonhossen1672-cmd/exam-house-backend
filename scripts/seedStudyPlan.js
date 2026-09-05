@@ -255,8 +255,7 @@ async function ensureWeeklyModelTestTemplate(client) {
   return true;
 }
 
-async function main() {
-  console.log(`bcs-200 total days from topic lists: ${TOTAL_BCS200_DAYS} (should be 200)`);
+async function runSeed(pool) {
   const bcs200Days = buildBcs200Days();
   const jobSolutionDays = buildJobSolutionDays();
 
@@ -267,19 +266,40 @@ async function main() {
     const n2 = await seedCategory(client, 'job-solution', jobSolutionDays);
     const createdTemplate = await ensureWeeklyModelTestTemplate(client);
     await client.query('COMMIT');
-    console.log(`✅ bcs-200: inserted ${n1} routine days`);
-    console.log(`✅ job-solution: inserted ${n2} routine days`);
-    console.log(createdTemplate
-      ? '✅ weekly-model-test exam_template created (every Friday 20:00, Asia/Dhaka)'
-      : 'ℹ️ weekly-model-test exam_template already existed — left untouched');
+    return {
+      ok: true,
+      totalBcs200Days: TOTAL_BCS200_DAYS,
+      bcs200Inserted: n1,
+      jobSolutionInserted: n2,
+      weeklyModelTestTemplateCreated: createdTemplate,
+    };
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('❌ Seeding failed, rolled back:', err.message);
-    process.exitCode = 1;
+    throw err;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-main();
+// CLI entrypoint — only runs when this file is executed directly
+// (`node scripts/seedStudyPlan.js`), not when required by the admin route.
+if (require.main === module) {
+  (async () => {
+    console.log(`bcs-200 total days from topic lists: ${TOTAL_BCS200_DAYS} (should be 200)`);
+    try {
+      const result = await runSeed(pool);
+      console.log(`✅ bcs-200: inserted ${result.bcs200Inserted} routine days`);
+      console.log(`✅ job-solution: inserted ${result.jobSolutionInserted} routine days`);
+      console.log(result.weeklyModelTestTemplateCreated
+        ? '✅ weekly-model-test exam_template created (every Friday 20:00, Asia/Dhaka)'
+        : 'ℹ️ weekly-model-test exam_template already existed — left untouched');
+    } catch (err) {
+      console.error('❌ Seeding failed, rolled back:', err.message);
+      process.exitCode = 1;
+    } finally {
+      await pool.end();
+    }
+  })();
+}
+
+module.exports = { runSeed };
