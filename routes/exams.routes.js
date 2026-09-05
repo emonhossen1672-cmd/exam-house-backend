@@ -13,36 +13,51 @@ function genSerial(type) {
 // ---------- ADMIN ----------
 
 // POST /api/exams — create an exam and attach questions
-// body: { title, type: 'live'|'model', ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids: [1,2,3] }
+// body: { title, type: 'live'|'model'|'written', ministry_id, post_name, subject, grade, duration_minutes, start_time,
+//         question_ids: [1,2,3] (live/model),  OR  written_question_ids + grading_mode (written) }
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const { title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, question_ids, negative_marks,
-          application_deadline, exam_probable_date, circular_url, routine_category } = req.body;
-  if (!title || !type || !question_ids || !question_ids.length) {
+          application_deadline, exam_probable_date, circular_url, routine_category, written_question_ids, grading_mode } = req.body;
+
+  const isWritten = type === 'written';
+  const idsForType = isWritten ? written_question_ids : question_ids;
+  if (!title || !type || !idsForType || !idsForType.length) {
     return res.status(400).json({ error: 'টাইটেল, টাইপ এবং অন্তত একটি প্রশ্ন দরকার' });
   }
   if (type === 'live' && !start_time) {
     return res.status(400).json({ error: 'লাইভ পরীক্ষার জন্য শুরুর সময় দিন' });
   }
+  if (isWritten && !['self_check', 'manual', 'ai'].includes(grading_mode)) {
+    return res.status(400).json({ error: 'রিটেন পরীক্ষার জন্য মূল্যায়ন পদ্ধতি (grading_mode) বাছাই করুন' });
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const serial = genSerial(type);
+    const serial = genSerial(type === 'written' ? 'model' : type); // written shares 'model'-style serial prefix
     const examResult = await client.query(
       `INSERT INTO exams (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time, serial, status, negative_marks,
-         application_deadline, exam_probable_date, circular_url, routine_category)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+         application_deadline, exam_probable_date, circular_url, routine_category, grading_mode)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
        type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
-       application_deadline || null, exam_probable_date || null, circular_url || null, routine_category || null]
+       application_deadline || null, exam_probable_date || null, circular_url || null, routine_category || null,
+       isWritten ? grading_mode : null]
     );
     const exam = examResult.rows[0];
 
-    for (let i = 0; i < question_ids.length; i++) {
-      await client.query(
-        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
-        [exam.id, question_ids[i], i + 1]
-      );
+    for (let i = 0; i < idsForType.length; i++) {
+      if (isWritten) {
+        await client.query(
+          'INSERT INTO exam_written_questions (exam_id, written_question_id, position) VALUES ($1,$2,$3)',
+          [exam.id, idsForType[i], i + 1]
+        );
+      } else {
+        await client.query(
+          'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+          [exam.id, idsForType[i], i + 1]
+        );
+      }
     }
     await client.query('COMMIT');
     res.status(201).json(exam);
@@ -58,7 +73,8 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT e.*, m.name AS ministry_name,
-      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
+      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id)
+        + (SELECT COUNT(*) FROM exam_written_questions ewq WHERE ewq.exam_id = e.id) AS question_count,
       (SELECT COUNT(*) FROM results r WHERE r.exam_id = e.id) AS attempt_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
     ORDER BY e.created_at DESC
@@ -235,6 +251,31 @@ router.get('/public/:id/questions', asyncHandler(async (req, res) => {
     SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, eq.position, eq.tag
     FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
     WHERE eq.exam_id = $1 ORDER BY eq.position
+  `, [req.params.id]);
+
+  res.json({ exam, questions: rows });
+}));
+
+// GET /api/exams/public/:id/written-questions — question_text + marks only,
+// model_answer withheld while the exam is being taken (mirrors
+// /public/:id/questions above, for type='written' exams).
+router.get('/public/:id/written-questions', asyncHandler(async (req, res) => {
+  const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
+  if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
+  const exam = examRes.rows[0];
+  if (exam.type !== 'written') return res.status(400).json({ error: 'এটি রিটেন পরীক্ষা নয়' });
+
+  if (exam.status === 'closed') {
+    return res.status(403).json({ error: 'পরীক্ষাটি বন্ধ করে দেওয়া হয়েছে' });
+  }
+  if (exam.start_time && new Date(exam.start_time) > new Date()) {
+    return res.status(403).json({ error: 'পরীক্ষা এখনো শুরু হয়নি' });
+  }
+
+  const { rows } = await pool.query(`
+    SELECT wq.id, wq.subject, wq.question_text, wq.marks, ewq.position
+    FROM exam_written_questions ewq JOIN written_questions wq ON wq.id = ewq.written_question_id
+    WHERE ewq.exam_id = $1 ORDER BY ewq.position
   `, [req.params.id]);
 
   res.json({ exam, questions: rows });
