@@ -20,6 +20,18 @@
   })();
 </script>
 <title>Exam House — লাইভ পরীক্ষা ও মডেল টেস্ট</title>
+
+<!-- PWA: manifest + icons + install/standalone behavior -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1B5FA8">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Exam House">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;600;700;800&family=Noto+Serif+Bengali:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -3933,6 +3945,42 @@
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').then(reg => { SW_REGISTRATION = reg; }).catch(()=>{});
   }
+
+  // ---------- PWA install prompt ----------
+  // Chrome/Edge/Android fire this instead of auto-showing their own install
+  // UI, so we stash the event and show our own small floating button. iOS
+  // Safari never fires this event (no A2HS API) — those users just don't
+  // see the button and can add-to-home-screen manually via the share sheet.
+  let DEFERRED_INSTALL_PROMPT = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    DEFERRED_INSTALL_PROMPT = e;
+    const btn = document.getElementById('ehInstallBtn');
+    if(btn) btn.style.display = 'flex';
+  });
+  window.addEventListener('DOMContentLoaded', () => {
+    if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+      return; // already installed/running as an app — no need to offer install
+    }
+    const btn = document.createElement('button');
+    btn.id = 'ehInstallBtn';
+    btn.type = 'button';
+    btn.innerHTML = '⬇️ অ্যাপ ইনস্টল করুন';
+    btn.style.cssText = 'display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;background:var(--seal,#1B5FA8);color:#fff;border:none;border-radius:999px;padding:11px 20px;font-family:inherit;font-weight:600;font-size:14px;box-shadow:0 6px 18px rgba(18,63,115,0.35);cursor:pointer;';
+    btn.addEventListener('click', async () => {
+      if(!DEFERRED_INSTALL_PROMPT) return;
+      btn.style.display = 'none';
+      DEFERRED_INSTALL_PROMPT.prompt();
+      await DEFERRED_INSTALL_PROMPT.userChoice;
+      DEFERRED_INSTALL_PROMPT = null;
+    });
+    document.body.appendChild(btn);
+  });
+  window.addEventListener('appinstalled', () => {
+    const btn = document.getElementById('ehInstallBtn');
+    if(btn) btn.remove();
+    DEFERRED_INSTALL_PROMPT = null;
+  });
 
   function urlBase64ToUint8Array(base64String){
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
