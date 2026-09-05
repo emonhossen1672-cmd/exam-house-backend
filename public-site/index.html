@@ -46,6 +46,17 @@
     --neu-shadow-sm:3px 3px 7px rgba(163,153,120,0.26), -3px -3px 7px rgba(255,255,255,0.8);
     --neu-shadow-sm-inset:inset 2px 2px 5px rgba(163,153,120,0.26), inset -2px -2px 5px rgba(255,255,255,0.8);
     --opt-blue:#1E4F78;
+    /* সান্ড/ট্যান নিউমরফিক প্রশ্ন-কার্ড থিম (ভ্যারিয়েন্ট ১১, ফাইনাল) — ইচ্ছাকৃতভাবে
+       dark mode ব্লকে override করা হয়নি, তাই থিম যাই হোক এই কার্ড সবসময় হালকা/ট্যান থাকবে। */
+    --q-tan-bg:#F5F0E6;
+    --q-tan-line:#E2D8C0;
+    --q-tan-ink:#2B2210;
+    --q-tan-ink-soft:#5C4C28;
+    --q-tan-accent:#7A5C22;
+    --q-tan-accent-bg:#EDE2C4;
+    --q-tan-shadow:6px 6px 14px rgba(163,153,120,0.30), -6px -6px 14px rgba(255,255,255,0.9);
+    --q-tan-shadow-sm:3px 3px 8px rgba(163,153,120,0.28), -3px -3px 8px rgba(255,255,255,0.85);
+    --q-tan-shadow-inset:inset 3px 3px 7px rgba(163,153,120,0.28), inset -3px -3px 7px rgba(255,255,255,0.85);
   }
   /* ---------- Dark mode ---------- */
   /* Only the "surface" tokens (page/card backgrounds, borders, body text)
@@ -495,18 +506,18 @@
   .smart-practice-card .sp-sub{font-size:11px; color:#F5C4B3; margin-top:3px; line-height:1.5;}
 
   /* ---------- Reading list (subject-wise question reading) ---------- */
-  .rl-q-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px;}
+  .rl-q-card{background:var(--q-tan-bg); border:none; border-radius:18px; padding:16px; margin-bottom:14px; box-shadow:var(--q-tan-shadow);}
   .rl-q-top{display:flex; gap:10px; align-items:flex-start; margin-bottom:2px;}
-  .rl-q-num{font-family:'Space Mono',monospace; font-weight:700; font-size:12px; color:var(--gold); background:var(--paper-deep); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .rl-q-text{font-size:14.5px; font-weight:600; line-height:1.55; color:var(--ink); padding-top:2px;}
+  .rl-q-num{font-family:'Space Mono',monospace; font-weight:700; font-size:12px; color:var(--q-tan-accent); background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-sm); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rl-q-text{font-size:14.5px; font-weight:700; line-height:1.55; color:var(--q-tan-ink); padding-top:2px;}
   .rl-q-meta{font-size:10.5px; color:var(--wrong); font-weight:600; margin:5px 0 0 36px;}
   .rl-q-opts{display:flex; flex-direction:column; gap:8px; margin:14px 0 0 36px;}
-  .rl-q-opt{display:flex; gap:9px; align-items:center; font-size:13px; padding:9px 12px; border-radius:10px; background:var(--paper-deep); border:1.3px solid var(--line); color:var(--ink); line-height:1.5;}
-  .rl-q-opt b{font-family:'Noto Sans Bengali'; font-weight:700; width:20px; height:20px; border-radius:50%; border:1.3px solid var(--ink-faint); color:var(--ink-faint); font-size:10.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .rl-q-opt.correct{background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700;}
-  .rl-q-opt.correct b{background:var(--success); border-color:var(--success); color:#fff;}
-  .rl-q-reveal{width:calc(100% - 36px); margin-left:36px; background:transparent; color:var(--gold); border:1.6px dashed var(--gold); padding:9px; margin-top:14px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
-  .rl-q-explain{font-size:12px; color:var(--ink-soft); background:var(--paper-deep); border-radius:0 10px 10px 0; border-left:3px solid var(--gold); padding:10px 12px; margin:12px 0 0 36px; line-height:1.6;}
+  .rl-q-opt{display:flex; gap:9px; align-items:center; font-size:13px; padding:9px 12px; border-radius:12px; background:var(--q-tan-bg); border:none; box-shadow:var(--q-tan-shadow-sm); color:var(--q-tan-ink); font-weight:600; line-height:1.5;}
+  .rl-q-opt b{font-family:'Noto Sans Bengali'; font-weight:700; width:20px; height:20px; border-radius:50%; border:1.3px solid var(--q-tan-line); background:var(--q-tan-bg); color:var(--q-tan-ink-soft); font-size:10.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rl-q-opt.correct{background:var(--q-tan-accent-bg); border:none; box-shadow:var(--q-tan-shadow-inset); color:var(--q-tan-accent); font-weight:700;}
+  .rl-q-opt.correct b{background:var(--q-tan-accent); border-color:var(--q-tan-accent); color:#fff;}
+  .rl-q-reveal{width:calc(100% - 36px); margin-left:36px; background:var(--q-tan-bg); color:var(--q-tan-accent); border:1.6px dashed var(--q-tan-accent); box-shadow:var(--q-tan-shadow-sm); padding:9px; margin-top:14px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .rl-q-explain{font-size:12px; color:var(--q-tan-ink); font-weight:600; background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-inset); border-radius:10px; border-left:3px solid var(--q-tan-accent); padding:10px 12px; margin:12px 0 0 36px; line-height:1.6;}
   .rl-pager{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:14px 0 18px;}
   .rl-pager-btn{flex:1; background:var(--card); border:1.5px solid var(--line); color:var(--ink); padding:11px; border-radius:11px; font-weight:700; font-size:13px; cursor:pointer; font-family:'Noto Sans Bengali';}
   .rl-pager-btn:disabled{opacity:.4;}
@@ -527,14 +538,14 @@
   .tq-filter-btn.active{background:var(--seal); border-color:var(--seal); color:#fff;}
   .tq-read-chk{width:19px; height:19px; flex-shrink:0; margin-top:2px; accent-color:var(--success); cursor:pointer;}
   .tq-actions{display:flex; gap:16px; margin:14px 0 0 36px;}
-  .tq-act-btn{background:none; border:none; color:var(--ink-soft); padding:0; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
-  .tq-act-btn.on{color:var(--gold);}
-  .tq-act-btn.bm-star.on{color:var(--wrong);}
-  .tq-stats{font-size:12px; color:var(--ink); background:var(--paper-deep); border-radius:10px; padding:10px 12px; margin:10px 0 0 36px; display:none;}
+  .tq-act-btn{background:none; border:none; color:var(--q-tan-ink-soft); padding:0; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .tq-act-btn.on{color:var(--q-tan-accent);}
+  .tq-act-btn.bm-star.on{color:var(--q-tan-accent);}
+  .tq-stats{font-size:12px; color:var(--q-tan-ink); font-weight:600; background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-inset); border-radius:10px; padding:10px 12px; margin:10px 0 0 36px; display:none;}
   .tq-stats-row{display:flex; align-items:center; gap:8px; margin-bottom:5px;}
   .tq-stats-row span:first-child{width:16px; font-weight:700;}
-  .tq-stats-bar-track{flex:1; height:8px; background:var(--line); border-radius:4px; overflow:hidden;}
-  .tq-stats-bar-fill{height:100%; background:var(--opt-blue); border-radius:4px;}
+  .tq-stats-bar-track{flex:1; height:8px; background:var(--q-tan-line); border-radius:4px; overflow:hidden;}
+  .tq-stats-bar-fill{height:100%; background:var(--q-tan-accent); border-radius:4px;}
   .tq-stats-row.is-correct .tq-stats-bar-fill{background:var(--success);}
   .tq-stats-pct{width:38px; text-align:right; font-family:'Space Mono',monospace; font-size:11px;}
   .rl-quiz-cta{background:var(--seal); color:#fff; border-radius:16px; padding:16px; margin:4px 0 18px; text-align:center; cursor:pointer; transition:transform .1s ease;}
