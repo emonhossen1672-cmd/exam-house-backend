@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>স্টাডি প্ল্যান সেটআপ টুল</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Noto Sans Bengali", sans-serif; background:#0f1115; color:#e8e8e8; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:#9aa0a6; font-size:14px; margin:0 0 20px; }
+  .card { background:#1a1d24; border:1px solid #2a2e37; border-radius:12px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:13px; color:#c0c4cc; margin:10px 0 4px; }
+  input, select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #333844; background:#0f1115; color:#fff; font-size:15px; }
+  button { margin-top:14px; width:100%; padding:12px; border:none; border-radius:8px; background:#4f8cff; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333844; color:#888; }
+  button.secondary { background:#2a2e37; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
+  .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
+  .hidden { display:none; }
+  .status { font-size:13px; color:#7ee787; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<h1>📚 স্টাডি প্ল্যান সেটআপ টুল</h1>
+<p class="sub">Shell/Postman ছাড়াই ব্রাউজার থেকে সিড ও একটিভেট করার জন্য।</p>
+
+<div class="card" id="loginCard">
+  <h2>১. অ্যাডমিন লগইন</h2>
+  <label>ইউজারনেম</label>
+  <input id="username" type="text" autocomplete="username">
+  <label>পাসওয়ার্ড</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">লগইন করুন</button>
+  <div id="loginResult"></div>
+</div>
+
+<div class="card hidden" id="seedCard">
+  <h2>২. স্টাডি প্ল্যান সিড করুন</h2>
+  <p class="sub" style="margin-bottom:8px;">bcs-200 (২০০ দিন) ও job-solution (১০০ দিন) ক্যাটাগরিতে কনটেন্ট বসাবে। একাধিকবার চালালেও সমস্যা নেই।</p>
+  <button onclick="runSeed()">সিড চালান</button>
+  <div id="seedResult"></div>
+</div>
+
+<div class="card hidden" id="activateCard">
+  <h2>৩. রুটিন চালু করুন (তারিখ সেট)</h2>
+  <label>ক্যাটাগরি</label>
+  <select id="activateCategory">
+    <option value="bcs-200">২০০ দিনে বিসিএস প্রস্তুতি</option>
+    <option value="job-solution">জব সলুশন শেষ করার রুটিন</option>
+  </select>
+  <label>শুরুর তারিখ</label>
+  <input id="startDate" type="date">
+  <button onclick="activate()">চালু করুন</button>
+  <div id="activateResult"></div>
+</div>
+
+<script>
+  let token = null;
+
+  function showResult(elId, ok, text) {
+    const el = document.getElementById(elId);
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) return showResult('loginResult', false, 'ইউজারনেম ও পাসওয়ার্ড দিন');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('loginResult', false, data.error || 'লগইন ব্যর্থ');
+      token = data.token;
+      showResult('loginResult', true, `✅ লগইন সফল — ${data.username}`);
+      document.getElementById('seedCard').classList.remove('hidden');
+      document.getElementById('activateCard').classList.remove('hidden');
+    } catch (err) {
+      showResult('loginResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function runSeed() {
+    showResult('seedResult', true, '⏳ চলছে...');
+    try {
+      const res = await fetch('/api/admin/seed-study-plan', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('seedResult', false, data.error || 'ব্যর্থ হয়েছে');
+      showResult('seedResult', true,
+        `✅ bcs-200: ${data.bcs200Inserted} দিন যোগ হয়েছে\n` +
+        `✅ job-solution: ${data.jobSolutionInserted} দিন যোগ হয়েছে\n` +
+        (data.weeklyModelTestTemplateCreated
+          ? '✅ সাপ্তাহিক মডেল টেস্ট টেমপ্লেট তৈরি হয়েছে'
+          : 'ℹ️ সাপ্তাহিক মডেল টেস্ট টেমপ্লেট আগে থেকেই ছিল'));
+    } catch (err) {
+      showResult('seedResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function activate() {
+    const category = document.getElementById('activateCategory').value;
+    const startDate = document.getElementById('startDate').value;
+    if (!startDate) return showResult('activateResult', false, 'শুরুর তারিখ দিন');
+    showResult('activateResult', true, '⏳ চলছে...');
+    try {
+      const res = await fetch(`/api/routines/admin/${category}/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ start_date: startDate })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('activateResult', false, data.error || 'ব্যর্থ হয়েছে');
+      showResult('activateResult', true, `✅ ${category} — ${data.updated}টি দিনের তারিখ সেট হয়েছে (শুরু: ${startDate})`);
+    } catch (err) {
+      showResult('activateResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+</script>
+
+</body>
+</html>
