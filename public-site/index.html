@@ -4461,10 +4461,13 @@
 
   function tick(){
     timeLeft--;
-    const m = String(Math.floor(timeLeft/60)).padStart(2,'0');
-    const s = String(timeLeft%60).padStart(2,'0');
     const t = document.getElementById('exam-timer');
-    t.textContent = '⏱ ' + toBnDigits(m) + ':' + toBnDigits(s);
+    const h = Math.floor(timeLeft/3600);
+    const m = String(Math.floor((timeLeft%3600)/60)).padStart(2,'0');
+    const s = String(timeLeft%60).padStart(2,'0');
+    t.textContent = h > 0
+      ? '⏱ ' + toBnDigits(h) + 'ঘ ' + toBnDigits(m) + 'মি'
+      : '⏱ ' + toBnDigits(m) + ':' + toBnDigits(s);
     t.classList.toggle('warn', timeLeft <= 60);
     if(timeLeft <= 0){ clearInterval(timerHandle); submitExam(); }
   }
