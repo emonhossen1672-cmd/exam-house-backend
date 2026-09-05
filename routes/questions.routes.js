@@ -160,6 +160,43 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
   res.json({ subject, page, total_pages: totalPages, total_count: total, questions: rows });
 }));
 
+// GET /api/questions/public/reading-list/topics?subject=X — topic cards for
+// রিডিং লিস্ট's OWN Subject → Topic → Subtopic → Questions drill-down.
+// Same shape as /public/topics below, but — unlike that endpoint — this one
+// is a superset: every topic-tagged group PLUS one extra "অন্যান্য" row for
+// this subject's untagged questions (if any exist), so a student can reach
+// every question in রিডিং লিস্ট via topic, not just the ones also uploaded
+// for টপিকভিত্তিক জব সলুশন. Click through with /public/subtopics and
+// /public/topic-questions exactly as-is — both already special-case the
+// UNTAGGED_TOPIC/UNTAGGED_SUBTOPIC label generically, regardless of which
+// screen sent the request.
+router.get('/public/reading-list/topics', asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+
+  const { rows } = await pool.query(
+    `WITH tagged AS (
+       SELECT TRIM(topic) AS topic,
+              COUNT(*)::int AS question_count,
+              COUNT(DISTINCT COALESCE(NULLIF(TRIM(subtopic), ''), $2))::int AS subtopic_count
+       FROM questions WHERE subject = $1 AND TRIM(COALESCE(topic, '')) <> ''
+       GROUP BY 1
+     ),
+     untagged AS (
+       SELECT $3::text AS topic,
+              COUNT(*)::int AS question_count,
+              COUNT(DISTINCT COALESCE(NULLIF(TRIM(subtopic), ''), $2))::int AS subtopic_count
+       FROM questions WHERE subject = $1 AND TRIM(COALESCE(topic, '')) = ''
+     )
+     SELECT * FROM tagged
+     UNION ALL
+     SELECT * FROM untagged WHERE question_count > 0
+     ORDER BY question_count DESC`,
+    [subject, UNTAGGED_SUBTOPIC, UNTAGGED_TOPIC]
+  );
+  res.json({ subject, topics: rows });
+}));
+
 // ============================================================================
 // টপিকভিত্তিক জব সলুশন — Subject → Topic → Subtopic → Questions
 // Same fixed 12-subject list as Reading List (utils/topicJobSubjects.js), but
