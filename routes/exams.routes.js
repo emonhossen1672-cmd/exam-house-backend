@@ -265,10 +265,14 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
   res.json({ exam, questions: rows });
 }));
 
-// GET /api/exams/public/archive/list — closed/expired live exams, most recent first
+// GET /api/exams/public/archive/list — closed/expired live exams, most recent
+// first. Purely time-computed (start_time + duration < now) — nothing to
+// "move" into the archive, an exam just starts appearing here the moment its
+// live window ends. Capped at 300 so this stays fast as exams pile up over
+// time; the client can add ?limit=/&offset= pagination later if needed.
 router.get('/public/archive/list', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
-    SELECT e.id, e.title, e.grade, e.duration_minutes, e.start_time, e.serial,
+    SELECT e.id, e.title, e.grade, e.duration_minutes, e.start_time, e.serial, 'live' AS type,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
       (SELECT COUNT(*) FROM results r WHERE r.exam_id = e.id) AS attempt_count
@@ -276,6 +280,7 @@ router.get('/public/archive/list', asyncHandler(async (req, res) => {
     WHERE e.type = 'live' AND e.start_time IS NOT NULL
       AND e.start_time + (e.duration_minutes || ' minutes')::interval < NOW()
     ORDER BY e.start_time DESC
+    LIMIT 300
   `);
   res.json(rows);
 }));
