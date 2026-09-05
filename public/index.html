@@ -332,6 +332,32 @@
       <button class="btn btn-primary" id="loadSubjectsBtn" style="width:auto; padding-left:26px; padding-right:26px;">🔍 বিষয় তালিকা দেখুন</button>
       <button class="btn btn-ghost" id="findMismatchBtn" style="width:auto; padding-left:26px; padding-right:26px;">✨ মিসম্যাচড সাবজেক্ট খুঁজে বের করুন</button>
       <div id="subjectsRawResult" style="margin-top:14px;"></div>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
+      <h2>মিশ্র (মিক্সড) subject ঠিক করুন</h2>
+      <div class="desc">
+        উপরের তালিকায় যেসব subject আসলে একাধিক বিষয়ের প্রশ্ন মিশিয়ে রাখা (যেমন "বাংলা", "সব", বা "বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান")
+        সেগুলোর জন্য "রিনেম" কাজ করবে না — রিনেম করলে সবগুলো প্রশ্ন একসাথে একটাই ভুল subject-এ বসে যাবে।
+        এখানে সেই প্রশ্নগুলো এক্সপোর্ট করে Excel-এ প্রতিটার সঠিক subject বসিয়ে আবার আপলোড করো —
+        <b>id কলামটা অপরিবর্তিত রাখবে</b>, শুধু <b>subject</b> কলাম (দরকার হলে topic/subtopic-ও) বদলে দাও।
+        এটা নতুন প্রশ্ন যোগ করবে না, শুধু id ধরে ধরে পুরনো প্রশ্নের subject আপডেট করবে।
+      </div>
+      <div class="field" style="max-width:360px;">
+        <label>যে raw subject-টা ভাঙতে চাও (উপরের তালিকা থেকে হুবহু কপি করো)</label>
+        <input type="text" id="mixFixSubject" placeholder="যেমন: বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান">
+      </div>
+      <button class="btn btn-ghost" id="mixFixExportBtn" style="width:auto; padding-left:22px; padding-right:22px;">📤 এই subject-এর প্রশ্ন এক্সপোর্ট করো (.xlsx)</button>
+      <div class="err-box" id="mixFixExportErr"></div>
+
+      <div style="height:14px;"></div>
+      <div class="desc">এক্সপোর্ট করা ফাইলটা Excel-এ ঠিক করে (id কলাম না ছুঁয়ে, subject কলামে সঠিক নাম বসিয়ে) এখানে আপলোড করো:</div>
+      <div class="drop-zone">
+        <input type="file" id="mixFixFile" accept=".csv,.xlsx,.xls">
+      </div>
+      <button class="btn btn-primary" id="mixFixUploadBtn" style="width:auto; padding-left:26px; padding-right:26px;">আপলোড করে সাবজেক্ট আপডেট করো</button>
+      <div class="err-box" id="mixFixUploadErr"></div>
+      <div class="upload-result" id="mixFixUploadResult" style="display:none;"></div>
+
     </div>
 
     <div class="panel" id="panel-quicktext">
@@ -1481,6 +1507,76 @@ async function renameSubjectPrompt(from){
     alert('সমস্যা: ' + err.message);
   }
 }
+
+// ---- মিশ্র subject ঠিক করা (এক্সপোর্ট → Excel-এ ঠিক করো → id ধরে আপডেট) ----
+document.getElementById('mixFixExportBtn').addEventListener('click', async () => {
+  const subjectInput = document.getElementById('mixFixSubject');
+  const errBox = document.getElementById('mixFixExportErr');
+  errBox.style.display = 'none';
+  const subject = subjectInput.value.trim();
+  if (!subject){ errBox.textContent = 'যে subject ভাঙতে চাও সেটা লিখো'; errBox.style.display = 'block'; return; }
+
+  const btn = document.getElementById('mixFixExportBtn');
+  btn.disabled = true; const original = btn.textContent; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    // api() পার্স করে JSON হিসেবে — বাইনারি .xlsx ডাউনলোডের জন্য সরাসরি fetch লাগবে,
+    // কিন্তু TOKEN দিয়ে auth header বসাতে হবে (api()-এর মতোই)।
+    const res = await fetch(API + '/api/questions/admin/export-by-subject?subject=' + encodeURIComponent(subject), {
+      headers: TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}
+    });
+    if (!res.ok){
+      let msg = 'সমস্যা হয়েছে';
+      try { const data = await res.json(); msg = data.error || msg; } catch(e){}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = subject.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'subject';
+    a.href = url;
+    a.download = `subject-fix-${safeName}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+});
+
+document.getElementById('mixFixUploadBtn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('mixFixFile');
+  const errBox = document.getElementById('mixFixUploadErr');
+  const resultBox = document.getElementById('mixFixUploadResult');
+  errBox.style.display = 'none';
+  resultBox.style.display = 'none';
+  if (!fileInput.files.length){
+    errBox.textContent = 'একটি ফাইল নির্বাচন করুন';
+    errBox.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('mixFixUploadBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    const data = await api('/api/questions/admin/bulk-update-subjects', { method: 'PUT', body: fd });
+    let msg = `${data.updated} টি প্রশ্নের subject আপডেট হয়েছে।`;
+    if (data.failed) msg += `\n${data.failed} টি সারিতে সমস্যা হয়েছে:\n` + data.errors.join('\n');
+    resultBox.textContent = msg;
+    resultBox.style.display = 'block';
+    fileInput.value = '';
+    loadSubjectsRaw(true);
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'আপলোড করে সাবজেক্ট আপডেট করো';
+  }
+});
 
 // ---- Quick text bulk add ----
 async function loadQuickTextMinistries(){
