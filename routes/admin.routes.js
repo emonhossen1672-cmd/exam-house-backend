@@ -4,8 +4,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { loginLimiter } = require('../middleware/rateLimit');
+const { requireAdmin } = require('../middleware/auth');
 const { JWT_SECRET } = require('../config');
 const asyncHandler = require('../utils/asyncHandler');
+const { runSeed } = require('../scripts/seedStudyPlan');
 
 // POST /api/admin/login
 router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
@@ -24,6 +26,15 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
     { expiresIn: '7d' }
   );
   res.json({ token, username: rows[0].username });
+}));
+
+// POST /api/admin/seed-study-plan — runs the same logic as
+// `node scripts/seedStudyPlan.js`, exposed over HTTP because the free
+// Render plan has no Shell access to run the script directly. Safe to call
+// more than once (wipes and rebuilds only 'bcs-200' and 'job-solution').
+router.post('/seed-study-plan', requireAdmin, asyncHandler(async (req, res) => {
+  const result = await runSeed(pool);
+  res.json(result);
 }));
 
 module.exports = router;
