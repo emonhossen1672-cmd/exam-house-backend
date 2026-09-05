@@ -1213,7 +1213,7 @@
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পড়াশোনা বিভাগ</h2></div>
     <div class="cat-grid">
       <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">⭐</span><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
-      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
+      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="openCentralArchive()"><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
       <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-emoji">❌</span><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
       <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
       <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12; grid-column:1/2;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
@@ -4840,6 +4840,28 @@
   }
   function closeCatArchive(){
     document.getElementById('cat-archive-overlay').classList.remove('active');
+  }
+
+  // ---- সেন্ট্রাল আর্কাইভ (হোম পেজ থেকে): সাইট জুড়ে যত লাইভ পরীক্ষা শেষ
+  // হয়েছে (সময় পার হয়ে গেছে), সবগুলো এক জায়গায় — কোনো ক্যাটাগরিতে সীমাবদ্ধ
+  // নয়। আলাদা কিছু "আর্কাইভে জমা" করার দরকার নেই — /api/exams/public/archive/list
+  // ব্যাকএন্ডে শুধু সময় হিসাব করে বের করে (start_time + duration < now),
+  // তাই লাইভ পরীক্ষা শেষ হওয়া মাত্র এমনিতেই এখানে চলে আসে। একই
+  // cat-archive-overlay/ticketHtml পুনর্ব্যবহার করছি যা ক্যাটাগরি-ভিত্তিক
+  // আর্কাইভেও ব্যবহৃত হয়।
+  async function openCentralArchive(){
+    document.getElementById('cat-archive-overlay-title').textContent = 'সেন্ট্রাল আর্কাইভ';
+    document.getElementById('cat-archive-overlay').classList.add('active');
+    const body = document.getElementById('cat-archive-body');
+    body.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    try{
+      const exams = await apiGet('/api/exams/public/archive/list');
+      body.innerHTML = exams.length
+        ? exams.map(ticketHtml).join('')
+        : '<div class="empty-note">এখনো কোনো লাইভ পরীক্ষা শেষ হয়নি।</div>';
+    }catch(e){
+      body.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
   }
 
   // ---- Favorite (bookmarks reused, scoped to this category) ----
