@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>প্রশ্ন যাচাই টুল</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Noto Sans Bengali", sans-serif; background:#0f1115; color:#e8e8e8; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:#9aa0a6; font-size:14px; margin:0 0 20px; }
+  .card { background:#1a1d24; border:1px solid #2a2e37; border-radius:12px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:13px; color:#c0c4cc; margin:10px 0 4px; }
+  input, select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #333844; background:#0f1115; color:#fff; font-size:15px; }
+  button { margin-top:14px; padding:12px 16px; border:none; border-radius:8px; background:#4f8cff; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button.danger { background:#e5484d; }
+  button.secondary { background:#2a2e37; }
+  button:disabled { background:#333844; color:#888; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
+  .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
+  .hidden { display:none; }
+  .qitem { border:1px solid #2a2e37; border-radius:8px; padding:10px; margin-top:10px; background:#12141a; }
+  .qitem .qtext { font-weight:600; margin-bottom:6px; }
+  .qitem .opt { font-size:13px; color:#c0c4cc; margin:2px 0; }
+  .qitem .opt.bad { color:#ff8080; }
+  .qitem .meta { font-size:11px; color:#666; margin-top:6px; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .count { font-size:14px; color:#e8e8e8; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h1>🔍 প্রশ্ন যাচাই টুল</h1>
+<p class="sub">CSV বাল্ক আপলোডের পর OCR-জনিত নষ্ট/অসম্পূর্ণ প্রশ্ন খুঁজে বের করে রিভিউ করে ডিলিট করার জন্য।</p>
+
+<div class="card" id="loginCard">
+  <h2>১. অ্যাডমিন লগইন</h2>
+  <label>ইউজারনেম</label>
+  <input id="username" type="text" autocomplete="username">
+  <label>পাসওয়ার্ড</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button onclick="login()">লগইন করুন</button>
+  <div id="loginResult"></div>
+</div>
+
+<div class="card hidden" id="scanCard">
+  <h2>২. স্ক্যান করুন</h2>
+  <label>সাবজেক্ট (ঐচ্ছিক — ফাঁকা রাখলে সব সাবজেক্ট)</label>
+  <input id="subjectFilter" type="text" placeholder="যেমন: ইংরেজি ব্যাকরণ">
+  <button onclick="scan()">স্ক্যান করুন</button>
+  <div id="scanResult"></div>
+</div>
+
+<div class="card hidden" id="listCard">
+  <h2>৩. রিভিউ করে মুছুন</h2>
+  <div class="count" id="countLine"></div>
+  <div class="toolbar">
+    <button class="secondary" onclick="selectAll(true)">সব সিলেক্ট করুন</button>
+    <button class="secondary" onclick="selectAll(false)">সব বাদ দিন</button>
+  </div>
+  <div id="questionList"></div>
+  <button class="danger" onclick="deleteSelected()">✅ যা সিলেক্ট করা আছে তা মুছে ফেলুন</button>
+  <div id="deleteResult"></div>
+</div>
+
+<div class="card hidden" id="topicDeleteCard">
+  <h2>৪. টপিক/সাবটপিক অনুযায়ী স্থায়ীভাবে মুছুন</h2>
+  <p class="sub" style="margin-bottom:8px;">শুধু ট্যাগ সরানো নয় — এই টপিকের (বা সাবটপিকের) সব প্রশ্ন সম্পূর্ণ মুছে যাবে।</p>
+  <label>সাবজেক্ট</label>
+  <input id="td_subject" type="text" placeholder="যেমন: ইংরেজি ব্যাকরণ">
+  <label>টপিক</label>
+  <input id="td_topic" type="text" placeholder="যেমন: Tense">
+  <label>সাবটপিক (ঐচ্ছিক — ফাঁকা রাখলে পুরো টপিক)</label>
+  <input id="td_subtopic" type="text" placeholder="ঐচ্ছিক">
+  <div class="toolbar">
+    <button class="secondary" onclick="previewTopic()">প্রিভিউ দেখুন</button>
+  </div>
+  <div id="topicPreviewResult"></div>
+  <button class="danger" onclick="deleteTopic()">⚠️ পুরোপুরি মুছে ফেলুন</button>
+  <div id="topicDeleteResult"></div>
+</div>
+
+<script>
+  let token = null;
+  let currentQuestions = [];
+
+  function showResult(elId, ok, text) {
+    const el = document.getElementById(elId);
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  function isBadOption(opt) {
+    const t = (opt || '').trim();
+    return t === '' || t === '-' || t === '—' || t === '_' || /[¢©]/.test(t) || (/\)[^(]*$/.test(t) && !t.includes('('));
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) return showResult('loginResult', false, 'ইউজারনেম ও পাসওয়ার্ড দিন');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('loginResult', false, data.error || 'লগইন ব্যর্থ');
+      token = data.token;
+      showResult('loginResult', true, `✅ লগইন সফল — ${data.username}`);
+      document.getElementById('scanCard').classList.remove('hidden');
+      document.getElementById('topicDeleteCard').classList.remove('hidden');
+    } catch (err) {
+      showResult('loginResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function scan() {
+    const subject = document.getElementById('subjectFilter').value.trim();
+    showResult('scanResult', true, '⏳ স্ক্যান হচ্ছে...');
+    try {
+      const url = new URL('/api/questions/admin/audit-corrupted', window.location.origin);
+      if (subject) url.searchParams.set('subject', subject);
+      url.searchParams.set('limit', '500');
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      if (!res.ok) return showResult('scanResult', false, data.error || 'ব্যর্থ হয়েছে');
+      currentQuestions = data.questions;
+      showResult('scanResult', true, `✅ ${data.count}টি সন্দেহজনক প্রশ্ন পাওয়া গেছে`);
+      renderList();
+    } catch (err) {
+      showResult('scanResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  function renderList() {
+    const listCard = document.getElementById('listCard');
+    const listEl = document.getElementById('questionList');
+    document.getElementById('countLine').textContent = `মোট ${currentQuestions.length}টি প্রশ্ন পাওয়া গেছে — নিচে যেগুলো ভুলভাবে ফ্ল্যাগ হয়েছে সেগুলোর টিক তুলে দিন, বাকিগুলো ডিলিট হবে।`;
+    if (!currentQuestions.length) {
+      listEl.innerHTML = '<p style="color:#9aa0a6;">কোনো সন্দেহজনক প্রশ্ন পাওয়া যায়নি 🎉</p>';
+      listCard.classList.remove('hidden');
+      return;
+    }
+    listEl.innerHTML = currentQuestions.map(q => `
+      <div class="qitem">
+        <label style="display:flex; gap:8px; align-items:flex-start;">
+          <input type="checkbox" class="qcheck" data-id="${q.id}" checked style="width:auto; margin-top:4px;">
+          <div style="flex:1;">
+            <div class="qtext">#${q.id} [${q.subject}] ${escapeHtml(q.question_text)}</div>
+            <div class="opt ${isBadOption(q.option_a) ? 'bad' : ''}">A) ${escapeHtml(q.option_a)}</div>
+            <div class="opt ${isBadOption(q.option_b) ? 'bad' : ''}">B) ${escapeHtml(q.option_b)}</div>
+            <div class="opt ${isBadOption(q.option_c) ? 'bad' : ''}">C) ${escapeHtml(q.option_c)}</div>
+            <div class="opt ${isBadOption(q.option_d) ? 'bad' : ''}">D) ${escapeHtml(q.option_d)}</div>
+            <div class="meta">সঠিক: ${q.correct_option}</div>
+          </div>
+        </label>
+      </div>
+    `).join('');
+    listCard.classList.remove('hidden');
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function selectAll(checked) {
+    document.querySelectorAll('.qcheck').forEach(cb => cb.checked = checked);
+  }
+
+  async function deleteSelected() {
+    const ids = Array.from(document.querySelectorAll('.qcheck:checked')).map(cb => parseInt(cb.dataset.id));
+    if (!ids.length) return showResult('deleteResult', false, 'কোনো প্রশ্ন সিলেক্ট করা হয়নি');
+    if (!confirm(`${ids.length}টি প্রশ্ন স্থায়ীভাবে মুছে ফেলা হবে। নিশ্চিত?`)) return;
+    showResult('deleteResult', true, '⏳ মুছে ফেলা হচ্ছে...');
+    try {
+      const res = await fetch('/api/questions/admin/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ ids })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('deleteResult', false, data.error || 'ব্যর্থ হয়েছে');
+      showResult('deleteResult', true, `✅ ${data.deleted}টি প্রশ্ন মুছে ফেলা হয়েছে`);
+      currentQuestions = currentQuestions.filter(q => !ids.includes(q.id));
+      renderList();
+    } catch (err) {
+      showResult('deleteResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function previewTopic() {
+    const subject = document.getElementById('td_subject').value.trim();
+    const topic = document.getElementById('td_topic').value.trim();
+    const subtopic = document.getElementById('td_subtopic').value.trim();
+    if (!subject || !topic) return showResult('topicPreviewResult', false, 'সাবজেক্ট ও টপিক দুটোই দিন');
+    showResult('topicPreviewResult', true, '⏳ লোড হচ্ছে...');
+    try {
+      const url = new URL('/api/questions', window.location.origin);
+      url.searchParams.set('subject', subject);
+      url.searchParams.set('topic', topic);
+      if (subtopic) url.searchParams.set('subtopic', subtopic);
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      if (!res.ok) return showResult('topicPreviewResult', false, data.error || 'ব্যর্থ হয়েছে');
+      const sample = data.slice(0, 5).map(q => `• ${q.question_text}`).join('\n');
+      showResult('topicPreviewResult', true, `মোট ${data.length}টি প্রশ্ন পাওয়া গেছে (সর্বোচ্চ ৫০০ দেখানো হয়)।\n\n${sample}`);
+    } catch (err) {
+      showResult('topicPreviewResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function deleteTopic() {
+    const subject = document.getElementById('td_subject').value.trim();
+    const topic = document.getElementById('td_topic').value.trim();
+    const subtopic = document.getElementById('td_subtopic').value.trim();
+    if (!subject || !topic) return showResult('topicDeleteResult', false, 'সাবজেক্ট ও টপিক দুটোই দিন');
+    const scopeLabel = subtopic ? `"${subject} → ${topic} → ${subtopic}"` : `"${subject} → ${topic}" (পুরো টপিক)`;
+    if (!confirm(`${scopeLabel} এর সব প্রশ্ন স্থায়ীভাবে মুছে ফেলা হবে। আগে "প্রিভিউ দেখুন" দিয়ে যাচাই করেছেন তো? নিশ্চিত?`)) return;
+    showResult('topicDeleteResult', true, '⏳ মুছে ফেলা হচ্ছে...');
+    try {
+      const res = await fetch('/api/questions/admin/by-topic', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ subject, topic, subtopic: subtopic || undefined })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('topicDeleteResult', false, data.error || 'ব্যর্থ হয়েছে');
+      showResult('topicDeleteResult', true, `✅ ${data.deleted}টি প্রশ্ন স্থায়ীভাবে মুছে ফেলা হয়েছে`);
+    } catch (err) {
+      showResult('topicDeleteResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+</script>
+
+</body>
+</html>
