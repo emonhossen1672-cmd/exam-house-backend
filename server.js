@@ -55,6 +55,8 @@ app.use('/api/push', require('./routes/push.routes'));
 app.use('/api/routines', require('./routes/routines.routes'));
 app.use('/api/exam-templates', require('./routes/examTemplates.routes'));
 app.use('/api/revision', require('./routes/revision.routes'));
+app.use('/api/written-questions', require('./routes/writtenQuestions.routes'));
+app.use('/api/written-answers', require('./routes/writtenAnswers.routes'));
 
 // ----- 404 handler — any /api/* route that didn't match above -----
 app.use('/api/', (req, res) => {
