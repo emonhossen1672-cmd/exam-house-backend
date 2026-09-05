@@ -15,8 +15,8 @@ const pool = require('../db');
 
 const CHECK_INTERVAL_MS = 2 * 60 * 1000; // check every 2 minutes
 
-function genSerial() {
-  return `EH-LV-${Math.floor(1000 + Math.random() * 9000)}`;
+function genSerial(examType) {
+  return examType === 'written' ? `EH-MT-${Math.floor(1000 + Math.random() * 9000)}` : `EH-LV-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 // today's date (Asia/Dhaka, via process.env.TZ set in server.js) as 'YYYY-MM-DD'
@@ -39,8 +39,10 @@ async function generateFromTemplate(template, { force = false } = {}) {
     throw new Error('টেমপ্লেটটি নিষ্ক্রিয় করা আছে');
   }
 
+  const isWritten = template.exam_type === 'written';
+  const bankTable = isWritten ? 'written_questions' : 'questions';
   const { rows: qRows } = await pool.query(
-    `SELECT id FROM questions
+    `SELECT id FROM ${bankTable}
      WHERE ($1::int IS NULL OR ministry_id = $1)
        AND ($2::text IS NULL OR post_name = $2)
        AND ($3::text IS NULL OR subject = $3)
@@ -53,6 +55,9 @@ async function generateFromTemplate(template, { force = false } = {}) {
   if (qRows.length < template.question_count) {
     throw new Error(`প্রশ্ন যথেষ্ট নেই — দরকার ${template.question_count}টি, পাওয়া গেছে ${qRows.length}টি`);
   }
+  if (isWritten && !['self_check', 'manual', 'ai'].includes(template.grading_mode)) {
+    throw new Error('রিটেন টেমপ্লেটের জন্য মূল্যায়ন পদ্ধতি (grading_mode) নির্ধারিত নেই');
+  }
 
   const today = todayDateStr();
   const startTime = `${today}T${template.run_time}`;
@@ -63,16 +68,18 @@ async function generateFromTemplate(template, { force = false } = {}) {
     const examResult = await client.query(
       `INSERT INTO exams
          (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time,
-          serial, status, negative_marks, routine_category, exam_template_id)
-       VALUES ($1,'live',$2,$3,$4,$5,$6,$7,$8,'scheduled',$9,$10,$11) RETURNING *`,
-      [template.title_pattern, template.ministry_id, template.post_name, template.subject,
-       template.grade, template.duration_minutes, startTime, genSerial(),
-       template.negative_marks || 0, template.routine_category, template.id]
+          serial, status, negative_marks, routine_category, exam_template_id, grading_mode)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'scheduled',$10,$11,$12,$13) RETURNING *`,
+      [template.title_pattern, isWritten ? 'written' : 'live', template.ministry_id, template.post_name, template.subject,
+       template.grade, template.duration_minutes, startTime, genSerial(template.exam_type),
+       template.negative_marks || 0, template.routine_category, template.id, isWritten ? template.grading_mode : null]
     );
     const exam = examResult.rows[0];
+    const joinTable = isWritten ? 'exam_written_questions' : 'exam_questions';
+    const joinCol = isWritten ? 'written_question_id' : 'question_id';
     for (let i = 0; i < qRows.length; i++) {
       await client.query(
-        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        `INSERT INTO ${joinTable} (exam_id, ${joinCol}, position) VALUES ($1,$2,$3)`,
         [exam.id, qRows[i].id, i + 1]
       );
     }
