@@ -1,0 +1,33 @@
+{
+  "name": "Exam House — লাইভ পরীক্ষা ও মডেল টেস্ট",
+  "short_name": "Exam House",
+  "description": "লাইভ পরীক্ষা, মডেল টেস্ট, রেজাল্ট ও রিভিশন — সব একসাথে",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F6F8FB",
+  "theme_color": "#1B5FA8",
+  "lang": "bn",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
