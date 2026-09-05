@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const multer = require('multer');
+const XLSX = require('xlsx');
+const { parse } = require('csv-parse/sync');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, snapToFixedSubject, normalizeText } = require('../utils/topicJobSubjects');
+
+const subjectFixUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // GET /api/questions?ministry_id=&grade=&subject=&topic=&subtopic=&search=  (admin only — includes correct answer)
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
@@ -520,6 +525,112 @@ router.put('/admin/rename-subject', requireAdmin, asyncHandler(async (req, res) 
 
   const { rowCount } = await pool.query('UPDATE questions SET subject=$1 WHERE id = ANY($2)', [to, ids]);
   res.json({ updated: rowCount });
+}));
+
+// GET /api/questions/admin/export-by-subject?subject=X — downloads every
+// question currently tagged with raw subject text X as an .xlsx file, one
+// row per question with its `id` in the first column. For a MIXED raw
+// subject (e.g. "বাংলা", "সব", "বাংলা / ইংরেজি / গণিত / সাধারণ জ্ঞান") a
+// single rename-subject can't fix it — different rows really belong under
+// different fixed subjects. Workflow: export → open in Excel/Sheets → read
+// each question_text and type the correct one of the 12 fixed subjects into
+// the `subject` column for that row (id column must stay untouched) →
+// re-upload via PUT /admin/bulk-update-subjects below, which updates each
+// row BY ID instead of re-inserting duplicates. Matching for export uses
+// normalizeText (like rename-subject) so it also catches invisible-character
+// variants of the same raw subject.
+router.get('/admin/export-by-subject', requireAdmin, asyncHandler(async (req, res) => {
+  const raw = normalizeText(req.query.subject);
+  if (!raw) return res.status(400).json({ error: 'subject প্রয়োজন' });
+
+  const { rows } = await pool.query(
+    `SELECT id, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d,
+            correct_option, explanation, post_name, exam_year
+     FROM questions ORDER BY id ASC`
+  );
+  const matched = rows.filter(r => normalizeText(r.subject) === raw);
+  if (!matched.length) return res.status(404).json({ error: 'এই subject-এর কোনো প্রশ্ন পাওয়া যায়নি' });
+
+  const sheetRows = matched.map(r => ({
+    id: r.id,
+    subject: r.subject,
+    topic: r.topic || '',
+    subtopic: r.subtopic || '',
+    question_text: r.question_text,
+    option_a: r.option_a, option_b: r.option_b, option_c: r.option_c, option_d: r.option_d,
+    correct: r.correct_option,
+    explanation: r.explanation || '',
+    post_name: r.post_name || '',
+    year: r.exam_year || ''
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  XLSX.utils.book_append_sheet(wb, ws, 'questions');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="subject-fix-${Date.now()}.xlsx"`);
+  res.send(buf);
+}));
+
+// PUT /api/questions/admin/bulk-update-subjects  (multipart/form-data, field
+// name: file) — the other half of export-by-subject above. Reads back the
+// edited .xlsx/.csv and, for each row with a valid `id`, updates JUST that
+// question's subject (snapped to one of the 12 fixed subjects) and, if
+// present, topic/subtopic. Rows with a blank/invalid id or subject are
+// skipped and reported — this never inserts new questions, only relabels
+// existing ones, so re-running it is always safe.
+router.put('/admin/bulk-update-subjects', requireAdmin, subjectFixUpload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ফাইল পাওয়া যায়নি' });
+
+  let rows;
+  try {
+    const name = req.file.originalname.toLowerCase();
+    if (name.endsWith('.csv')) {
+      rows = parse(req.file.buffer.toString('utf8'), { columns: true, skip_empty_lines: true, trim: true });
+    } else {
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+    }
+  } catch (err) {
+    return res.status(400).json({ error: 'ফাইল পড়া যায়নি — CSV বা XLSX ফরম্যাট ঠিক আছে কিনা দেখুন' });
+  }
+  if (!rows.length) return res.status(400).json({ error: 'ফাইলে কোনো সারি পাওয়া যায়নি' });
+
+  const client = await pool.connect();
+  let updated = 0;
+  const errors = [];
+  try {
+    await client.query('BEGIN');
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const id = parseInt(r.id, 10);
+      const subject = snapToFixedSubject(r.subject);
+      if (!Number.isFinite(id)) { errors.push(`সারি ${i + 2}: id ঠিক নেই`); continue; }
+      if (!subject) { errors.push(`সারি ${i + 2} (id ${id}): subject ফাঁকা — বাদ দেওয়া হয়েছে`); continue; }
+      if (!TOPIC_JOB_SUBJECTS.includes(subject)) {
+        errors.push(`সারি ${i + 2} (id ${id}): "${r.subject}" — ১২টার একটার সাথেও মিলছে না, বাদ দেওয়া হয়েছে`);
+        continue;
+      }
+      const hasTopic = r.topic !== undefined && r.topic !== '';
+      const hasSubtopic = r.subtopic !== undefined && r.subtopic !== '';
+      const { rowCount } = await client.query(
+        `UPDATE questions SET subject = $1${hasTopic ? ', topic = $3' : ''}${hasSubtopic ? `, subtopic = $${hasTopic ? 4 : 3}` : ''}
+         WHERE id = $2`,
+        [subject, id, ...(hasTopic ? [normalizeText(r.topic) || null] : []), ...(hasSubtopic ? [normalizeText(r.subtopic) || null] : [])]
+      );
+      if (rowCount === 0) { errors.push(`সারি ${i + 2}: id ${id} খুঁজে পাওয়া যায়নি`); continue; }
+      updated++;
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+
+  res.json({ updated, failed: errors.length, errors });
 }));
 
 // PUT /api/questions/admin/bulk-retag — body: { question_ids: [...], subject?, topic?, subtopic? }
