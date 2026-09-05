@@ -430,3 +430,78 @@ CREATE TABLE IF NOT EXISTS revision_cards (
   UNIQUE (user_id, question_id)
 );
 CREATE INDEX IF NOT EXISTS idx_revision_cards_due ON revision_cards(user_id, due_date);
+
+-- ===== Feature: রিটেন (written/subjective) exams =====
+-- Everything up to now (questions/exams/exam_questions) is MCQ-only —
+-- correct_option is auto-graded. Written exams need free-text answers that a
+-- computer can't auto-score, so they get their own question bank and answer
+-- table instead of overloading `questions`/`exam_questions`. `exams` itself
+-- is reused (title/duration/start_time/routine_category/status all still
+-- apply) — only `type` gets a third value.
+ALTER TABLE exams DROP CONSTRAINT IF EXISTS exams_type_check;
+ALTER TABLE exams ADD CONSTRAINT exams_type_check CHECK (type IN ('live','model','written'));
+
+-- Per-exam choice of how submitted answers get marked (only meaningful when
+-- exams.type = 'written'):
+--   self_check — student compares their own answer to the model answer, no
+--                score is stored
+--   manual     — an admin reads each submission and enters marks by hand
+--   ai         — services/aiGrading.js sends question+model_answer+student's
+--                answer to the Anthropic API right after submission and
+--                stores the suggested marks/feedback automatically
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS grading_mode VARCHAR(15);
+
+CREATE TABLE IF NOT EXISTS written_questions (
+  id SERIAL PRIMARY KEY,
+  ministry_id INTEGER REFERENCES ministries(id) ON DELETE SET NULL,
+  grade INTEGER,
+  subject VARCHAR(100),
+  topic VARCHAR(200),
+  subtopic VARCHAR(200),
+  post_name VARCHAR(200), -- kept alongside questions.post_name so exam_templates' filter query works identically for both banks
+  question_text TEXT NOT NULL,
+  model_answer TEXT NOT NULL,
+  marks NUMERIC(5,2) NOT NULL DEFAULT 10,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_written_questions_subject ON written_questions(subject);
+CREATE INDEX IF NOT EXISTS idx_written_questions_topic ON written_questions(topic, subtopic);
+
+-- exam <-> written_questions join, mirroring exam_questions but kept separate
+-- so an exam's question list is never a mix of MCQ and written rows.
+CREATE TABLE IF NOT EXISTS exam_written_questions (
+  exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+  written_question_id INTEGER REFERENCES written_questions(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  PRIMARY KEY (exam_id, written_question_id)
+);
+
+-- One row per (exam, question, participant) submission — this is the written
+-- equivalent of `results`, but per-question rather than one row for the
+-- whole attempt, since each answer may be graded separately/at different times.
+CREATE TABLE IF NOT EXISTS written_answers (
+  id SERIAL PRIMARY KEY,
+  exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+  written_question_id INTEGER NOT NULL REFERENCES written_questions(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  participant_name VARCHAR(150) NOT NULL,
+  participant_phone VARCHAR(30),
+  answer_text TEXT,
+  image_url TEXT,
+  status VARCHAR(15) NOT NULL DEFAULT 'pending', -- pending | graded | self_checked
+  marks_awarded NUMERIC(5,2),
+  feedback TEXT,
+  graded_by VARCHAR(10), -- admin | ai
+  submitted_at TIMESTAMP DEFAULT NOW(),
+  graded_at TIMESTAMP,
+  UNIQUE (exam_id, written_question_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_written_answers_exam_user ON written_answers(exam_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_written_answers_status ON written_answers(status);
+
+-- exam_templates currently only ever generates 'live' MCQ exams (see
+-- services/examTemplateScheduler.js) — exam_type lets a template generate a
+-- routine-scheduled WRITTEN exam instead, drawing from written_questions.
+-- grading_mode is copied onto the generated exam when exam_type='written'.
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS exam_type VARCHAR(10) NOT NULL DEFAULT 'live'; -- live | written
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS grading_mode VARCHAR(15);
