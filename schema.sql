@@ -350,9 +350,27 @@ CREATE TABLE IF NOT EXISTS routine_days (
   title VARCHAR(250) NOT NULL,
   tasks TEXT,
   exam_id INTEGER REFERENCES exams(id) ON DELETE SET NULL,
+  -- Real calendar date this day falls on, set in bulk by
+  -- POST /api/routines/admin/:category/activate (start_date + day_number-1).
+  -- NULL until the admin activates the plan.
+  scheduled_date DATE,
+  -- If set, this day is a "take a test" day: routineExamScheduler.js
+  -- auto-creates a live exam on scheduled_date filtered to this subject
+  -- (either one of the 5 canonical subjectMap.js groups, e.g. 'বাংলা', or
+  -- one of the 12 exact topicJobSubjects.js subjects) and fills in exam_id.
+  auto_exam_subject VARCHAR(60),
+  auto_exam_question_count INTEGER DEFAULT 25,
+  auto_exam_duration_minutes INTEGER DEFAULT 30,
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_routine_days_category ON routine_days(category, day_number);
+-- ALTER fallbacks: the CREATE TABLE above is a no-op on a database that
+-- already has routine_days, so these columns need to be added explicitly too.
+ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS scheduled_date DATE;
+ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_subject VARCHAR(60);
+ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_question_count INTEGER DEFAULT 25;
+ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_duration_minutes INTEGER DEFAULT 30;
+CREATE INDEX IF NOT EXISTS idx_routine_days_scheduled_date ON routine_days(scheduled_date) WHERE scheduled_date IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS user_routine_progress (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
