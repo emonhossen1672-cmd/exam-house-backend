@@ -4452,6 +4452,8 @@
   let curQ = 0;
   let answers = {};
   let writtenAnswerDraft = {}; // { [written_question_id]: {text, image} } — রিটেন পরীক্ষার খসড়া উত্তর
+  let UPLOAD_ENABLED = false; // সার্ভারে Cloudinary কনফিগার করা থাকলে true — তখন সত্যিকারের ছবি-আপলোড বাটন দেখানো হয়
+  let writtenLinkFallback = {}; // { [written_question_id]: true } — যেই প্রশ্নে ছাত্র "লিংক দিন" বেছে নিয়েছে
   let participant = {name:'', phone:''};
   let timeLeft = 0;
   let timerHandle = null;
@@ -4469,6 +4471,10 @@
       if(isWritten){
         const wdata = await apiGet('/api/exams/public/'+examId+'/written-questions');
         CURRENT_QUESTIONS = wdata.questions;
+        try{
+          const st = await apiGet('/api/upload/status');
+          UPLOAD_ENABLED = !!st.enabled;
+        }catch(err){ UPLOAD_ENABLED = false; }
       } else {
         CURRENT_QUESTIONS = data.questions;
       }
@@ -4551,7 +4557,7 @@
     document.getElementById('exam-progress-count').textContent = toBnDigits(done) + ' / ' + toBnDigits(total) + ' উত্তর দেওয়া হয়েছে';
   }
 
-  // ---- রিটেন (written) পরীক্ষা — টেক্সট-এরিয়া/ছবি-লিংক ভিত্তিক উত্তর ----
+  // ---- রিটেন (written) পরীক্ষা — টেক্সট-এরিয়া + ছবি (আপলোড বা লিংক) ভিত্তিক উত্তর ----
   function renderAllWrittenQuestions(){
     const body = document.getElementById('exam-body');
     body.innerHTML = CURRENT_QUESTIONS.map((q, qi)=>{
@@ -4566,17 +4572,130 @@
           <textarea id="wans-${q.id}" rows="6" placeholder="এখানে আপনার উত্তর লিখুন..."
             oninput="onWrittenAnswerInput(${q.id})"
             style="width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--paper); font-family:inherit; font-size:14.5px; color:var(--ink); resize:vertical;">${escapeHtml(draft.text||'')}</textarea>
-          <input type="url" id="wimg-${q.id}" placeholder="ঐচ্ছিক: হাতে লেখা উত্তরের ছবির লিংক (URL)" value="${escapeHtml(draft.image||'')}"
-            oninput="onWrittenAnswerInput(${q.id})"
-            style="width:100%; margin-top:8px; padding:10px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--paper); font-size:13px; color:var(--ink);">
+          <div id="wimg-area-${q.id}" style="margin-top:8px;">${renderWrittenImageArea(q.id)}</div>
         </div>`;
     }).join('');
     updateWrittenProgress();
   }
 
+  // Renders either: a real camera/gallery upload button + preview (when the
+  // server has Cloudinary configured), or a plain URL input (fallback, and
+  // also available on-demand even when upload is enabled, via "লিংক দিন").
+  function renderWrittenImageArea(qid){
+    const draft = writtenAnswerDraft[qid] || {};
+    const useLink = !UPLOAD_ENABLED || writtenLinkFallback[qid];
+
+    if(useLink){
+      const switchBtn = UPLOAD_ENABLED
+        ? `<button type="button" onclick="toggleWrittenLinkFallback(${qid}, false)"
+             style="margin-top:6px; background:none; border:none; color:var(--brand,#2563eb); font-size:12.5px; text-decoration:underline; cursor:pointer; padding:0;">
+             ছবি আপলোড করতে চান?</button>`
+        : '';
+      return `
+        <input type="url" id="wimg-${qid}" placeholder="ঐচ্ছিক: হাতে লেখা উত্তরের ছবির লিংক (URL)" value="${escapeHtml(draft.image||'')}"
+          oninput="onWrittenAnswerInput(${qid})"
+          style="width:100%; padding:10px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--paper); font-size:13px; color:var(--ink);">
+        ${switchBtn}`;
+    }
+
+    const previewHtml = draft.image
+      ? `<div style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+           <img src="${escapeHtml(draft.image)}" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">
+           <span style="font-size:12.5px; color:var(--ink-soft);">ছবি যোগ হয়েছে ✓</span>
+           <button type="button" onclick="removeWrittenImage(${qid})"
+             style="margin-left:auto; background:none; border:none; color:#c0392b; font-size:12.5px; text-decoration:underline; cursor:pointer;">মুছে ফেলুন</button>
+         </div>`
+      : '';
+
+    return `
+      <input type="file" accept="image/*" capture="environment" id="wfile-${qid}" style="display:none;" onchange="handleWrittenImageFile(${qid}, this)">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" onclick="document.getElementById('wfile-${qid}').click()"
+          style="padding:9px 14px; border:1.5px solid var(--line); border-radius:10px; background:var(--paper); font-size:13px; color:var(--ink); cursor:pointer; display:flex; align-items:center; gap:6px;">
+          📷 ছবি তুলুন / গ্যালারি থেকে বাছুন
+        </button>
+        <button type="button" onclick="toggleWrittenLinkFallback(${qid}, true)"
+          style="background:none; border:none; color:var(--ink-soft); font-size:12px; text-decoration:underline; cursor:pointer; padding:0;">
+          লিংক দিয়ে দিন
+        </button>
+      </div>
+      <div id="wupload-progress-${qid}"></div>
+      ${previewHtml}`;
+  }
+
+  function toggleWrittenLinkFallback(qid, useLink){
+    writtenLinkFallback[qid] = useLink;
+    document.getElementById('wimg-area-'+qid).innerHTML = renderWrittenImageArea(qid);
+  }
+
+  function removeWrittenImage(qid){
+    const draft = writtenAnswerDraft[qid] || {};
+    writtenAnswerDraft[qid] = { text: draft.text||'', image: '' };
+    document.getElementById('wimg-area-'+qid).innerHTML = renderWrittenImageArea(qid);
+    document.getElementById('qcard-'+qid).classList.toggle('answered', !!(draft.text||'').trim());
+    updateWrittenProgress();
+  }
+
+  async function handleWrittenImageFile(qid, input){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    if(file.size > 8*1024*1024){
+      alert('ছবির সাইজ ৮ এমবি-র বেশি হতে পারবে না');
+      input.value = '';
+      return;
+    }
+    const progressEl = document.getElementById('wupload-progress-'+qid);
+    progressEl.innerHTML = `<div style="margin-top:8px; font-size:12.5px; color:var(--ink-soft);">আপলোড হচ্ছে...
+      <div style="height:6px; background:var(--line); border-radius:4px; margin-top:4px; overflow:hidden;">
+        <div id="wupload-bar-${qid}" style="height:100%; width:0%; background:var(--brand,#2563eb); transition:width .2s;"></div>
+      </div></div>`;
+    try{
+      const url = await uploadWrittenImage(file, (pct)=>{
+        const bar = document.getElementById('wupload-bar-'+qid);
+        if(bar) bar.style.width = pct + '%';
+      });
+      const draft = writtenAnswerDraft[qid] || {};
+      writtenAnswerDraft[qid] = { text: draft.text||'', image: url };
+      document.getElementById('wimg-area-'+qid).innerHTML = renderWrittenImageArea(qid);
+      document.getElementById('qcard-'+qid).classList.add('answered');
+      updateWrittenProgress();
+    }catch(err){
+      progressEl.innerHTML = '';
+      alert(err.message || 'ছবি আপলোড ব্যর্থ হয়েছে');
+    }finally{
+      input.value = '';
+    }
+  }
+
+  // Uses XMLHttpRequest (not fetch) so we get real upload-progress events
+  // for the progress bar — fetch's request-body progress isn't reliably
+  // exposed across browsers.
+  function uploadWrittenImage(file, onProgress){
+    return new Promise((resolve, reject)=>{
+      const form = new FormData();
+      form.append('image', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/api/upload/image');
+      if(USER_TOKEN) xhr.setRequestHeader('Authorization', 'Bearer ' + USER_TOKEN);
+      xhr.upload.onprogress = (e)=>{
+        if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
+      };
+      xhr.onload = ()=>{
+        let data = {};
+        try{ data = JSON.parse(xhr.responseText); }catch(err){}
+        if(xhr.status >= 200 && xhr.status < 300 && data.url) resolve(data.url);
+        else reject(new Error(data.error || 'ছবি আপলোড ব্যর্থ হয়েছে'));
+      };
+      xhr.onerror = ()=> reject(new Error('নেটওয়ার্ক সমস্যা — আবার চেষ্টা করুন'));
+      xhr.send(form);
+    });
+  }
+
   function onWrittenAnswerInput(qid){
     const text = document.getElementById('wans-'+qid).value;
-    const image = document.getElementById('wimg-'+qid).value.trim();
+    const imgInput = document.getElementById('wimg-'+qid);
+    const draft = writtenAnswerDraft[qid] || {};
+    const image = imgInput ? imgInput.value.trim() : (draft.image||'');
     writtenAnswerDraft[qid] = { text, image };
     document.getElementById('qcard-'+qid).classList.toggle('answered', !!(text.trim() || image));
     updateWrittenProgress();
