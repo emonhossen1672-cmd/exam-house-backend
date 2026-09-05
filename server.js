@@ -80,11 +80,13 @@ const autoInit = require('./autoInit');
 const { startReminderScheduler } = require('./services/reminderScheduler');
 const { startDailyQuizPush } = require('./services/dailyQuizPush');
 const { startExamTemplateScheduler } = require('./services/examTemplateScheduler');
+const { startRoutineExamScheduler } = require('./services/routineExamScheduler');
 autoInit().finally(() => {
   app.listen(PORT, () => console.log(`Exam House API running on port ${PORT}`));
   startReminderScheduler();
   startDailyQuizPush();
   startExamTemplateScheduler();
+  startRoutineExamScheduler();
 });
 
 // ----- Process-level safety nets -----
