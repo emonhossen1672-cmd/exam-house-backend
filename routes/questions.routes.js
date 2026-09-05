@@ -281,10 +281,15 @@ router.get('/public/subtopics', asyncHandler(async (req, res) => {
 // level, provide topic but omit subtopic for all of a topic's questions,
 // provide both for one subtopic's questions.
 const TOPIC_PAGE_SIZE = 30;
-router.get('/public/topic-questions', asyncHandler(async (req, res) => {
+// optionalUser so logged-in students get is_read/is_favorite flags per
+// question and a scope-wide progress ring (X/Total read); guests still get
+// the plain question list with those flags simply false.
+router.get('/public/topic-questions', optionalUser, asyncHandler(async (req, res) => {
   const subject = (req.query.subject || '').trim();
   const topic = (req.query.topic || '').trim();
   const subtopic = (req.query.subtopic || '').trim();
+  const filter = (req.query.filter || 'all').trim(); // all | favorite | read | unread
+  const unique = req.query.unique === '1' || req.query.unique === 'true';
   let page = parseInt(req.query.page, 10);
   if (!Number.isFinite(page) || page < 1) page = 1;
   if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
@@ -314,25 +319,92 @@ router.get('/public/topic-questions', asyncHandler(async (req, res) => {
     }
   }
   const where = clauses.join(' AND ');
+  const userId = req.user ? req.user.id : null;
+  params.push(userId); // shared $N for the is_read / is_favorite EXISTS checks below
+  const userParamIdx = params.length;
 
-  const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM questions q WHERE ${where}`, params);
+  // "Unique" collapses questions that share identical text (the same
+  // question re-entered from multiple ministry exams) down to the
+  // earliest-added copy, by id.
+  const scopedCte = `
+    SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+           q.correct_option, q.explanation, q.post_name, q.exam_year, m.name AS ministry_name,
+           ROW_NUMBER() OVER (PARTITION BY q.question_text ORDER BY q.id ASC) AS dup_rank,
+           EXISTS(SELECT 1 FROM question_reads qr WHERE qr.question_id = q.id AND qr.user_id = $${userParamIdx}) AS is_read,
+           EXISTS(SELECT 1 FROM bookmarks b WHERE b.question_id = q.id AND b.user_id = $${userParamIdx}) AS is_favorite
+    FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
+    WHERE ${where}`;
+  const dedupClause = unique ? 'AND dup_rank = 1' : '';
+
+  // Scope-wide counts (dedup applied, filter tab NOT applied) — drives the
+  // progress ring, which should reflect overall completion regardless of
+  // which filter tab the student currently has selected.
+  const ringRes = await pool.query(
+    `SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE is_read)::int AS read_count,
+            COUNT(*) FILTER (WHERE is_favorite)::int AS favorite_count
+     FROM (${scopedCte}) t WHERE 1=1 ${dedupClause}`,
+    params
+  );
+  const ring = ringRes.rows[0];
+
+  const filterClause = filter === 'favorite' ? 'AND is_favorite'
+    : filter === 'read' ? 'AND is_read'
+    : filter === 'unread' ? 'AND NOT is_read'
+    : '';
+
+  const countRes = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM (${scopedCte}) t WHERE 1=1 ${dedupClause} ${filterClause}`,
+    params
+  );
   const total = countRes.rows[0].total;
   const totalPages = Math.max(1, Math.ceil(total / TOPIC_PAGE_SIZE));
   if (page > totalPages) page = totalPages;
   const offset = (page - 1) * TOPIC_PAGE_SIZE;
 
   const { rows } = await pool.query(
-    `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
-            q.correct_option, q.explanation, q.post_name, q.exam_year,
-            m.name AS ministry_name
-     FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
-     WHERE ${where}
-     ORDER BY q.id ASC
+    `SELECT id, question_text, option_a, option_b, option_c, option_d,
+            correct_option, explanation, post_name, exam_year, ministry_name, is_read, is_favorite
+     FROM (${scopedCte}) t
+     WHERE 1=1 ${dedupClause} ${filterClause}
+     ORDER BY id ASC
      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
     [...params, TOPIC_PAGE_SIZE, offset]
   );
 
-  res.json({ subject, topic: topic || null, subtopic: subtopic || null, page, total_pages: totalPages, total_count: total, questions: rows });
+  res.json({
+    subject, topic: topic || null, subtopic: subtopic || null, page, total_pages: totalPages, total_count: total,
+    scope_total: ring.total, scope_read: ring.read_count, scope_favorite: ring.favorite_count,
+    questions: rows
+  });
+}));
+
+// GET /api/questions/public/answer-stats?ids=1,2,3 — for each question id,
+// how many submitted results picked each option (A/B/C/D), pulled from the
+// results.answers JSONB blob across every exam attempt ever submitted.
+// Used by টপিকভিত্তিক জব সলুশন's per-question "কতজন কোনটা বেছেছে" stats icon.
+router.get('/public/answer-stats', asyncHandler(async (req, res) => {
+  const ids = String(req.query.ids || '')
+    .split(',').map(s => parseInt(s.trim(), 10)).filter(Number.isFinite);
+  if (!ids.length) return res.json({});
+
+  const { rows } = await pool.query(
+    `SELECT (kv.key)::int AS qid, UPPER(kv.value) AS opt, COUNT(*)::int AS cnt
+     FROM results r, jsonb_each_text(r.answers) AS kv(key, value)
+     WHERE (kv.key)::int = ANY($1::int[])
+     GROUP BY qid, opt`,
+    [ids]
+  );
+
+  const out = {};
+  ids.forEach(id => { out[id] = { A: 0, B: 0, C: 0, D: 0, total: 0 }; });
+  rows.forEach(r => {
+    if (!out[r.qid]) out[r.qid] = { A: 0, B: 0, C: 0, D: 0, total: 0 };
+    if (['A', 'B', 'C', 'D'].includes(r.opt)) {
+      out[r.qid][r.opt] = r.cnt;
+      out[r.qid].total += r.cnt;
+    }
+  });
+  res.json(out);
 }));
 
 // POST /api/questions/public/mark-read  body: { question_ids: [...] } —
@@ -349,6 +421,17 @@ router.post('/public/mark-read', requireUser, asyncHandler(async (req, res) => {
     [req.user.id, ...ids]
   );
   res.json({ ok: true, marked: ids.length });
+}));
+
+// DELETE /api/questions/public/mark-read/:questionId — undo a read mark
+// (used by টপিকভিত্তিক জব সলুশনের explicit "পড়া হয়েছে" checkbox, so a
+// student can uncheck it if toggled by mistake).
+router.delete('/public/mark-read/:questionId', requireUser, asyncHandler(async (req, res) => {
+  await pool.query(
+    'DELETE FROM question_reads WHERE user_id=$1 AND question_id=$2',
+    [req.user.id, req.params.questionId]
+  );
+  res.json({ ok: true });
 }));
 
 // GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
