@@ -330,49 +330,28 @@
   .btn-enter.practice{background:var(--gold, #C9973B);}
 
   /* Live exam banners only (home page "আজকের লাইভ পরীক্ষা" strip + the
-     Live tab list) — recolored blue per request. Model-test / archive /
-     history tickets elsewhere are untouched, still the neutral card color. */
-  #home-live-list .ticket, #live-list .ticket{ box-shadow:0 4px 14px -8px rgba(18,52,100,0.4); }
-  /* Colorful rotating palette so a long exam list isn't monotone — same
-     accent set already used for subject cards elsewhere in the app. 1st
-     card is blue (as requested), then cycles through 6 more every 7 cards. */
-  #home-live-list .ticket:nth-child(7n+1), #live-list .ticket:nth-child(7n+1){ background:#378ADD; } /* নীল */
-  #home-live-list .ticket:nth-child(7n+2), #live-list .ticket:nth-child(7n+2){ background:#1D9E75; } /* সবুজ-টিল */
-  #home-live-list .ticket:nth-child(7n+3), #live-list .ticket:nth-child(7n+3){ background:#7F77DD; } /* বেগুনি */
-  #home-live-list .ticket:nth-child(7n+4), #live-list .ticket:nth-child(7n+4){ background:#D85A30; } /* কমলা-লাল */
-  #home-live-list .ticket:nth-child(7n+5), #live-list .ticket:nth-child(7n+5){ background:#D4537E; } /* গোলাপি */
-  #home-live-list .ticket:nth-child(7n+6), #live-list .ticket:nth-child(7n+6){ background:#BA7517; } /* অ্যাম্বার */
-  #home-live-list .ticket:nth-child(7n), #live-list .ticket:nth-child(7n){ background:#639922; } /* জলপাই-সবুজ */
-  #home-live-list .ticket-name, #live-list .ticket-name{ color:#fff; }
-  #home-live-list .ticket-meta, #live-list .ticket-meta{ color:rgba(255,255,255,0.75); }
-  #home-live-list .tag.ministry, #live-list .tag.ministry{ background:rgba(255,255,255,0.18); color:#fff; }
-  #home-live-list .tag.grade, #live-list .tag.grade{ background:rgba(255,255,255,0.9); color:#7A5E12; }
-  #home-live-list .tag.live, #live-list .tag.live{ background:#fff; color:var(--seal-deep); }
-  #home-live-list .tag.live::before, #live-list .tag.live::before{ background:var(--seal-deep); }
-  #home-live-list .tag.closed, #live-list .tag.closed{ background:rgba(255,255,255,0.18); color:rgba(255,255,255,0.85); }
-  #home-live-list .ticket-cd b, #live-list .ticket-cd b{ color:#fff; }
-  #home-live-list .ticket-cd span, #live-list .ticket-cd span{ color:rgba(255,255,255,0.7); }
-  #home-live-list .ticket-divider, #live-list .ticket-divider{ border-top-color:rgba(255,255,255,0.35); }
+     Live tab list) — light blue (matches the "লাইভ পরীক্ষা"/হোম টাইলের রঙ),
+     with dark navy text since the background is light now, not white text.
+     Model-test / archive / history tickets elsewhere are untouched. */
+  #home-live-list .ticket, #live-list .ticket{ background:#9FD7EF; box-shadow:0 4px 14px -8px rgba(18,52,100,0.25); }
+  #home-live-list .ticket-name, #live-list .ticket-name{ color:var(--navy-deep); }
+  #home-live-list .ticket-meta, #live-list .ticket-meta{ color:#2C5771; }
+  #home-live-list .tag.ministry, #live-list .tag.ministry{ background:rgba(255,255,255,0.65); color:var(--navy-deep); }
+  #home-live-list .tag.grade, #live-list .tag.grade{ background:rgba(255,255,255,0.85); color:#7A5E12; }
+  #home-live-list .tag.live, #live-list .tag.live{ background:var(--navy-deep); color:#fff; }
+  #home-live-list .tag.live::before, #live-list .tag.live::before{ background:#fff; }
+  #home-live-list .tag.closed, #live-list .tag.closed{ background:rgba(255,255,255,0.65); color:#2C5771; }
+  #home-live-list .ticket-cd b, #live-list .ticket-cd b{ color:var(--navy-deep); }
+  #home-live-list .ticket-cd span, #live-list .ticket-cd span{ color:#3A6E8F; }
+  #home-live-list .ticket-divider, #live-list .ticket-divider{ border-top-color:rgba(18,52,100,0.18); }
   #home-live-list .ticket-divider::before, #home-live-list .ticket-divider::after,
-  #live-list .ticket-divider::before, #live-list .ticket-divider::after{ background:#378ADD; }
-  #home-live-list .ticket:nth-child(7n+2) .ticket-divider::before, #home-live-list .ticket:nth-child(7n+2) .ticket-divider::after,
-  #live-list .ticket:nth-child(7n+2) .ticket-divider::before, #live-list .ticket:nth-child(7n+2) .ticket-divider::after{ background:#1D9E75; }
-  #home-live-list .ticket:nth-child(7n+3) .ticket-divider::before, #home-live-list .ticket:nth-child(7n+3) .ticket-divider::after,
-  #live-list .ticket:nth-child(7n+3) .ticket-divider::before, #live-list .ticket:nth-child(7n+3) .ticket-divider::after{ background:#7F77DD; }
-  #home-live-list .ticket:nth-child(7n+4) .ticket-divider::before, #home-live-list .ticket:nth-child(7n+4) .ticket-divider::after,
-  #live-list .ticket:nth-child(7n+4) .ticket-divider::before, #live-list .ticket:nth-child(7n+4) .ticket-divider::after{ background:#D85A30; }
-  #home-live-list .ticket:nth-child(7n+5) .ticket-divider::before, #home-live-list .ticket:nth-child(7n+5) .ticket-divider::after,
-  #live-list .ticket:nth-child(7n+5) .ticket-divider::before, #live-list .ticket:nth-child(7n+5) .ticket-divider::after{ background:#D4537E; }
-  #home-live-list .ticket:nth-child(7n+6) .ticket-divider::before, #home-live-list .ticket:nth-child(7n+6) .ticket-divider::after,
-  #live-list .ticket:nth-child(7n+6) .ticket-divider::before, #live-list .ticket:nth-child(7n+6) .ticket-divider::after{ background:#BA7517; }
-  #home-live-list .ticket:nth-child(7n) .ticket-divider::before, #home-live-list .ticket:nth-child(7n) .ticket-divider::after,
-  #live-list .ticket:nth-child(7n) .ticket-divider::before, #live-list .ticket:nth-child(7n) .ticket-divider::after{ background:#639922; }
-  #home-live-list .ticket-serial, #live-list .ticket-serial{ color:rgba(255,255,255,0.7); }
-  #home-live-list .btn-enter, #live-list .btn-enter{ background:#fff; color:var(--seal-deep); }
+  #live-list .ticket-divider::before, #live-list .ticket-divider::after{ background:#9FD7EF; }
+  #home-live-list .ticket-serial, #live-list .ticket-serial{ color:#3A6E8F; }
+  #home-live-list .btn-enter, #live-list .btn-enter{ background:var(--navy-deep); color:#fff; }
   #home-live-list .btn-enter.model, #live-list .btn-enter.model{ background:var(--success); color:#fff; }
   #home-live-list .btn-enter.archive, #live-list .btn-enter.archive{ background:var(--gold); color:#3A2A06; }
-  #home-live-list .btn-enter:disabled, #live-list .btn-enter:disabled{ background:rgba(255,255,255,0.35); color:rgba(255,255,255,0.7); }
-  #home-live-list .remind-btn, #live-list .remind-btn{ background:rgba(255,255,255,0.18); color:#fff; border-color:rgba(255,255,255,0.4); }
+  #home-live-list .btn-enter:disabled, #live-list .btn-enter:disabled{ background:rgba(18,52,100,0.3); color:rgba(255,255,255,0.8); }
+  #home-live-list .remind-btn, #live-list .remind-btn{ background:rgba(255,255,255,0.65); color:var(--navy-deep); border-color:rgba(18,52,100,0.25); }
   .remind-btn{
     display:flex; align-items:center; gap:6px; background:var(--paper-deep); color:var(--ink-soft);
     border:1.5px solid var(--line); padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600;
