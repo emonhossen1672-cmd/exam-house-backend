@@ -37,19 +37,24 @@ router.get('/admin/:id/history', requireAdmin, asyncHandler(async (req, res) => 
 //         question_count, duration_minutes, negative_marks, weekdays: [0-6], run_time: 'HH:MM' }
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const { title_pattern, ministry_id, post_name, subject, topic, subtopic, grade, routine_category,
-          question_count, duration_minutes, negative_marks, weekdays, run_time } = req.body;
+          question_count, duration_minutes, negative_marks, weekdays, run_time, exam_type, grading_mode } = req.body;
 
   if (!title_pattern || !question_count || !duration_minutes || !Array.isArray(weekdays) || !weekdays.length || !run_time) {
     return res.status(400).json({ error: 'টাইটেল, প্রশ্ন সংখ্যা, সময়কাল, সপ্তাহের দিন ও শুরুর সময় দরকার' });
+  }
+  const type = exam_type === 'written' ? 'written' : 'live';
+  if (type === 'written' && !['self_check', 'manual', 'ai'].includes(grading_mode)) {
+    return res.status(400).json({ error: 'রিটেন টেমপ্লেটের জন্য মূল্যায়ন পদ্ধতি (grading_mode) বাছাই করুন' });
   }
 
   const { rows } = await pool.query(
     `INSERT INTO exam_templates
        (title_pattern, ministry_id, post_name, subject, topic, subtopic, grade, routine_category,
-        question_count, duration_minutes, negative_marks, weekdays, run_time, active)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true) RETURNING *`,
+        question_count, duration_minutes, negative_marks, weekdays, run_time, active, exam_type, grading_mode)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true,$14,$15) RETURNING *`,
     [title_pattern, ministry_id || null, post_name || null, subject || null, topic || null, subtopic || null, grade || null,
-     routine_category || null, question_count, duration_minutes, negative_marks || 0, weekdays, run_time]
+     routine_category || null, question_count, duration_minutes, negative_marks || 0, weekdays, run_time,
+     type, type === 'written' ? grading_mode : null]
   );
   res.status(201).json(rows[0]);
 }));
@@ -57,7 +62,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 // PUT /api/exam-templates/:id — edit a template (same body shape as create; also accepts { active })
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { title_pattern, ministry_id, post_name, subject, topic, subtopic, grade, routine_category,
-          question_count, duration_minutes, negative_marks, weekdays, run_time, active } = req.body;
+          question_count, duration_minutes, negative_marks, weekdays, run_time, active, exam_type, grading_mode } = req.body;
 
   const { rows } = await pool.query(
     `UPDATE exam_templates SET
@@ -74,11 +79,14 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
        negative_marks = COALESCE($11, negative_marks),
        weekdays = COALESCE($12, weekdays),
        run_time = COALESCE($13, run_time),
-       active = COALESCE($14, active)
+       active = COALESCE($14, active),
+       exam_type = COALESCE($16, exam_type),
+       grading_mode = $17
      WHERE id = $15 RETURNING *`,
     [title_pattern || null, ministry_id ?? null, post_name ?? null, subject ?? null, topic ?? null, subtopic ?? null, grade ?? null,
      routine_category ?? null, question_count || null, duration_minutes || null, negative_marks ?? null,
-     weekdays || null, run_time || null, active === undefined ? null : active, req.params.id]
+     weekdays || null, run_time || null, active === undefined ? null : active, req.params.id,
+     exam_type || null, grading_mode ?? null]
   );
   if (!rows.length) return res.status(404).json({ error: 'টেমপ্লেট পাওয়া যায়নি' });
   res.json(rows[0]);
