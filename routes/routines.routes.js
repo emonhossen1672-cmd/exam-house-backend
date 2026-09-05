@@ -124,6 +124,29 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
   res.json({ added, failed: errors.length, errors });
 }));
 
+// POST /api/routines/admin/:category/activate — assign real calendar dates
+// to every day in this category, so routineExamScheduler.js knows exactly
+// when to fire each block-end day's exam. body: { start_date: 'YYYY-MM-DD' }
+// (day 1 -> start_date, day 2 -> start_date+1, ... sequential calendar days).
+// Safe to call again later to shift the whole plan to a new start date.
+router.post('/admin/:category/activate', requireAdmin, asyncHandler(async (req, res) => {
+  const { category } = req.params;
+  const { start_date } = req.body;
+  if (!CATEGORY_SLUGS.includes(category)) {
+    return res.status(400).json({ error: 'অজানা রুটিন ক্যাটাগরি' });
+  }
+  if (!start_date || isNaN(Date.parse(start_date))) {
+    return res.status(400).json({ error: 'সঠিক শুরুর তারিখ (start_date) দিন, যেমন 2026-09-10' });
+  }
+  const { rowCount } = await pool.query(
+    `UPDATE routine_days
+     SET scheduled_date = ($1::date + (day_number - 1) * INTERVAL '1 day')::date
+     WHERE category = $2`,
+    [start_date, category]
+  );
+  res.json({ ok: true, updated: rowCount });
+}));
+
 // DELETE /api/routines/:id — remove a single day (admin)
 router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   await pool.query('DELETE FROM routine_days WHERE id=$1', [req.params.id]);
