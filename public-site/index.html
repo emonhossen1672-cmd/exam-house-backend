@@ -1628,6 +1628,16 @@
     <div class="exam-body" id="review-body" style="padding-bottom:40px;"></div>
   </div>
 
+  <!-- ============ WRITTEN EXAM RESULT OVERLAY (রিটেন পরীক্ষা জমা হওয়ার পর) ============ -->
+  <div class="exam-overlay" id="written-result-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeWrittenResult()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">রিটেন পরীক্ষার ফলাফল</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="written-result-body" style="padding-bottom:40px;"></div>
+  </div>
+
   <!-- ============ REVISION QUIZ OVERLAY (practice past wrong answers) ============ -->
   <div class="exam-overlay" id="revision-overlay">
     <div class="exam-top">
@@ -2510,7 +2520,7 @@
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
     'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay',
-    'cat-result-overlay','cat-archive-overlay'];
+    'cat-result-overlay','cat-archive-overlay','written-result-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -4441,6 +4451,7 @@
   let CURRENT_QUESTIONS = [];
   let curQ = 0;
   let answers = {};
+  let writtenAnswerDraft = {}; // { [written_question_id]: {text, image} } — রিটেন পরীক্ষার খসড়া উত্তর
   let participant = {name:'', phone:''};
   let timeLeft = 0;
   let timerHandle = null;
@@ -4449,10 +4460,18 @@
     try{
       const data = await apiGet('/api/exams/public/'+examId+'/questions');
       CURRENT_EXAM = data.exam;
-      CURRENT_QUESTIONS = data.questions;
       participant = {name, phone};
       answers = {};
+      writtenAnswerDraft = {};
       curQ = 0;
+
+      const isWritten = CURRENT_EXAM.type === 'written';
+      if(isWritten){
+        const wdata = await apiGet('/api/exams/public/'+examId+'/written-questions');
+        CURRENT_QUESTIONS = wdata.questions;
+      } else {
+        CURRENT_QUESTIONS = data.questions;
+      }
 
       if(CURRENT_EXAM.type === 'live' && CURRENT_EXAM.start_time){
         const end = new Date(CURRENT_EXAM.start_time).getTime() + (CURRENT_EXAM.duration_minutes||60)*60000;
@@ -4466,8 +4485,8 @@
       document.getElementById('admit-meta').textContent =
         [CURRENT_EXAM.serial, CURRENT_EXAM.grade ? ('গ্রেড ' + toBnDigits(CURRENT_EXAM.grade)) : null]
           .filter(Boolean).join(' · ');
-      if(USER_TOKEN) await loadBookmarkIds();
-      renderAllQuestions();
+      if(!isWritten && USER_TOKEN) await loadBookmarkIds();
+      if(isWritten) renderAllWrittenQuestions(); else renderAllQuestions();
       clearInterval(timerHandle);
       timerHandle = setInterval(tick, 1000);
     }catch(err){
@@ -4532,6 +4551,48 @@
     document.getElementById('exam-progress-count').textContent = toBnDigits(done) + ' / ' + toBnDigits(total) + ' উত্তর দেওয়া হয়েছে';
   }
 
+  // ---- রিটেন (written) পরীক্ষা — টেক্সট-এরিয়া/ছবি-লিংক ভিত্তিক উত্তর ----
+  function renderAllWrittenQuestions(){
+    const body = document.getElementById('exam-body');
+    body.innerHTML = CURRENT_QUESTIONS.map((q, qi)=>{
+      const draft = writtenAnswerDraft[q.id] || {};
+      return `
+        <div class="qcard${(draft.text||'').trim() || (draft.image||'').trim() ? ' answered' : ''}" id="qcard-${q.id}">
+          <div class="q-label">
+            <span class="qnum">${toBnDigits(qi+1)}</span><span>${escapeHtml(q.subject)}</span>
+            <span style="margin-left:auto; font-size:11px; color:var(--ink-soft);">${toBnDigits(q.marks)} মার্ক</span>
+          </div>
+          <div class="q-text">${escapeHtml(q.question_text)}</div>
+          <textarea id="wans-${q.id}" rows="6" placeholder="এখানে আপনার উত্তর লিখুন..."
+            oninput="onWrittenAnswerInput(${q.id})"
+            style="width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--paper); font-family:inherit; font-size:14.5px; color:var(--ink); resize:vertical;">${escapeHtml(draft.text||'')}</textarea>
+          <input type="url" id="wimg-${q.id}" placeholder="ঐচ্ছিক: হাতে লেখা উত্তরের ছবির লিংক (URL)" value="${escapeHtml(draft.image||'')}"
+            oninput="onWrittenAnswerInput(${q.id})"
+            style="width:100%; margin-top:8px; padding:10px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--paper); font-size:13px; color:var(--ink);">
+        </div>`;
+    }).join('');
+    updateWrittenProgress();
+  }
+
+  function onWrittenAnswerInput(qid){
+    const text = document.getElementById('wans-'+qid).value;
+    const image = document.getElementById('wimg-'+qid).value.trim();
+    writtenAnswerDraft[qid] = { text, image };
+    document.getElementById('qcard-'+qid).classList.toggle('answered', !!(text.trim() || image));
+    updateWrittenProgress();
+  }
+
+  function updateWrittenProgress(){
+    const total = CURRENT_QUESTIONS.length;
+    const done = CURRENT_QUESTIONS.filter(q => {
+      const a = writtenAnswerDraft[q.id];
+      return a && ((a.text||'').trim() || (a.image||'').trim());
+    }).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    document.getElementById('exam-progress-fill').style.width = pct + '%';
+    document.getElementById('exam-progress-count').textContent = toBnDigits(done) + ' / ' + toBnDigits(total) + ' উত্তর দেওয়া হয়েছে';
+  }
+
   function exitExam(){
     if(!confirm('পরীক্ষা থেকে বের হয়ে যেতে চান? অগ্রগতি সংরক্ষিত হবে না।')) return;
     clearInterval(timerHandle);
@@ -4539,6 +4600,7 @@
   }
 
   async function submitExam(){
+    if(CURRENT_EXAM && CURRENT_EXAM.type === 'written') return submitWrittenExam();
     const total = CURRENT_QUESTIONS.length;
     const done = Object.keys(answers).length;
     if(done < total){
@@ -4558,6 +4620,78 @@
     }catch(err){
       alert('জমা দেওয়া যায়নি: ' + err.message);
     }
+  }
+
+  // ---- রিটেন (written) পরীক্ষা জমা দেওয়া ----
+  async function submitWrittenExam(){
+    const total = CURRENT_QUESTIONS.length;
+    const answersArr = CURRENT_QUESTIONS.map(q => {
+      const a = writtenAnswerDraft[q.id] || {};
+      return { written_question_id: q.id, answer_text: (a.text||'').trim() || null, image_url: (a.image||'').trim() || null };
+    }).filter(a => a.answer_text || a.image_url);
+
+    if(!answersArr.length){
+      alert('অন্তত একটি প্রশ্নের উত্তর লিখুন');
+      return;
+    }
+    if(answersArr.length < total){
+      const left = total - answersArr.length;
+      if(!confirm(toBnDigits(left) + 'টি প্রশ্নের উত্তর এখনো দেওয়া হয়নি। তারপরও জমা দিতে চান?')) return;
+    }
+    clearInterval(timerHandle);
+    document.getElementById('exam-overlay').classList.remove('active');
+    try{
+      await apiPost('/api/written-answers/submit', {
+        exam_id: CURRENT_EXAM.id,
+        participant_name: participant.name,
+        participant_phone: participant.phone || null,
+        answers: answersArr
+      }, true);
+      await showWrittenResult(CURRENT_EXAM.id);
+    }catch(err){
+      alert('জমা দেওয়া যায়নি: ' + err.message);
+    }
+  }
+
+  async function showWrittenResult(examId){
+    document.getElementById('written-result-overlay').classList.add('active');
+    const body = document.getElementById('written-result-body');
+    body.innerHTML = '<div style="padding:30px 20px; text-align:center; color:var(--ink-soft);">লোড হচ্ছে...</div>';
+    try{
+      let path = '/api/written-answers/my/' + examId;
+      if(!USER_TOKEN && participant.phone) path += '?phone=' + encodeURIComponent(participant.phone);
+      const rows = await apiGetAuth(path);
+      const statusLabel = { pending: '⏳ রিভিউ এর অপেক্ষায়', graded: '✅ গ্রেড হয়েছে', self_checked: '📖 সেলফ-চেক' };
+      const modeNote = {
+        self_check: 'এই পরীক্ষাটি সেলফ-চেক মোডে — নিজের উত্তরের সাথে আদর্শ উত্তর মিলিয়ে দেখুন।',
+        manual: 'এই পরীক্ষাটি ম্যানুয়াল রিভিউ মোডে — টিচার/অ্যাডমিন রিভিউ করার পর মার্ক ও ফিডব্যাক এখানে দেখা যাবে।',
+        ai: 'এই পরীক্ষাটি AI-গ্রেডিং মোডে — মার্ক ও ফিডব্যাক তৈরি হয়ে গেলে এখানে দেখা যাবে।'
+      };
+      const mode = CURRENT_EXAM.grading_mode || 'manual';
+      body.innerHTML = `
+        <div style="padding:14px 18px; background:var(--paper-deep); border-radius:12px; margin:14px 0 16px; font-size:13px; color:var(--ink-soft);">
+          উত্তর সফলভাবে জমা হয়েছে ✓ ${escapeHtml(modeNote[mode] || '')}
+        </div>
+      ` + rows.map((r, i) => `
+        <div class="qcard">
+          <div class="q-label">
+            <span class="qnum">${toBnDigits(i+1)}</span><span>${statusLabel[r.status] || r.status}</span>
+            ${r.marks_awarded != null ? `<span style="margin-left:auto; font-weight:700; color:var(--seal);">${toBnDigits(r.marks_awarded)} / ${toBnDigits(r.max_marks)}</span>` : ''}
+          </div>
+          <div class="q-text">${escapeHtml(r.question_text)}</div>
+          <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; background:var(--paper); padding:10px 12px; border-radius:10px;"><b>আপনার উত্তর:</b><br>${r.answer_text ? escapeHtml(r.answer_text) : (r.image_url ? `<a href="${escapeHtml(r.image_url)}" target="_blank">ছবি দেখুন</a>` : '—')}</div>
+          ${r.model_answer ? `<div style="font-size:13px; margin-top:8px; white-space:pre-wrap; background:var(--success-bg); padding:10px 12px; border-radius:10px;"><b>আদর্শ উত্তর:</b><br>${escapeHtml(r.model_answer)}</div>` : ''}
+          ${r.feedback ? `<div style="font-size:12.5px; margin-top:8px; color:var(--ink-soft);"><b>ফিডব্যাক:</b> ${escapeHtml(r.feedback)}</div>` : ''}
+        </div>
+      `).join('');
+    }catch(err){
+      body.innerHTML = `<div style="padding:20px; color:var(--wrong);">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function closeWrittenResult(){
+    document.getElementById('written-result-overlay').classList.remove('active');
+    goScreen('home');
   }
 
   async function showResult(result){
