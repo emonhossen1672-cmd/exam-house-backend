@@ -43,4 +43,19 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 
-module.exports = { JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID, ANTHROPIC_API_KEY, ANTHROPIC_MODEL };
+// Optional — powers real image upload (camera/gallery) for handwritten
+// রিটেন answers (services/imageUpload.js + routes/upload.routes.js). Left
+// optional so the server still starts without it; /api/upload/image just
+// returns a clear error until all three are set, and students can still
+// fall back to pasting an image link manually.
+// Get these from your free Cloudinary dashboard (cloudinary.com → Console)
+// — no code changes needed, just set these 3 env vars on Render.
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
+
+module.exports = {
+  JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID,
+  ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
+  CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+};
