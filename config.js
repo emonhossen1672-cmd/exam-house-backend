@@ -35,4 +35,12 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // public-site/index.html (GOOGLE_CLIENT_ID near the top of the <script>).
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 
-module.exports = { JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID };
+// Optional — powers AI-assisted grading for written (রিটেন) exams
+// (services/aiGrading.js). Left optional so the server still starts and
+// self_check/manual written exams still work without it; an exam using
+// grading_mode='ai' just falls back to leaving submissions 'pending' for a
+// human to grade until this is set.
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+
+module.exports = { JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID, ANTHROPIC_API_KEY, ANTHROPIC_MODEL };
