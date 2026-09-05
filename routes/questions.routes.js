@@ -659,4 +659,75 @@ router.put('/admin/bulk-retag', requireAdmin, asyncHandler(async (req, res) => {
   res.json({ updated: rowCount });
 }));
 
+// GET /api/questions/admin/audit-corrupted?subject=&limit=200
+// Finds questions that look broken from an OCR/PDF bulk upload: a missing
+// option (blank, '-', '—', '_'), or option/question text containing stray
+// OCR-garbage characters (¢, ©, $, or a lone unmatched bracket). Doesn't
+// delete anything — just flags candidates for the admin to review.
+router.get('/admin/audit-corrupted', requireAdmin, asyncHandler(async (req, res) => {
+  const { subject, limit } = req.query;
+  const params = [];
+  const clauses = [
+    `trim(option_a) IN ('', '-', '—', '_')`,
+    `trim(option_b) IN ('', '-', '—', '_')`,
+    `trim(option_c) IN ('', '-', '—', '_')`,
+    `trim(option_d) IN ('', '-', '—', '_')`,
+    `question_text ~ '[¢©]'`, `option_a ~ '[¢©]'`, `option_b ~ '[¢©]'`, `option_c ~ '[¢©]'`, `option_d ~ '[¢©]'`,
+    // a ')' or ']' with no matching '(' / '[' earlier in the same field — common OCR artifact seen in the sample
+    `option_a ~ '\\)[^(]*$' AND option_a !~ '\\('`,
+    `option_b ~ '\\)[^(]*$' AND option_b !~ '\\('`,
+    `option_c ~ '\\)[^(]*$' AND option_c !~ '\\('`,
+    `option_d ~ '\\)[^(]*$' AND option_d !~ '\\('`,
+  ];
+  let where = `(${clauses.join(' OR ')})`;
+  if (subject) { params.push(subject); where += ` AND subject = $${params.length}`; }
+  params.push(Math.min(parseInt(limit) || 200, 1000));
+
+  const { rows } = await pool.query(
+    `SELECT id, subject, question_text, option_a, option_b, option_c, option_d, correct_option, created_at
+     FROM questions WHERE ${where} ORDER BY created_at DESC LIMIT $${params.length}`,
+    params
+  );
+  res.json({ count: rows.length, questions: rows });
+}));
+
+// DELETE /api/questions/admin/bulk  body: { ids: [1,2,3] }
+router.delete('/admin/bulk', requireAdmin, asyncHandler(async (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Number.isFinite) : [];
+  if (!ids.length) return res.status(400).json({ error: 'ids প্রয়োজন' });
+  const { rowCount } = await pool.query('DELETE FROM questions WHERE id = ANY($1)', [ids]);
+  res.json({ deleted: rowCount });
+}));
+
+// DELETE /api/questions/admin/by-topic  body: { subject, topic, subtopic? }
+// Permanently deletes every question under a subject+topic (optionally
+// narrowed to one subtopic) — unlike the retag-to-blank trick in the admin
+// panel, which only removes the tag and leaves the questions in place.
+router.delete('/admin/by-topic', requireAdmin, asyncHandler(async (req, res) => {
+  const { subject, topic, subtopic } = req.body;
+  if (!subject || !topic) return res.status(400).json({ error: 'subject ও topic দুটোই প্রয়োজন' });
+
+  const clauses = ['subject = $1'];
+  const params = [subject];
+
+  if (topic === UNTAGGED_TOPIC) {
+    clauses.push(`(topic IS NULL OR TRIM(topic) = '')`);
+  } else {
+    params.push(topic);
+    clauses.push(`topic = $${params.length}`);
+  }
+
+  if (subtopic) {
+    if (subtopic === UNTAGGED_SUBTOPIC) {
+      clauses.push(`(subtopic IS NULL OR TRIM(subtopic) = '')`);
+    } else {
+      params.push(subtopic);
+      clauses.push(`subtopic = $${params.length}`);
+    }
+  }
+
+  const { rowCount } = await pool.query(`DELETE FROM questions WHERE ${clauses.join(' AND ')}`, params);
+  res.json({ deleted: rowCount });
+}));
+
 module.exports = router;
