@@ -187,8 +187,10 @@
     <button class="tab-btn" data-tab="bulk">বাল্ক আপলোড</button>
     <button class="tab-btn" data-tab="quicktext">দ্রুত টেক্সট থেকে যোগ</button>
     <button class="tab-btn" data-tab="list">প্রশ্ন তালিকা</button>
+    <button class="tab-btn" data-tab="written">রিটেন প্রশ্ন</button>
     <button class="tab-btn" data-tab="ministries">মন্ত্রণালয়</button>
     <button class="tab-btn" data-tab="exams">পরীক্ষা তৈরি করুন</button>
+    <button class="tab-btn" data-tab="writtenreview">রিটেন রিভিউ</button>
     <button class="tab-btn" data-tab="results">ফলাফল ও মেরিট লিস্ট</button>
     <button class="tab-btn" data-tab="routines">লাইভ রুটিন</button>
     <button class="tab-btn" data-tab="templates">লাইভ পরীক্ষা টেমপ্লেট</button>
@@ -461,6 +463,91 @@
       <div id="listWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
     </div>
 
+    <div class="panel" id="panel-written">
+      <h2>রিটেন জব সলুশন — প্রশ্ন ব্যাংক</h2>
+      <div class="desc">
+        এখানে যোগ করা প্রশ্ন + আদর্শ উত্তর দুইভাবে ব্যবহার হয়: (১) সরাসরি "রিটেন জব সলুশন" রিডিং লিস্ট হিসেবে
+        (শিক্ষার্থী পড়ে দেখবে), (২) "পরীক্ষা তৈরি করুন" ট্যাবে <b>রিটেন</b> টাইপের পরীক্ষায় বাছাই করে ব্যবহার করা যাবে।
+      </div>
+      <div class="err-box" id="wqErr"></div>
+      <div class="ok-box" id="wqOk"></div>
+      <form id="wqForm">
+        <div class="grid-2">
+          <div class="field">
+            <label>মন্ত্রণালয় (ঐচ্ছিক)</label>
+            <select id="wq_ministry"><option value="">— নির্বাচন করুন —</option></select>
+          </div>
+          <div class="field">
+            <label>গ্রেড (ঐচ্ছিক)</label>
+            <input type="number" id="wq_grade" placeholder="যেমন: 9">
+          </div>
+        </div>
+        <div class="field">
+          <label>বিষয়</label>
+          <input type="text" id="wq_subject" list="fixed-subjects-list" placeholder="বাংলা / ইংরেজি / গণিত ইত্যাদি" required>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>টপিক (ঐচ্ছিক)</label>
+            <input type="text" id="wq_topic" list="topic-suggestions" placeholder="যেমন: রচনা ও প্রবন্ধ">
+          </div>
+          <div class="field">
+            <label>সাবটপিক (ঐচ্ছিক)</label>
+            <input type="text" id="wq_subtopic" list="subtopic-suggestions">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>পদের নাম (ঐচ্ছিক)</label>
+            <input type="text" id="wq_post_name" placeholder="যেমন: সহকারী শিক্ষক">
+          </div>
+          <div class="field">
+            <label>পূর্ণমান (মার্ক)</label>
+            <input type="number" id="wq_marks" value="10" min="1">
+          </div>
+        </div>
+        <div class="field">
+          <label>প্রশ্ন</label>
+          <textarea id="wq_text" rows="3" required></textarea>
+        </div>
+        <div class="field">
+          <label>আদর্শ উত্তর (মডেল আনসার)</label>
+          <textarea id="wq_answer" rows="6" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="wqBtn" style="width:auto; padding-left:26px; padding-right:26px;">প্রশ্ন যোগ করুন</button>
+      </form>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
+      <h2>বাল্ক পেস্ট (একসাথে অনেকগুলো)</h2>
+      <div class="desc">
+        নিচের ফরম্যাটে লিখুন — প্রতিটা প্রশ্ন <b>প্রশ্ন:</b> দিয়ে শুরু, তারপর <b>উত্তর:</b> (একাধিক লাইন হতে পারে),
+        ঐচ্ছিকভাবে <b>মার্ক:</b>। প্রশ্নগুলোর মাঝে একটা ফাঁকা লাইন রাখুন। উপরের বিষয়/টপিক/মন্ত্রণালয়/গ্রেড/পদের নাম
+        সবগুলো প্রশ্নে প্রযোজ্য হবে।
+      </div>
+      <textarea id="wqBulkText" rows="12" style="font-family:'Space Mono',monospace; font-size:12.5px; width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--paper);" placeholder="প্রশ্ন: বাংলাদেশের স্বাধীনতা যুদ্ধের প্রেক্ষাপট আলোচনা করুন।
+উত্তর: ১৯৭১ সালে বাংলাদেশের মুক্তিযুদ্ধ শুরু হয়...
+মার্ক: ২০
+
+প্রশ্ন: 'নদী' শীর্ষক একটি অনুচ্ছেদ লিখুন।
+উত্তর: বাংলাদেশ নদীমাতৃক দেশ..."></textarea>
+      <button type="button" class="btn btn-ghost" id="wqBulkPreviewBtn" style="width:auto; padding-left:22px; padding-right:22px; margin-top:10px;">প্রিভিউ দেখুন</button>
+      <div id="wqBulkPreviewWrap" style="margin-top:16px; display:none;">
+        <div id="wqBulkPreviewSummary" style="font-size:13px; margin-bottom:10px;"></div>
+        <div id="wqBulkPreviewList" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--paper);"></div>
+        <button type="button" class="btn btn-primary" id="wqBulkSubmitBtn" style="width:auto; padding-left:26px; padding-right:26px; margin-top:14px;">সব যোগ করুন</button>
+      </div>
+      <div class="upload-result" id="wqBulkResult" style="display:none;"></div>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
+      <h2>সব রিটেন প্রশ্ন</h2>
+      <div class="filters">
+        <input type="text" id="wq_f_search" placeholder="প্রশ্ন খুঁজুন...">
+        <input type="text" id="wq_f_subject" list="fixed-subjects-list" placeholder="বিষয়">
+        <button class="btn btn-ghost btn-small" id="wq_f_go">খুঁজুন</button>
+      </div>
+      <div id="wqListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
+    </div>
+
     <div class="panel" id="panel-ministries">
       <h2>মন্ত্রণালয় ব্যবস্থাপনা</h2>
       <div class="field" style="max-width:320px; display:flex; gap:8px; align-items:flex-end;">
@@ -492,6 +579,7 @@
             <select id="e_type" required>
               <option value="model">মডেল টেস্ট</option>
               <option value="live">লাইভ পরীক্ষা</option>
+              <option value="written">রিটেন পরীক্ষা</option>
             </select>
           </div>
           <div class="field">
@@ -569,7 +657,16 @@
           </select>
         </div>
 
-        <div class="field">
+        <div class="field" id="e_grading_mode_wrap" style="display:none;">
+          <label>মূল্যায়ন পদ্ধতি (grading mode) — রিটেন পরীক্ষার জন্য</label>
+          <select id="e_grading_mode">
+            <option value="self_check">সেলফ-চেক (শিক্ষার্থী নিজেই মডেল উত্তরের সাথে মিলিয়ে দেখবে — ফ্রি)</option>
+            <option value="manual">ম্যানুয়াল রিভিউ (admin/টিচার পরে "রিটেন রিভিউ" ট্যাব থেকে মার্ক দেবে — ফ্রি)</option>
+            <option value="ai">AI-assisted গ্রেডিং (সাবমিট করার সাথে সাথে অটো-গ্রেড হবে — Anthropic API key ও খরচ লাগে)</option>
+          </select>
+        </div>
+
+        <div class="field" id="e_mcq_picker_wrap">
           <label>প্রশ্ন বাছাই করুন</label>
           <div class="filters" style="margin-bottom:8px;">
             <input type="text" id="e_q_subject" placeholder="বিষয় দিয়ে ফিল্টার">
@@ -582,11 +679,42 @@
           <div style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;">বাছাইকৃত প্রশ্ন: <span id="e_selected_count">0</span> টি</div>
         </div>
 
+        <div class="field" id="e_written_picker_wrap" style="display:none;">
+          <label>রিটেন প্রশ্ন বাছাই করুন</label>
+          <div class="filters" style="margin-bottom:8px;">
+            <input type="text" id="e_wq_subject" placeholder="বিষয় দিয়ে ফিল্টার">
+            <input type="number" id="e_wq_grade" placeholder="গ্রেড দিয়ে ফিল্টার">
+            <button type="button" class="btn btn-ghost btn-small" id="e_wq_filter_go">ফিল্টার করুন</button>
+          </div>
+          <div id="examWrittenQuestionPicker" style="max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--paper);">
+            <div class="empty-state">লোড হচ্ছে...</div>
+          </div>
+          <div style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;">বাছাইকৃত প্রশ্ন: <span id="e_wq_selected_count">0</span> টি</div>
+        </div>
+
         <button type="submit" class="btn btn-primary" id="examBtn" style="width:auto; padding-left:26px; padding-right:26px; margin-top:10px;">পরীক্ষা তৈরি করুন</button>
       </form>
 
       <h2 style="margin-top:32px;">সব পরীক্ষা</h2>
       <div id="examListWrap"><div class="empty-state">লোড হচ্ছে...</div></div>
+    </div>
+
+    <div class="panel" id="panel-writtenreview">
+      <h2>রিটেন পরীক্ষা — উত্তর রিভিউ</h2>
+      <div class="desc">রিটেন পরীক্ষা বাছাই করুন — জমা পড়া উত্তরগুলো এখানে দেখতে পাবেন, ম্যানুয়ালি মার্ক দিতে পারবেন, অথবা AI দিয়ে গ্রেড করাতে পারবেন (grading_mode অনুযায়ী)।</div>
+      <div class="field">
+        <label>রিটেন পরীক্ষা বাছাই করুন</label>
+        <select id="wr_exam_select"><option value="">— লোড হচ্ছে... —</option></select>
+      </div>
+      <div class="filters" id="wr_status_filter_wrap" style="display:none; margin-bottom:14px;">
+        <button class="btn btn-ghost btn-small wr-status-btn" data-status="">সব</button>
+        <button class="btn btn-ghost btn-small wr-status-btn" data-status="pending">পেন্ডিং</button>
+        <button class="btn btn-ghost btn-small wr-status-btn" data-status="graded">গ্রেড হয়েছে</button>
+        <button class="btn btn-ghost btn-small wr-status-btn" data-status="self_checked">সেলফ-চেক</button>
+        <button class="btn btn-primary btn-small" id="wr_aiGradeAllBtn" style="margin-left:auto;">AI দিয়ে সব পেন্ডিং গ্রেড করুন</button>
+      </div>
+      <div id="wr_aiGradeAllResult" style="font-size:12.5px; margin-bottom:10px;"></div>
+      <div id="wrListWrap"><div class="empty-state">উপরে থেকে একটি রিটেন পরীক্ষা বাছাই করুন</div></div>
     </div>
 
     <div class="panel" id="panel-results">
@@ -883,8 +1011,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'list') loadQuestions();
+    if (btn.dataset.tab === 'written') { loadWrittenMinistries(); loadWrittenQuestions(); }
     if (btn.dataset.tab === 'ministries') loadMinistries();
-    if (btn.dataset.tab === 'exams') { loadExamMinistries(); loadExamQuestionPicker(); loadExamsList(); }
+    if (btn.dataset.tab === 'exams') { loadExamMinistries(); loadExamQuestionPicker(); loadExamWrittenQuestionPicker(); loadExamsList(); }
+    if (btn.dataset.tab === 'writtenreview') { loadWrittenReviewExamList(); }
     if (btn.dataset.tab === 'results') { loadResultsExamList(); }
     if (btn.dataset.tab === 'quicktext') { loadQuickTextMinistries(); }
     if (btn.dataset.tab === 'routines') { loadRoutineDaysList(); }
@@ -894,8 +1024,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 document.getElementById('e_type').addEventListener('change', (e) => {
-  document.getElementById('e_start_time_wrap').style.display = e.target.value === 'live' ? 'grid' : 'none';
-  document.getElementById('e_subject_wrap').style.display = e.target.value === 'model' ? 'block' : 'none';
+  const type = e.target.value;
+  document.getElementById('e_start_time_wrap').style.display = type === 'live' ? 'grid' : 'none';
+  document.getElementById('e_subject_wrap').style.display = type === 'model' ? 'block' : 'none';
+  document.getElementById('e_grading_mode_wrap').style.display = type === 'written' ? 'block' : 'none';
+  document.getElementById('e_mcq_picker_wrap').style.display = type === 'written' ? 'none' : 'block';
+  document.getElementById('e_written_picker_wrap').style.display = type === 'written' ? 'block' : 'none';
 });
 document.getElementById('e_start_time_wrap').style.display = 'none';
 
@@ -999,6 +1133,41 @@ function toggleExamQuestion(id, checked){
   document.getElementById('e_selected_count').textContent = examSelectedQuestions.size;
 }
 
+// ---- Exams: written-question picker (রিটেন পরীক্ষা) ----
+let examSelectedWrittenQuestions = new Set();
+
+async function loadExamWrittenQuestionPicker(){
+  const box = document.getElementById('examWrittenQuestionPicker');
+  if (!box) return;
+  box.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const params = new URLSearchParams();
+    const subject = document.getElementById('e_wq_subject').value.trim();
+    const grade = document.getElementById('e_wq_grade').value.trim();
+    if (subject) params.set('subject', subject);
+    if (grade) params.set('grade', grade);
+    const list = await api('/api/written-questions?' + params.toString());
+    if (!list.length){
+      box.innerHTML = '<div class="empty-state">কোনো রিটেন প্রশ্ন পাওয়া যায়নি — আগে "রিটেন প্রশ্ন" ট্যাব থেকে যোগ করুন</div>';
+      return;
+    }
+    box.innerHTML = list.map(q => `
+      <label style="display:flex; gap:8px; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${q.id}" ${examSelectedWrittenQuestions.has(q.id) ? 'checked' : ''} onchange="toggleExamWrittenQuestion(${q.id}, this.checked)" style="margin-top:3px;">
+        <span>${escapeHtml(q.question_text)} <span class="pill">${escapeHtml(q.subject)}</span> <span class="pill">${q.marks} মার্ক</span></span>
+      </label>
+    `).join('');
+  } catch(err){
+    box.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+document.getElementById('e_wq_filter_go').addEventListener('click', loadExamWrittenQuestionPicker);
+
+function toggleExamWrittenQuestion(id, checked){
+  if (checked) examSelectedWrittenQuestions.add(id); else examSelectedWrittenQuestions.delete(id);
+  document.getElementById('e_wq_selected_count').textContent = examSelectedWrittenQuestions.size;
+}
+
 document.getElementById('examForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errBox = document.getElementById('examErr');
@@ -1008,12 +1177,13 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try{
     const type = document.getElementById('e_type').value;
+    const isWritten = type === 'written';
     const payload = {
       title: document.getElementById('e_title').value.trim(),
       type,
       ministry_id: document.getElementById('e_ministry').value || null,
       post_name: document.getElementById('e_post_name').value.trim() || null,
-      subject: document.getElementById('e_subject').value.trim() || null,
+      subject: isWritten ? null : (document.getElementById('e_subject').value.trim() || null),
       grade: document.getElementById('e_grade').value || null,
       duration_minutes: document.getElementById('e_duration').value || 60,
       start_time: type === 'live' ? document.getElementById('e_start_time').value : null,
@@ -1022,17 +1192,28 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
       exam_probable_date: document.getElementById('e_exam_probable_date').value || null,
       circular_url: document.getElementById('e_circular_url').value.trim() || null,
       routine_category: document.getElementById('e_routine_category').value || null,
-      question_ids: Array.from(examSelectedQuestions)
     };
+    if (isWritten){
+      payload.written_question_ids = Array.from(examSelectedWrittenQuestions);
+      payload.grading_mode = document.getElementById('e_grading_mode').value;
+    } else {
+      payload.question_ids = Array.from(examSelectedQuestions);
+    }
     await api('/api/exams', { method: 'POST', body: JSON.stringify(payload) });
     okBox.textContent = 'পরীক্ষা তৈরি হয়েছে ✓';
     okBox.style.display = 'block';
     document.getElementById('examForm').reset();
     examSelectedQuestions.clear();
+    examSelectedWrittenQuestions.clear();
     document.getElementById('e_selected_count').textContent = '0';
+    document.getElementById('e_wq_selected_count').textContent = '0';
     document.getElementById('e_start_time_wrap').style.display = 'none';
     document.getElementById('e_subject_wrap').style.display = 'block';
+    document.getElementById('e_grading_mode_wrap').style.display = 'none';
+    document.getElementById('e_mcq_picker_wrap').style.display = 'block';
+    document.getElementById('e_written_picker_wrap').style.display = 'none';
     loadExamQuestionPicker();
+    loadExamWrittenQuestionPicker();
     loadExamsList();
   } catch(err){
     errBox.textContent = err.message;
@@ -1056,10 +1237,12 @@ async function loadExamsList(){
       ${list.map(ex => `
         <tr>
           <td class="qtext">${escapeHtml(ex.title)}</td>
-          <td><span class="pill">${ex.type === 'live' ? 'লাইভ' : 'মডেল'}</span></td>
+          <td><span class="pill">${ex.type === 'live' ? 'লাইভ' : (ex.type === 'written' ? 'রিটেন' : 'মডেল')}</span></td>
           <td>${ex.subject ? escapeHtml(ex.subject) : '-'}</td>
           <td>${ex.question_count}</td>
-          <td>${ex.attempt_count > 0 ? `<button class="btn btn-ghost btn-small" onclick="openResultsFor(${ex.id})">${ex.attempt_count} জন · ফলাফল</button>` : '<span class="pill">০ জন</span>'}</td>
+          <td>${ex.type === 'written'
+                ? `<button class="btn btn-ghost btn-small" onclick="openWrittenReviewFor(${ex.id})">${ex.attempt_count} জন · রিভিউ</button>`
+                : (ex.attempt_count > 0 ? `<button class="btn btn-ghost btn-small" onclick="openResultsFor(${ex.id})">${ex.attempt_count} জন · ফলাফল</button>` : '<span class="pill">০ জন</span>')}</td>
           <td>
             <select onchange="updateExamStatus(${ex.id}, this.value)" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); font-size:12.5px;">
               <option value="scheduled" ${ex.status === 'scheduled' ? 'selected' : ''}>নির্ধারিত</option>
@@ -1081,6 +1264,282 @@ async function loadExamsList(){
     wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
   }
 }
+
+// ---- Written exam review (রিটেন রিভিউ) ----
+let WR_CURRENT_EXAM_ID = null;
+let WR_CURRENT_STATUS = '';
+
+async function loadWrittenReviewExamList(preselectId){
+  const sel = document.getElementById('wr_exam_select');
+  sel.innerHTML = '<option value="">— লোড হচ্ছে... —</option>';
+  try{
+    const list = await api('/api/exams/admin/list');
+    const written = list.filter(ex => ex.type === 'written');
+    if (!written.length){
+      sel.innerHTML = '<option value="">— কোনো রিটেন পরীক্ষা নেই —</option>';
+      document.getElementById('wrListWrap').innerHTML = '<div class="empty-state">এখনো কোনো রিটেন পরীক্ষা তৈরি হয়নি</div>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— বাছাই করুন —</option>' +
+      written.map(ex => `<option value="${ex.id}">${escapeHtml(ex.title)} (${ex.grading_mode || '-'})</option>`).join('');
+    if (preselectId){
+      sel.value = preselectId;
+      WR_CURRENT_EXAM_ID = String(preselectId);
+      document.getElementById('wr_status_filter_wrap').style.display = 'flex';
+      loadWrittenReviewAnswers();
+    }
+  } catch(err){
+    sel.innerHTML = `<option value="">${escapeHtml(err.message)}</option>`;
+  }
+}
+
+document.getElementById('wr_exam_select').addEventListener('change', (e) => {
+  WR_CURRENT_EXAM_ID = e.target.value;
+  document.getElementById('wr_status_filter_wrap').style.display = WR_CURRENT_EXAM_ID ? 'flex' : 'none';
+  if (WR_CURRENT_EXAM_ID) loadWrittenReviewAnswers();
+  else document.getElementById('wrListWrap').innerHTML = '<div class="empty-state">উপরে থেকে একটি রিটেন পরীক্ষা বাছাই করুন</div>';
+});
+
+document.querySelectorAll('.wr-status-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    WR_CURRENT_STATUS = btn.dataset.status;
+    document.querySelectorAll('.wr-status-btn').forEach(b => b.style.background = '');
+    btn.style.background = 'var(--paper-deep)';
+    if (WR_CURRENT_EXAM_ID) loadWrittenReviewAnswers();
+  });
+});
+
+async function loadWrittenReviewAnswers(){
+  const wrap = document.getElementById('wrListWrap');
+  if (!WR_CURRENT_EXAM_ID) return;
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const params = new URLSearchParams();
+    if (WR_CURRENT_STATUS) params.set('status', WR_CURRENT_STATUS);
+    const list = await api(`/api/written-answers/admin/exam/${WR_CURRENT_EXAM_ID}?` + params.toString());
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state">কোনো উত্তর জমা পড়েনি</div>';
+      return;
+    }
+    const statusLabel = { pending: 'পেন্ডিং', graded: 'গ্রেড হয়েছে', self_checked: 'সেলফ-চেক' };
+    wrap.innerHTML = list.map(a => `
+      <div style="border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+          <div><b>${escapeHtml(a.participant_name || 'অজানা')}</b> ${a.participant_phone ? `· ${escapeHtml(a.participant_phone)}` : ''}</div>
+          <span class="pill">${statusLabel[a.status] || a.status}</span>
+        </div>
+        <div style="font-size:13px; margin-bottom:8px;"><b>প্রশ্ন:</b> ${escapeHtml(a.question_text)} <span class="pill">${a.max_marks} মার্ক</span></div>
+        <div style="font-size:13px; margin-bottom:8px; white-space:pre-wrap; background:var(--paper); padding:10px; border-radius:8px;"><b>শিক্ষার্থীর উত্তর:</b><br>${a.answer_text ? escapeHtml(a.answer_text) : (a.image_url ? `<a href="${escapeHtml(a.image_url)}" target="_blank">ছবি দেখুন</a>` : '—')}</div>
+        <div style="font-size:12.5px; color:var(--ink-soft); white-space:pre-wrap; background:var(--paper-deep); padding:10px; border-radius:8px; margin-bottom:10px;"><b>আদর্শ উত্তর:</b><br>${escapeHtml(a.model_answer)}</div>
+        <div class="grid-2" style="margin-bottom:8px;">
+          <div class="field" style="margin-bottom:0;">
+            <label>প্রাপ্ত মার্ক (সর্বোচ্চ ${a.max_marks})</label>
+            <input type="number" id="wr_marks_${a.id}" value="${a.marks_awarded != null ? a.marks_awarded : ''}" min="0" max="${a.max_marks}" step="0.5">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>ফিডব্যাক (ঐচ্ছিক)</label>
+            <input type="text" id="wr_feedback_${a.id}" value="${a.feedback ? escapeHtml(a.feedback) : ''}">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-small" onclick="gradeWrittenAnswerManual(${a.id})">মার্ক সেভ করুন</button>
+        <button class="btn btn-ghost btn-small" onclick="aiGradeSingleAnswer(${a.id})">AI দিয়ে গ্রেড করুন</button>
+        <span id="wr_msg_${a.id}" style="font-size:12px; margin-left:8px;"></span>
+      </div>
+    `).join('');
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function gradeWrittenAnswerManual(id){
+  const msg = document.getElementById(`wr_msg_${id}`);
+  const marks = document.getElementById(`wr_marks_${id}`).value;
+  const feedback = document.getElementById(`wr_feedback_${id}`).value.trim();
+  if (marks === ''){ msg.textContent = 'মার্ক দিন'; msg.style.color = 'var(--wrong)'; return; }
+  try{
+    await api(`/api/written-answers/admin/${id}/grade`, { method: 'PUT', body: JSON.stringify({ marks_awarded: marks, feedback: feedback || null }) });
+    msg.textContent = 'সেভ হয়েছে ✓'; msg.style.color = 'var(--success)';
+    loadWrittenReviewAnswers();
+  } catch(err){
+    msg.textContent = err.message; msg.style.color = 'var(--wrong)';
+  }
+}
+
+async function aiGradeSingleAnswer(id){
+  const msg = document.getElementById(`wr_msg_${id}`);
+  msg.textContent = 'গ্রেড হচ্ছে...'; msg.style.color = 'var(--ink-soft)';
+  try{
+    await api(`/api/written-answers/admin/${id}/ai-grade`, { method: 'POST' });
+    msg.textContent = 'AI গ্রেড হয়েছে ✓'; msg.style.color = 'var(--success)';
+    loadWrittenReviewAnswers();
+  } catch(err){
+    msg.textContent = err.message; msg.style.color = 'var(--wrong)';
+  }
+}
+
+document.getElementById('wr_aiGradeAllBtn').addEventListener('click', async () => {
+  if (!WR_CURRENT_EXAM_ID) return;
+  const resBox = document.getElementById('wr_aiGradeAllResult');
+  resBox.textContent = 'সব পেন্ডিং উত্তর AI দিয়ে গ্রেড করা হচ্ছে...';
+  try{
+    const result = await api(`/api/written-answers/admin/exam/${WR_CURRENT_EXAM_ID}/ai-grade-pending`, { method: 'POST' });
+    resBox.textContent = `${result.graded} টি গ্রেড হয়েছে${result.failed ? `, ${result.failed} টি ব্যর্থ` : ''} ✓`;
+    loadWrittenReviewAnswers();
+  } catch(err){
+    resBox.textContent = err.message;
+  }
+});
+
+// ---- Written question bank (রিটেন প্রশ্ন) ----
+async function loadWrittenMinistries(){
+  try{
+    const list = await api('/api/questions/ministries/list');
+    const sel = document.getElementById('wq_ministry');
+    sel.innerHTML = '<option value="">— নির্বাচন করুন —</option>' +
+      list.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  } catch(err){ /* silent */ }
+}
+
+document.getElementById('wqForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('wqErr');
+  const okBox = document.getElementById('wqOk');
+  errBox.style.display = 'none'; okBox.style.display = 'none';
+  const btn = document.getElementById('wqBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const payload = {
+      ministry_id: document.getElementById('wq_ministry').value || null,
+      grade: document.getElementById('wq_grade').value || null,
+      subject: document.getElementById('wq_subject').value.trim(),
+      topic: document.getElementById('wq_topic').value.trim() || null,
+      subtopic: document.getElementById('wq_subtopic').value.trim() || null,
+      post_name: document.getElementById('wq_post_name').value.trim() || null,
+      question_text: document.getElementById('wq_text').value.trim(),
+      model_answer: document.getElementById('wq_answer').value.trim(),
+      marks: document.getElementById('wq_marks').value || 10
+    };
+    await api('/api/written-questions', { method: 'POST', body: JSON.stringify(payload) });
+    okBox.textContent = 'প্রশ্ন যোগ হয়েছে ✓';
+    okBox.style.display = 'block';
+    document.getElementById('wqForm').reset();
+    document.getElementById('wq_marks').value = 10;
+    loadWrittenQuestions();
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'প্রশ্ন যোগ করুন';
+  }
+});
+
+async function loadWrittenQuestions(){
+  const wrap = document.getElementById('wqListWrap');
+  wrap.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+  try{
+    const params = new URLSearchParams();
+    const search = document.getElementById('wq_f_search').value.trim();
+    const subject = document.getElementById('wq_f_subject').value.trim();
+    if (search) params.set('search', search);
+    if (subject) params.set('subject', subject);
+    const list = await api('/api/written-questions?' + params.toString());
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state">কোনো রিটেন প্রশ্ন পাওয়া যায়নি</div>';
+      return;
+    }
+    wrap.innerHTML = `<table>
+      <tr><th>প্রশ্ন</th><th>বিষয়</th><th>গ্রেড</th><th>মার্ক</th><th></th></tr>
+      ${list.map(q => `
+        <tr>
+          <td class="qtext">${escapeHtml(q.question_text)}</td>
+          <td>${escapeHtml(q.subject)}</td>
+          <td>${q.grade || '-'}</td>
+          <td>${q.marks}</td>
+          <td class="row-actions">
+            <button class="btn btn-ghost btn-small danger" onclick="deleteWrittenQuestion(${q.id})">মুছুন</button>
+          </td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch(err){
+    wrap.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+document.getElementById('wq_f_go').addEventListener('click', loadWrittenQuestions);
+
+async function deleteWrittenQuestion(id){
+  if (!confirm('এই রিটেন প্রশ্নটি মুছে ফেলতে চান?')) return;
+  try{
+    await api(`/api/written-questions/${id}`, { method: 'DELETE' });
+    loadWrittenQuestions();
+  } catch(err){ alert(err.message); }
+}
+
+// ---- Written question bulk paste ----
+function parseWrittenBulkText(raw){
+  const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  const parsed = [];
+  const errors = [];
+  blocks.forEach((block, i) => {
+    const qMatch = block.match(/প্রশ্ন\s*:\s*([\s\S]*?)(?=\n\s*উত্তর\s*:|$)/);
+    const aMatch = block.match(/উত্তর\s*:\s*([\s\S]*?)(?=\n\s*মার্ক\s*:|$)/);
+    const mMatch = block.match(/মার্ক\s*:\s*(\d+)/);
+    if (!qMatch || !aMatch){
+      errors.push(`ব্লক ${i + 1}: "প্রশ্ন:" বা "উত্তর:" পাওয়া যায়নি`);
+      return;
+    }
+    parsed.push({
+      question_text: qMatch[1].trim(),
+      model_answer: aMatch[1].trim(),
+      marks: mMatch ? Number(mMatch[1]) : 10
+    });
+  });
+  return { parsed, errors };
+}
+
+document.getElementById('wqBulkPreviewBtn').addEventListener('click', () => {
+  const raw = document.getElementById('wqBulkText').value;
+  const { parsed, errors } = parseWrittenBulkText(raw);
+  const summary = document.getElementById('wqBulkPreviewSummary');
+  const list = document.getElementById('wqBulkPreviewList');
+  const wrapEl = document.getElementById('wqBulkPreviewWrap');
+  summary.textContent = `${parsed.length} টি প্রশ্ন পাওয়া গেছে${errors.length ? `, ${errors.length} টি ব্লকে সমস্যা` : ''}`;
+  list.innerHTML = parsed.map((q, i) => `
+    <div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;">
+      <b>${i + 1}.</b> ${escapeHtml(q.question_text)} <span class="pill">${q.marks} মার্ক</span>
+    </div>
+  `).join('') + errors.map(e => `<div style="color:var(--wrong); font-size:12.5px; padding:4px 0;">${escapeHtml(e)}</div>`).join('');
+  wrapEl.style.display = parsed.length ? 'block' : 'none';
+  wrapEl.dataset.parsed = JSON.stringify(parsed);
+});
+
+document.getElementById('wqBulkSubmitBtn').addEventListener('click', async () => {
+  const wrapEl = document.getElementById('wqBulkPreviewWrap');
+  const parsed = JSON.parse(wrapEl.dataset.parsed || '[]');
+  if (!parsed.length) return;
+  const shared = {
+    ministry_id: document.getElementById('wq_ministry').value || null,
+    grade: document.getElementById('wq_grade').value || null,
+    subject: document.getElementById('wq_subject').value.trim(),
+    topic: document.getElementById('wq_topic').value.trim() || null,
+    subtopic: document.getElementById('wq_subtopic').value.trim() || null,
+    post_name: document.getElementById('wq_post_name').value.trim() || null,
+  };
+  if (!shared.subject){ alert('উপরে বিষয় দিন (বাল্ক পেস্টের সব প্রশ্নে প্রযোজ্য)'); return; }
+  const questions = parsed.map(q => ({ ...shared, question_text: q.question_text, model_answer: q.model_answer, marks: q.marks }));
+  const resultBox = document.getElementById('wqBulkResult');
+  resultBox.style.display = 'block';
+  resultBox.textContent = 'জমা দেওয়া হচ্ছে...';
+  try{
+    const result = await api('/api/written-questions/bulk', { method: 'POST', body: JSON.stringify({ questions }) });
+    resultBox.textContent = `${result.added} টি যোগ হয়েছে${result.failed ? `, ${result.failed} টি ব্যর্থ` : ''}`;
+    document.getElementById('wqBulkText').value = '';
+    wrapEl.style.display = 'none';
+    loadWrittenQuestions();
+  } catch(err){
+    resultBox.textContent = err.message;
+  }
+});
 
 // ---- Results & Merit List ----
 let RESULTS_EXAM_CACHE = [];
@@ -1119,6 +1578,14 @@ function openResultsFor(examId){
   document.querySelector('.tab-btn[data-tab="results"]').classList.add('active');
   document.getElementById('panel-results').classList.add('active');
   loadResultsExamList(examId);
+}
+
+function openWrittenReviewFor(examId){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="writtenreview"]').classList.add('active');
+  document.getElementById('panel-writtenreview').classList.add('active');
+  loadWrittenReviewExamList(examId);
 }
 
 let LAST_RESULTS_ROWS = [];
