@@ -452,6 +452,18 @@
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
+  /* টপিকভিত্তিক জব সলুশন — টপিক ও সাবটপিক নামের লিস্ট কার্ড: sand/teal
+     নিউমরফিক (এই ফিচারের বাকি অংশে ব্যবহৃত --tj2-* থিমের সাথে মিলিয়ে)।
+     .tj2-topic-card ক্লাসে স্কোপ করা, তাই মন্ত্রণালয়/পোস্ট/লাইভ ক্যাটাগরির
+     মতো বাকি .group-card ব্যবহার অপরিবর্তিত থাকে। */
+  .group-card.tj2-topic-card{ background:var(--tj2-card); border:none; box-shadow:var(--tj2-shadow); }
+  .group-card.tj2-topic-card:active{ box-shadow:var(--tj2-shadow-inset); transform:scale(0.98); }
+  .tj2-topic-card .gc-ic{ background:var(--tj2-bg); color:var(--tj2-teal-deep); box-shadow:3px 3px 7px rgba(150,120,70,0.22), -3px -3px 7px rgba(255,255,255,0.8); }
+  .tj2-topic-card .gc-ic.post{ background:var(--tj2-bg); color:var(--tj2-gold); }
+  .tj2-topic-card .gc-name{ color:var(--tj2-ink); }
+  .tj2-topic-card .gc-meta{ color:var(--tj2-ink-soft); opacity:1; }
+  .tj2-topic-card .gc-arrow{ color:var(--tj2-teal); opacity:.85; }
+
   /* ---------- Live category tabs (used on লাইভ পরীক্ষা screen) ---------- */
   .live-cat-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; -webkit-overflow-scrolling:touch;}
   .live-cat-tabs::-webkit-scrollbar{display:none;}
@@ -3564,7 +3576,7 @@
 
     listEl.innerHTML = TOPIC_TOPICS_CACHE.map(t=>{
       return `
-        <div class="group-card" onclick='openTopicTopic(${JSON.stringify(t.topic)})'>
+        <div class="group-card tj2-topic-card" onclick='openTopicTopic(${JSON.stringify(t.topic)})'>
           <div class="gc-left">
             <div class="gc-ic post">📌</div>
             <div>
@@ -3611,9 +3623,19 @@
       return;
     }
 
+    // মাত্র ১টা সাবটপিক থাকলে (যেমন "অন্যান্য") এই মধ্যবর্তী লিস্ট স্ক্রিন না
+    // দেখিয়ে সরাসরি প্রশ্নে চলে যাও। replaceState ব্যবহার করছি যাতে "পেছনে"
+    // চাপলে এই খালি-মতো স্ক্রিনে না গিয়ে সরাসরি টপিক লিস্টে ফিরে যায়।
+    if(TOPIC_SUBTOPICS_CACHE.length === 1){
+      TOPIC_NAV = {level:'questions', subject:TOPIC_NAV.subject, topic:TOPIC_NAV.topic, subtopic:TOPIC_SUBTOPICS_CACHE[0].subtopic, page:1};
+      history.replaceState({drill:true}, '', location.pathname);
+      renderModelScreen();
+      return;
+    }
+
     const totalQuestions = TOPIC_SUBTOPICS_CACHE.reduce((a,s)=>a+s.question_count, 0);
     const allBtn = `
-      <div class="group-card" onclick='openSubtopicQuestions(null)'>
+      <div class="group-card tj2-topic-card" onclick='openSubtopicQuestions(null)'>
         <div class="gc-left">
           <div class="gc-ic post">📋</div>
           <div>
@@ -3627,7 +3649,7 @@
     const cards = TOPIC_SUBTOPICS_CACHE.map(s=>{
       const pages = Math.max(1, Math.ceil(s.question_count / 30));
       return `
-        <div class="group-card" onclick='openSubtopicQuestions(${JSON.stringify(s.subtopic)})'>
+        <div class="group-card tj2-topic-card" onclick='openSubtopicQuestions(${JSON.stringify(s.subtopic)})'>
           <div class="gc-left">
             <div class="gc-ic post">📌</div>
             <div>
