@@ -10,6 +10,24 @@ function genSerial(type) {
   return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+// Fix: a live exam was flipping to "আর্কাইভ" (and showing up in the central
+// archive) the instant its own duration_minutes elapsed — a 20-minute exam
+// vanished from "লাইভ" just 20 minutes after it started, which is too fast
+// for students to even notice it happened. duration_minutes is meant to be
+// how long ONE student's attempt/timer runs once they open the exam — not
+// how long the exam stays visible/"live" in the app for everyone. So the
+// live/archive WINDOW now uses whichever is longer: the exam's own duration,
+// or this fixed minimum. The per-attempt countdown a student sees after
+// clicking in (public-site/index.html's CURRENT_EXAM timer) still uses the
+// real duration_minutes untouched.
+const LIVE_WINDOW_MIN_MINUTES = 12 * 60; // 12 hours
+
+// SQL snippet: the effective number of minutes an exam counts as "live" for,
+// given its own duration_minutes column (aliased/qualified by the caller).
+function liveWindowMinutesSql(col) {
+  return `GREATEST(${col}, ${LIVE_WINDOW_MIN_MINUTES})`;
+}
+
 // ---------- ADMIN ----------
 
 // POST /api/exams — create an exam and attach questions
@@ -287,6 +305,11 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
   if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   const exam = examRes.rows[0];
 
+  // Note: this uses the exam's REAL duration_minutes, not the extended
+  // LIVE_WINDOW_MIN_MINUTES below — a student's own answer key should unlock
+  // the moment their actual attempt window ends, not 12 hours later. The
+  // 12-hour minimum only controls how long the exam stays tagged "লাইভ"
+  // and out of the central archive list, not when solutions become visible.
   if (exam.type === 'live' && exam.start_time) {
     const end = new Date(exam.start_time).getTime() + (exam.duration_minutes || 60) * 60000;
     if (Date.now() < end) {
@@ -307,10 +330,13 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/exams/public/archive/list — closed/expired live exams, most recent
-// first. Purely time-computed (start_time + duration < now) — nothing to
-// "move" into the archive, an exam just starts appearing here the moment its
-// live window ends. Capped at 300 so this stays fast as exams pile up over
-// time; the client can add ?limit=/&offset= pagination later if needed.
+// first. Purely time-computed (start_time + live-window < now) — nothing to
+// "move" into the archive, an exam just starts appearing here once its live
+// window ends (see LIVE_WINDOW_MIN_MINUTES above — at least 12 hours after
+// start_time, even for a short exam, so it doesn't vanish from "লাইভ
+// পরীক্ষা" into here within minutes of starting). Capped at 300 so this
+// stays fast as exams pile up over time; the client can add ?limit=/&offset=
+// pagination later if needed.
 router.get('/public/archive/list', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.grade, e.duration_minutes, e.start_time, e.serial, 'live' AS type,
@@ -319,7 +345,7 @@ router.get('/public/archive/list', asyncHandler(async (req, res) => {
       (SELECT COUNT(*) FROM results r WHERE r.exam_id = e.id) AS attempt_count
     FROM exams e LEFT JOIN ministries m ON m.id = e.ministry_id
     WHERE e.type = 'live' AND e.start_time IS NOT NULL
-      AND e.start_time + (e.duration_minutes || ' minutes')::interval < NOW()
+      AND e.start_time + (${liveWindowMinutesSql('e.duration_minutes')} || ' minutes')::interval < NOW()
     ORDER BY e.start_time DESC
     LIMIT 300
   `);
@@ -402,7 +428,7 @@ router.get('/public/subject-list', asyncHandler(async (req, res) => {
       BOOL_OR(
         e.type = 'live' AND e.start_time IS NOT NULL
         AND e.start_time <= NOW()
-        AND e.start_time + (e.duration_minutes || ' minutes')::interval >= NOW()
+        AND e.start_time + (${liveWindowMinutesSql('e.duration_minutes')} || ' minutes')::interval >= NOW()
       ) AS is_live
     FROM exams e
     WHERE e.subject = ANY($1)
