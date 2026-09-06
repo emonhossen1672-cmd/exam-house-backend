@@ -69,6 +69,20 @@
     --q-tan-shadow:6px 6px 14px rgba(163,153,120,0.30), -6px -6px 14px rgba(255,255,255,0.9);
     --q-tan-shadow-sm:3px 3px 8px rgba(163,153,120,0.28), -3px -3px 8px rgba(255,255,255,0.85);
     --q-tan-shadow-inset:inset 3px 3px 7px rgba(163,153,120,0.28), inset -3px -3px 7px rgba(255,255,255,0.85);
+    /* টপিকভিত্তিক জব সলুশন — sand/teal থিম (ডেমো অনুযায়ী, ব্যবহারকারীর পছন্দ করা
+       ডিজাইন)। শুধুমাত্র .tj2-* ক্লাসগুলোতে ব্যবহৃত — dark mode-এ override করা হয়
+       না, যাতে এই স্ক্রিনটা সবসময় sand/teal-ই থাকে (q-tan থিমের মতো একই সিদ্ধান্ত)। */
+    --tj2-bg:#F4ECDB;
+    --tj2-card:#FBF5E9;
+    --tj2-line:#E1D2AE;
+    --tj2-ink:#35281A;
+    --tj2-ink-soft:#6B5A42;
+    --tj2-teal:#1F5C52;
+    --tj2-teal-deep:#163F38;
+    --tj2-gold:#C08A2E;
+    --tj2-rose:#B5533F;
+    --tj2-shadow:6px 6px 14px rgba(150,120,70,0.25), -6px -6px 14px rgba(255,255,255,0.85);
+    --tj2-shadow-inset:inset 4px 4px 8px rgba(150,120,70,0.22), inset -4px -4px 8px rgba(255,255,255,0.7);
   }
   /* ---------- Dark mode ---------- */
   /* Only the "surface" tokens (page/card backgrounds, borders, body text)
@@ -504,6 +518,66 @@
   .tj-action-btn.mid{flex:1;}
   .tj-action-btn:active{transform:scale(0.96);}
   .tj-action-btn.primary{color:#fff; flex:0.9;}
+
+  /* ---- টপিকভিত্তিক জব সলুশন v2 — sand/teal ডেমো ডিজাইন ---- */
+  .tj2-card{background:var(--tj2-card); border-radius:20px; padding:16px; box-shadow:var(--tj2-shadow); margin-bottom:14px;}
+  .tj2-card-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
+  .tj2-card-name{font-weight:700; font-size:16px; color:var(--tj2-ink); min-width:0; overflow-wrap:break-word;}
+  .tj2-fav{display:flex; align-items:center; gap:4px; color:var(--tj2-rose); font-size:13px; font-weight:600; flex-shrink:0; cursor:pointer;}
+  .tj2-fav svg{width:15px; height:15px;}
+  .tj2-card-body{display:flex; align-items:center; gap:14px;}
+  .tj2-ring{width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--tj2-teal-deep); flex-shrink:0; position:relative;}
+  .tj2-ring svg{position:absolute; inset:0;}
+  .tj2-ring span{position:relative; z-index:1;}
+  .tj2-meta{font-size:13px; color:var(--tj2-ink-soft); line-height:1.7;}
+  .tj2-meta b{color:var(--tj2-ink); font-weight:600;}
+  .tj2-btn-row{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
+  .tj2-pill{flex:1; min-width:96px; text-align:center; font-size:12.5px; font-weight:600; padding:9px 6px; border-radius:12px; border:none; cursor:pointer; background:var(--tj2-bg); box-shadow:var(--tj2-shadow); color:var(--tj2-teal-deep); font-family:'Noto Sans Bengali';}
+  .tj2-pill.primary{background:var(--tj2-teal); color:#fff; box-shadow:none;}
+
+  .tj2-toolbar{background:var(--tj2-card); border-radius:20px; padding:16px; box-shadow:var(--tj2-shadow); margin-bottom:16px;}
+  .tj2-toolbar-top{display:flex; gap:16px; align-items:center;}
+  .tj2-big-ring{width:84px; height:84px; border-radius:50%; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;}
+  .tj2-big-ring svg{position:absolute; inset:0;}
+  .tj2-big-ring span{position:relative; z-index:1; font-weight:700; font-size:15px; color:var(--tj2-teal-deep);}
+  .tj2-big-ring small{position:relative; z-index:1; font-size:10px; color:var(--tj2-ink-soft);}
+  .tj2-toggle-list{flex:1; display:flex; flex-direction:column; gap:9px; min-width:0;}
+  .tj2-toggle-row{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--tj2-ink); gap:8px;}
+  .tj2-switch{width:36px; height:20px; border-radius:12px; background:var(--tj2-bg); box-shadow:var(--tj2-shadow-inset); position:relative; cursor:pointer; flex-shrink:0;}
+  .tj2-switch::after{content:''; width:16px; height:16px; border-radius:50%; background:#fff; position:absolute; top:2px; left:2px; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:.2s;}
+  .tj2-switch.on{background:var(--tj2-teal);}
+  .tj2-switch.on::after{left:18px;}
+  .tj2-filter-tabs{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
+  .tj2-tab{padding:7px 14px; border-radius:10px; font-size:12.5px; font-weight:600; background:var(--tj2-bg); box-shadow:var(--tj2-shadow-inset); color:var(--tj2-ink-soft); cursor:pointer; font-family:'Noto Sans Bengali'; border:none;}
+  .tj2-tab.active{background:var(--tj2-teal); color:#fff; box-shadow:none;}
+
+  .tj2-qcard{background:var(--tj2-card); border-radius:18px; padding:16px; box-shadow:var(--tj2-shadow); margin-bottom:14px;}
+  .tj2-qhead{display:flex; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .tj2-qtext{font-size:15px; font-weight:600; line-height:1.6; color:var(--tj2-ink);}
+  .tj2-qchk{width:20px; height:20px; border-radius:6px; border:2px solid var(--tj2-line); flex-shrink:0; margin-top:2px; cursor:pointer; accent-color:var(--tj2-teal);}
+  .tj2-opt{display:flex; align-items:center; gap:10px; padding:10px 4px; font-size:14px; border-bottom:1px solid var(--tj2-line); color:var(--tj2-ink);}
+  .tj2-opt:last-of-type{border-bottom:none;}
+  .tj2-opt-mark{width:26px; height:26px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--tj2-teal-deep); background:var(--tj2-bg); box-shadow:var(--tj2-shadow);}
+  .tj2-opt.correct .tj2-opt-mark{background:var(--tj2-teal); color:#fff; box-shadow:none;}
+  .tj2-opt.correct{font-weight:700; color:var(--tj2-teal-deep);}
+  .tj2-qmeta{font-size:11px; color:var(--tj2-ink-soft); margin:-6px 0 10px;}
+  .tj2-qactions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .tj2-qactions .tj2-pill{font-size:12px; padding:8px 4px;}
+  .tj2-heart-on{color:var(--tj2-rose) !important;}
+  .tj2-stats{font-size:12px; color:var(--tj2-ink); font-weight:600; background:var(--tj2-bg); box-shadow:var(--tj2-shadow-inset); border-radius:10px; padding:10px 12px; margin-top:10px; display:none;}
+  .tj2-stats-row{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+  .tj2-stats-row.is-correct{color:var(--tj2-teal-deep);}
+  .tj2-stats-bar-track{flex:1; height:8px; background:var(--tj2-line); border-radius:4px; overflow:hidden;}
+  .tj2-stats-bar-fill{height:100%; background:var(--tj2-teal); border-radius:4px;}
+  .tj2-stats-pct{font-family:'Space Mono',monospace; font-size:11px;}
+
+  .tj2-modal-overlay{position:fixed; inset:0; background:rgba(53,40,26,0.45); display:none; align-items:flex-end; justify-content:center; z-index:9999;}
+  .tj2-modal-overlay.show{display:flex;}
+  .tj2-modal-sheet{width:100%; max-width:480px; background:var(--tj2-card); border-radius:22px 22px 0 0; padding:20px; max-height:78vh; overflow-y:auto; box-shadow:0 -8px 24px rgba(0,0,0,0.2); font-family:'Noto Sans Bengali';}
+  .tj2-modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .tj2-modal-head h3{margin:0; font-size:17px; color:var(--tj2-ink);}
+  .tj2-modal-close{background:none; border:none; font-size:20px; color:var(--tj2-ink-soft); cursor:pointer;}
+  .tj2-modal-body{font-size:14px; line-height:1.85; color:var(--tj2-ink); white-space:pre-wrap;}
 
 
   /* ---------- Smart practice card ---------- */
@@ -1727,6 +1801,17 @@
       <button class="archive-exit" onclick="closeArchive()">✕</button>
     </div>
     <div class="archive-body" id="archive-body"></div>
+  </div>
+
+  <!-- ============ টপিকভিত্তিক জব সলুশন — ব্যাখ্যা মোডাল ============ -->
+  <div class="tj2-modal-overlay" id="tj2-explain-modal" onclick="if(event.target===this) closeTopicExplainModal()">
+    <div class="tj2-modal-sheet">
+      <div class="tj2-modal-head">
+        <h3>ব্যাখ্যা</h3>
+        <button class="tj2-modal-close" onclick="closeTopicExplainModal()">✕</button>
+      </div>
+      <div class="tj2-modal-body" id="tj2-explain-body"></div>
+    </div>
   </div>
 
 </div>
@@ -3080,26 +3165,39 @@
     </svg>`;
   }
 
+  // টপিকভিত্তিক জব সলুশন v2 (sand/teal ডেমো) — একই কৌশলে ring আঁকা, কিন্তু
+  // var(--tj2-line)/var(--tj2-teal) দিয়ে যাতে এই স্ক্রিনে সবসময় sand/teal থিমই
+  // দেখা যায় (dark mode-এও অপরিবর্তিত, q-tan থিমের সিদ্ধান্তের ধারাবাহিকতায়)।
+  function tj2RingSvg(pct, size){
+    size = size || 58;
+    const r = size/2 - 4, c = 2 * Math.PI * r, cx = size/2, cy = size/2;
+    const off = c * (1 - Math.min(100, Math.max(0, pct)) / 100);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--tj2-line)" stroke-width="5"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--tj2-teal)" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"/>
+    </svg>`;
+  }
+
   // Toolbar shown above the question list: progress ring (scope-wide, not
   // just this page), bulk reveal switches, and the All/Favorite/Read/Unread
   // filter tabs. `ring` is {total, read_count, favorite_count} for the
   // current subject/topic/subtopic scope, from the API's scope_* fields.
   function renderTopicToolbar(ring){
     const pct = ring.total ? Math.round(ring.read_count / ring.total * 100) : 0;
-    const filters = [['all','সব'],['favorite','প্রিয়'],['read','পড়া হয়েছে'],['unread','পড়া হয়নি']];
+    const filters = [['all','সব'],['favorite','প্রিয়'],['read','পঠিত'],['unread','অপঠিত']];
     return `
-      <div class="tq-toolbar">
-        <div class="tq-ring-row">
-          <div class="tq-ring-wrap">${ringSvg(pct)}<span>${toBnDigits(ring.read_count)}/${toBnDigits(ring.total)}</span></div>
-          <div class="tq-ring-label"><b>${toBnDigits(pct)}%</b> সম্পন্ন</div>
+      <div class="tj2-toolbar">
+        <div class="tj2-toolbar-top">
+          <div class="tj2-big-ring">${tj2RingSvg(pct, 84)}<span>${toBnDigits(ring.read_count)}/${toBnDigits(ring.total)}</span><small>সম্পন্ন</small></div>
+          <div class="tj2-toggle-list">
+            <div class="tj2-toggle-row">সব উত্তর দেখান <div class="tj2-switch${TOPIC_SHOW_ALL_ANS?' on':''}" onclick="setTopicToggle('ans', ${!TOPIC_SHOW_ALL_ANS})"></div></div>
+            <div class="tj2-toggle-row">সব ব্যাখ্যা দেখান <div class="tj2-switch${TOPIC_SHOW_ALL_EXP?' on':''}" onclick="setTopicToggle('exp', ${!TOPIC_SHOW_ALL_EXP})"></div></div>
+            <div class="tj2-toggle-row">শুধু ইউনিক প্রশ্ন <div class="tj2-switch${TOPIC_UNIQUE?' on':''}" onclick="setTopicToggle('unique', ${!TOPIC_UNIQUE})"></div></div>
+          </div>
         </div>
-        <div class="tq-toggle-row">
-          <label>সব উত্তর দেখান <input type="checkbox" ${TOPIC_SHOW_ALL_ANS?'checked':''} onchange="setTopicToggle('ans', this.checked)"></label>
-          <label>সব ব্যাখ্যা দেখান <input type="checkbox" ${TOPIC_SHOW_ALL_EXP?'checked':''} onchange="setTopicToggle('exp', this.checked)"></label>
-          <label>শুধু ইউনিক প্রশ্ন <input type="checkbox" ${TOPIC_UNIQUE?'checked':''} onchange="setTopicToggle('unique', this.checked)"></label>
-        </div>
-        <div class="tq-filter-row">
-          ${filters.map(([k,label])=>`<button class="tq-filter-btn${TOPIC_FILTER===k?' active':''}" onclick="setTopicFilter('${k}')">${label}</button>`).join('')}
+        <div class="tj2-filter-tabs">
+          ${filters.map(([k,label])=>`<button class="tj2-tab${TOPIC_FILTER===k?' active':''}" onclick="setTopicFilter('${k}')">${label}</button>`).join('')}
         </div>
       </div>`;
   }
@@ -3126,30 +3224,41 @@
     const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
     const showAns = TOPIC_SHOW_ALL_ANS;
     const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
-      .map(([k, v]) => `<div class="rl-q-opt${showAns && k===q.correct_option ? ' correct' : ''}" data-key="${k}"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
-    const explainHtml = q.explanation
-      ? `<div class="rl-q-explain" id="tp-exp-${q.id}" style="display:${TOPIC_SHOW_ALL_EXP ? 'block' : 'none'};">💡 ${escapeHtml(q.explanation)}</div>`
-      : '';
+      .map(([k, v]) => `<div class="tj2-opt${showAns && k===q.correct_option ? ' correct' : ''}" data-key="${k}"><div class="tj2-opt-mark">${k}</div> ${escapeHtml(v)}</div>`).join('');
     const bmOn = BOOKMARK_IDS.has(q.id);
     return `
-      <div class="rl-q-card" id="tp-q-${q.id}">
-        <div class="rl-q-top">
-          <span class="rl-q-num">${toBnDigits(num)}.</span>
-          <span class="rl-q-text">${escapeHtml(q.question_text)}</span>
-          <input type="checkbox" class="tq-read-chk" id="tq-chk-${q.id}" ${q.is_read ? 'checked' : ''} onchange="toggleTopicRead(${q.id}, this.checked)" title="পড়া হয়েছে">
+      <div class="tj2-qcard" id="tp-q-${q.id}">
+        <div class="tj2-qhead">
+          <div class="tj2-qtext">${toBnDigits(num)}. ${escapeHtml(q.question_text)}</div>
+          <input type="checkbox" class="tj2-qchk" id="tq-chk-${q.id}" ${q.is_read ? 'checked' : ''} onchange="toggleTopicRead(${q.id}, this.checked)" title="পড়া হয়েছে">
         </div>
-        ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
-        <div class="rl-q-opts">${opts}</div>
-        <div class="tq-stats" id="tq-stats-${q.id}"></div>
-        ${explainHtml}
-        ${showAns ? '' : `<button class="rl-q-reveal" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর দেখুন</button>`}
-        <div class="tq-actions">
-          <button class="tq-act-btn${showAns ? ' on' : ''}" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর</button>
-          <button class="tq-act-btn" onclick="toggleTopicStats(${q.id})">📊 কতজন</button>
-          <button class="tq-act-btn${TOPIC_SHOW_ALL_EXP ? ' on' : ''}" onclick="toggleTopicExplain(${q.id})">ব্যাখ্যা</button>
-          <button class="tq-act-btn bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)">${bmOn ? '★ প্রিয়' : '☆ প্রিয়'}</button>
+        ${metaParts.length ? `<div class="tj2-qmeta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+        <div>${opts}</div>
+        <div class="tj2-stats" id="tq-stats-${q.id}"></div>
+        <div class="tj2-qactions">
+          <button class="tj2-pill${showAns ? ' primary' : ''}" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর</button>
+          <button class="tj2-pill" onclick="toggleTopicStats(${q.id})">কতজন</button>
+          <button class="tj2-pill" onclick="openTopicExplainModal(${q.id})">ব্যাখ্যা</button>
+          <button class="tj2-pill${bmOn ? ' tj2-heart-on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)">${bmOn ? '♥ প্রিয়' : '♡ প্রিয়'}</button>
         </div>
       </div>`;
+  }
+
+  // ব্যাখ্যা এখন screenshot-এর মতো bottom-sheet মোডালে খোলে (আগে কার্ডের ভেতর
+  // ইনলাইনে টগল হতো)। "সব ব্যাখ্যা দেখান" বাল্ক টগলটা আলাদা এবং অপরিবর্তিত —
+  // ওটা এখনো চাইলে renderTopicQCard-এ ফিরিয়ে আনা যায়, কিন্তু যেহেতু প্রতিটা
+  // প্রশ্নের ব্যাখ্যা এখন মোডালে, বাল্ক-রিভিল স্টেট এখন শুধু বাটনটার হাইলাইট
+  // হিসেবেই রাখা হলো যাতে ভবিষ্যতে দরকার হলে সহজে ফেরানো যায়।
+  function openTopicExplainModal(qid){
+    const q = TOPIC_PAGE_QUESTIONS.find(x=>x.id===qid);
+    if(!q) return;
+    const modal = document.getElementById('tj2-explain-modal');
+    const body = document.getElementById('tj2-explain-body');
+    body.textContent = q.explanation ? q.explanation : 'এই প্রশ্নের জন্য এখনো কোনো ব্যাখ্যা যুক্ত করা হয়নি।';
+    modal.classList.add('show');
+  }
+  function closeTopicExplainModal(){
+    document.getElementById('tj2-explain-modal').classList.remove('show');
   }
 
   async function toggleTopicRead(qid, checked){
@@ -3190,14 +3299,14 @@
     const s = TOPIC_STATS_CACHE[qid];
     const q = TOPIC_PAGE_QUESTIONS.find(x=>x.id===qid);
     if(!panel || !s) return;
-    if(!s.total){ panel.innerHTML = '<span style="color:var(--ink-faint);">এখনো কেউ এই প্রশ্নের উত্তর দেয়নি।</span>'; return; }
+    if(!s.total){ panel.innerHTML = '<span style="color:var(--tj2-ink-soft);">এখনো কেউ এই প্রশ্নের উত্তর দেয়নি।</span>'; return; }
     panel.innerHTML = ['A','B','C','D'].map(k=>{
       const pct = Math.round((s[k] / s.total) * 100);
       const isCorrect = q && q.correct_option === k;
-      return `<div class="tq-stats-row${isCorrect ? ' is-correct' : ''}"><span>${k}</span>
-        <div class="tq-stats-bar-track"><div class="tq-stats-bar-fill" style="width:${pct}%"></div></div>
-        <span class="tq-stats-pct">${toBnDigits(pct)}%</span></div>`;
-    }).join('') + `<div style="margin-top:4px; color:var(--ink-faint); font-size:11px;">মোট ${toBnDigits(s.total)}জনের উত্তরের ভিত্তিতে</div>`;
+      return `<div class="tj2-stats-row${isCorrect ? ' is-correct' : ''}"><span>${k}</span>
+        <div class="tj2-stats-bar-track"><div class="tj2-stats-bar-fill" style="width:${pct}%"></div></div>
+        <span class="tj2-stats-pct">${toBnDigits(pct)}%</span></div>`;
+    }).join('') + `<div style="margin-top:4px; color:var(--tj2-ink-soft); font-size:11px;">মোট ${toBnDigits(s.total)}জনের উত্তরের ভিত্তিতে</div>`;
   }
 
   async function renderTopicScreen(){
@@ -3285,33 +3394,23 @@
     const pct = s.question_count ? s.read_count / s.question_count : 0;
     const pctRounded = Math.round(pct * 100);
     const subjArg = JSON.stringify(s.subject);
-    const st = tjStyleFor(s.subject);
-    const progressLabel = pctRounded >= 100
-      ? 'সম্পন্ন ✓'
-      : `${toBnDigits(s.read_count)} / ${toBnDigits(s.question_count)} পড়া হয়েছে`;
     return `
-      <div class="tj-card" style="--tj-acc:${st.fill}">
-        <div class="tj-card-head">
-          <div class="tj-name-row">
-            <div class="tj-icon" style="background:${st.bg}; color:${st.text}">${escapeHtml(st.abbr)}</div>
-            <div style="min-width:0;">
-              <div class="tj-name">${escapeHtml(s.subject)}</div>
-              <div class="tj-meta">${toBnDigits(s.topic_count)} সাবটপিক · ${toBnDigits(s.question_count)} প্রশ্ন</div>
-            </div>
-          </div>
-          <div class="tj-like${s.liked ? ' on' : ''}" id="tj-like-${cssId(s.subject)}" onclick='toggleTopicLike(${subjArg}, event)'>
-            <span class="tj-heart"><svg class="ic" viewBox="0 0 24 24" style="fill:${s.liked ? st.fill : 'none'}; stroke:${st.fill}; stroke-width:1.8;"><use href="#i-heart"/></svg></span>
-            <span class="tj-like-count">${toBnDigits(s.like_count)}</span>
+      <div class="tj2-card">
+        <div class="tj2-card-top">
+          <div class="tj2-card-name">${escapeHtml(s.subject)}</div>
+          <div class="tj2-fav${s.liked ? ' tj2-heart-on' : ''}" id="tj-like-${cssId(s.subject)}" onclick='toggleTopicLike(${subjArg}, event)'>
+            <svg viewBox="0 0 24 24" style="fill:${s.liked ? 'var(--tj2-rose)' : 'none'}; stroke:var(--tj2-rose); stroke-width:1.8;"><use href="#i-heart"/></svg>
+            <span>${toBnDigits(s.like_count)}</span>
           </div>
         </div>
-        <div class="tj-progress-row"><span>${progressLabel}</span><span style="color:${st.text}; font-weight:700">${toBnDigits(pctRounded)}%</span></div>
-        <div class="tj-progress-track">
-          <div class="tj-progress-fill" style="width:${pctRounded}%; background:${st.fill}"></div>
+        <div class="tj2-card-body">
+          <div class="tj2-ring">${tj2RingSvg(pctRounded, 58)}<span>${toBnDigits(pctRounded)}%</span></div>
+          <div class="tj2-meta">সাবটপিক: <b>${toBnDigits(s.topic_count)}টি</b><br>প্রশ্ন: <b>${toBnDigits(s.question_count)}টি</b><br>পড়া হয়েছে: <b>${toBnDigits(s.read_count)}/${toBnDigits(s.question_count)}</b></div>
         </div>
-        <div class="tj-actions">
-          <button class="tj-action-btn wide" onclick='openTopicAllQuestions(${subjArg})'><svg class="ic" viewBox="0 0 24 24" style="fill:none; stroke:var(--ink-soft); stroke-width:1.8;"><use href="#i-book"/></svg>সব প্রশ্ন</button>
-          <button class="tj-action-btn mid" style="background:${st.bg}; color:${st.text}" onclick='openTopicSubject(${subjArg})'>সাবটপিক ›</button>
-          <button class="tj-action-btn primary" style="background:${st.fill}" onclick='startTopicSubjectQuiz(${subjArg})'><svg class="ic" viewBox="0 0 24 24" style="fill:none; stroke:#fff; stroke-width:1.8;"><use href="#i-target"/></svg>কুইজ</button>
+        <div class="tj2-btn-row">
+          <button class="tj2-pill primary" onclick='openTopicAllQuestions(${subjArg})'>সকল প্রশ্ন</button>
+          <button class="tj2-pill" onclick='openTopicSubject(${subjArg})'>সকল উপ-টপিক</button>
+          <button class="tj2-pill" onclick='startTopicSubjectQuiz(${subjArg})'>র‍্যান্ডম কুইজ</button>
         </div>
       </div>`;
   }
@@ -3594,11 +3693,12 @@
   function toggleTopicAnswer(qid, correctKey){
     const card = document.getElementById('tp-q-' + qid);
     if(!card) return;
-    card.querySelectorAll('.rl-q-opt').forEach(el=>{
-      el.classList.toggle('correct', el.getAttribute('data-key') === correctKey);
+    const nowShown = !card.querySelector('.tj2-opt.correct');
+    card.querySelectorAll('.tj2-opt').forEach(el=>{
+      el.classList.toggle('correct', nowShown && el.getAttribute('data-key') === correctKey);
     });
-    const btn = card.querySelector('.rl-q-reveal');
-    if(btn) btn.style.display = 'none';
+    const btn = card.querySelector('.tj2-qactions .tj2-pill');
+    if(btn) btn.classList.toggle('primary', nowShown);
     const chk = document.getElementById('tq-chk-'+qid);
     if(chk && !chk.checked) chk.checked = true;
     markTopicQuestionRead(qid);
