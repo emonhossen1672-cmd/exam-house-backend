@@ -163,6 +163,7 @@ router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT e.id, e.title, e.type, e.post_name, e.subject, e.grade, e.duration_minutes, e.start_time, e.status, e.serial, e.negative_marks,
       e.is_daily, e.is_practice, e.is_duel, e.is_auto_subject, e.is_repeated_bank, e.ministry_id, e.routine_category,
+      e.topics_summary, e.routine_note,
       m.name AS ministry_name,
       (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
       EXISTS(
