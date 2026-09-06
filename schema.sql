@@ -383,6 +383,11 @@ CREATE TABLE IF NOT EXISTS user_routine_progress (
 -- can offer the identical category tabs as লাইভ রুটিন — an exam created for
 -- e.g. "২০০ দিনে বিসিএস প্রস্তুতি" shows up under that tab there too.
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS routine_category VARCHAR(40);
+-- Shows subject/topic breakdown and a routine-progress note on the exam
+-- card for routine-auto-generated exams (see routineExamScheduler.js).
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS subject VARCHAR(100);
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS topics_summary TEXT;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS routine_note TEXT;
 CREATE INDEX IF NOT EXISTS idx_exams_routine_category ON exams(routine_category);
 -- Subtopic layer for টপিকভিত্তিক জব সলুশন (Subject → Topic → Subtopic → Questions)
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS subtopic VARCHAR(200);
