@@ -555,11 +555,15 @@
   .tj2-qhead{display:flex; justify-content:space-between; gap:10px; margin-bottom:12px;}
   .tj2-qtext{font-size:15px; font-weight:600; line-height:1.6; color:var(--tj2-ink);}
   .tj2-qchk{width:20px; height:20px; border-radius:6px; border:2px solid var(--tj2-line); flex-shrink:0; margin-top:2px; cursor:pointer; accent-color:var(--tj2-teal);}
-  .tj2-opt{display:flex; align-items:center; gap:10px; padding:10px 4px; font-size:14px; border-bottom:1px solid var(--tj2-line); color:var(--tj2-ink);}
+  .tj2-opt{display:flex; align-items:center; gap:10px; padding:10px 4px; font-size:14px; border-bottom:1px solid var(--tj2-line); color:var(--tj2-ink); cursor:pointer; border-radius:8px;}
   .tj2-opt:last-of-type{border-bottom:none;}
+  .tj2-opt:active{opacity:0.75;}
   .tj2-opt-mark{width:26px; height:26px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--tj2-teal-deep); background:var(--tj2-bg); box-shadow:var(--tj2-shadow);}
   .tj2-opt.correct .tj2-opt-mark{background:var(--tj2-teal); color:#fff; box-shadow:none;}
-  .tj2-opt.correct{font-weight:700; color:var(--tj2-teal-deep);}
+  .tj2-opt.correct{font-weight:700; color:var(--tj2-teal-deep); background:var(--success-bg);}
+  .tj2-opt.wrong .tj2-opt-mark{background:var(--wrong); color:#fff; box-shadow:none;}
+  .tj2-opt.wrong{font-weight:700; color:var(--wrong); background:var(--wrong-bg);}
+  .tj2-qcard[data-answered] .tj2-opt{cursor:default;}
   .tj2-qmeta{font-size:11px; color:var(--tj2-ink-soft); margin:-6px 0 10px;}
   .tj2-qactions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
   .tj2-qactions .tj2-pill{font-size:12px; padding:8px 4px;}
@@ -598,11 +602,14 @@
   .rl-q-text{font-size:14.5px; font-weight:700; line-height:1.55; color:var(--q-tan-ink); padding-top:2px;}
   .rl-q-meta{font-size:10.5px; color:var(--wrong); font-weight:600; margin:5px 0 0 36px;}
   .rl-q-opts{display:flex; flex-direction:column; gap:8px; margin:14px 0 0 36px;}
-  .rl-q-opt{display:flex; gap:9px; align-items:center; font-size:13px; padding:9px 12px; border-radius:12px; background:var(--q-tan-bg); border:none; box-shadow:var(--q-tan-shadow-sm); color:var(--q-tan-ink); font-weight:600; line-height:1.5;}
+  .rl-q-opt{display:flex; gap:9px; align-items:center; font-size:13px; padding:9px 12px; border-radius:12px; background:var(--q-tan-bg); border:1.6px solid transparent; box-shadow:var(--q-tan-shadow-sm); color:var(--q-tan-ink); font-weight:600; line-height:1.5; cursor:pointer;}
+  .rl-q-opt:active{opacity:0.75;}
   .rl-q-opt b{font-family:'Noto Sans Bengali'; font-weight:700; width:20px; height:20px; border-radius:50%; border:1.3px solid var(--q-tan-line); background:var(--q-tan-bg); color:var(--q-tan-ink-soft); font-size:10.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .rl-q-opt.correct{background:var(--q-tan-accent-bg); border:none; box-shadow:var(--q-tan-shadow-inset); color:var(--q-tan-accent); font-weight:700;}
-  .rl-q-opt.correct b{background:var(--q-tan-accent); border-color:var(--q-tan-accent); color:#fff;}
-  .rl-q-reveal{width:calc(100% - 36px); margin-left:36px; background:var(--q-tan-bg); color:var(--q-tan-accent); border:1.6px dashed var(--q-tan-accent); box-shadow:var(--q-tan-shadow-sm); padding:9px; margin-top:14px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .rl-q-opt.correct{background:var(--success-bg); border-color:var(--success); box-shadow:none; color:var(--success); font-weight:700;}
+  .rl-q-opt.correct b{background:var(--success); border-color:var(--success); color:#fff;}
+  .rl-q-opt.wrong{background:var(--wrong-bg); border-color:var(--wrong); box-shadow:none; color:var(--wrong); font-weight:700;}
+  .rl-q-opt.wrong b{background:var(--wrong); border-color:var(--wrong); color:#fff;}
+  .rl-q-card[data-answered] .rl-q-opt{cursor:default;}
   .rl-q-explain{font-size:12px; color:var(--q-tan-ink); font-weight:600; background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-inset); border-radius:10px; border-left:3px solid var(--q-tan-accent); padding:10px 12px; margin:12px 0 0 36px; line-height:1.6;}
   .rl-pager{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:14px 0 18px;}
   .rl-pager-btn{flex:1; background:var(--card); border:1.5px solid var(--line); color:var(--ink); padding:11px; border-radius:11px; font-weight:700; font-size:13px; cursor:pointer; font-family:'Noto Sans Bengali';}
@@ -3071,14 +3078,13 @@
     const cards = data.questions.map((q, i)=>{
       const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
       const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
-        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}" onclick="selectReadingAnswer(${q.id}, '${k}', '${q.correct_option}')"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
       const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
       return `
         <div class="rl-q-card" id="rl-q-${q.id}">
           <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startNum + i)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
           ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
           <div class="rl-q-opts">${opts}</div>
-          <button class="rl-q-reveal" onclick="toggleReadingAnswer(${q.id}, '${q.correct_option}')">উত্তর দেখুন</button>
           ${explainHtml}
         </div>`;
     }).join('');
@@ -3100,16 +3106,22 @@
     listEl.innerHTML = (data.questions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
   }
 
-  function toggleReadingAnswer(qid, correctKey){
+  // Fix: replaced the "উত্তর দেখুন" reveal-button flow with tap-an-option —
+  // student taps whichever option they think is right; that option turns
+  // green if correct or red if wrong, and the correct option always shows
+  // green alongside it. Locks after the first tap (card gets
+  // data-answered) so the colors don't keep changing on repeat taps.
+  function selectReadingAnswer(qid, key, correctKey){
     const card = document.getElementById('rl-q-' + qid);
-    if(!card) return;
+    if(!card || card.dataset.answered) return;
+    card.dataset.answered = '1';
     card.querySelectorAll('.rl-q-opt').forEach(el=>{
-      el.classList.toggle('correct', el.getAttribute('data-key') === correctKey);
+      const k = el.getAttribute('data-key');
+      if(k === correctKey) el.classList.add('correct');
+      else if(k === key) el.classList.add('wrong');
     });
     const explain = card.querySelector('.rl-q-explain');
     if(explain) explain.style.display = 'block';
-    const btn = card.querySelector('.rl-q-reveal');
-    if(btn) btn.style.display = 'none';
   }
 
   // Auto quiz: 10 random questions from just the 30 currently on screen, 5 minutes.
@@ -3224,10 +3236,10 @@
     const metaParts = [q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
     const showAns = TOPIC_SHOW_ALL_ANS;
     const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
-      .map(([k, v]) => `<div class="tj2-opt${showAns && k===q.correct_option ? ' correct' : ''}" data-key="${k}"><div class="tj2-opt-mark">${k}</div> ${escapeHtml(v)}</div>`).join('');
+      .map(([k, v]) => `<div class="tj2-opt${showAns && k===q.correct_option ? ' correct' : ''}" data-key="${k}" onclick="selectTopicAnswer(${q.id}, '${k}', '${q.correct_option}')"><div class="tj2-opt-mark">${k}</div> ${escapeHtml(v)}</div>`).join('');
     const bmOn = BOOKMARK_IDS.has(q.id);
     return `
-      <div class="tj2-qcard" id="tp-q-${q.id}">
+      <div class="tj2-qcard" id="tp-q-${q.id}"${showAns ? ' data-answered="1"' : ''}>
         <div class="tj2-qhead">
           <div class="tj2-qtext">${toBnDigits(num)}. ${escapeHtml(q.question_text)}</div>
           <input type="checkbox" class="tj2-qchk" id="tq-chk-${q.id}" ${q.is_read ? 'checked' : ''} onchange="toggleTopicRead(${q.id}, this.checked)" title="পড়া হয়েছে">
@@ -3236,7 +3248,6 @@
         <div>${opts}</div>
         <div class="tj2-stats" id="tq-stats-${q.id}"></div>
         <div class="tj2-qactions">
-          <button class="tj2-pill${showAns ? ' primary' : ''}" onclick="toggleTopicAnswer(${q.id}, '${q.correct_option}')">উত্তর</button>
           <button class="tj2-pill" onclick="toggleTopicStats(${q.id})">কতজন</button>
           <button class="tj2-pill" onclick="openTopicExplainModal(${q.id})">ব্যাখ্যা</button>
           <button class="tj2-pill${bmOn ? ' tj2-heart-on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)">${bmOn ? '♥ প্রিয়' : '♡ প্রিয়'}</button>
@@ -3690,15 +3701,22 @@
     listEl.innerHTML = toolbar + (data.questions.length ? cards : '<div class="empty-note">এই ফিল্টারে কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
   }
 
-  function toggleTopicAnswer(qid, correctKey){
+  // Fix: replaced the "উত্তর" reveal-button flow with tap-an-option — same
+  // pattern as রিডিং লিস্ট's selectReadingAnswer. Tapping an option colors it
+  // green (correct) or red (wrong) and always shows the correct one green
+  // too; locks after the first tap via data-answered. When the bulk "সব
+  // উত্তর দেখান" toggle is on, renderTopicQCard already marks the card
+  // data-answered up front (the answer's already revealed), so tapping does
+  // nothing further there.
+  function selectTopicAnswer(qid, key, correctKey){
     const card = document.getElementById('tp-q-' + qid);
-    if(!card) return;
-    const nowShown = !card.querySelector('.tj2-opt.correct');
+    if(!card || card.dataset.answered) return;
+    card.dataset.answered = '1';
     card.querySelectorAll('.tj2-opt').forEach(el=>{
-      el.classList.toggle('correct', nowShown && el.getAttribute('data-key') === correctKey);
+      const k = el.getAttribute('data-key');
+      if(k === correctKey) el.classList.add('correct');
+      else if(k === key) el.classList.add('wrong');
     });
-    const btn = card.querySelector('.tj2-qactions .tj2-pill');
-    if(btn) btn.classList.toggle('primary', nowShown);
     const chk = document.getElementById('tq-chk-'+qid);
     if(chk && !chk.checked) chk.checked = true;
     markTopicQuestionRead(qid);
