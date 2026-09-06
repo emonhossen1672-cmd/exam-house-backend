@@ -45,12 +45,29 @@ async function generateExamForDay(day) {
   const questionCount = day.auto_exam_question_count || 25;
 
   const { rows: qRows } = await pool.query(
-    `SELECT id FROM questions WHERE subject = ANY($1::text[]) ORDER BY RANDOM() LIMIT $2`,
+    `SELECT id, topic FROM questions WHERE subject = ANY($1::text[]) ORDER BY RANDOM() LIMIT $2`,
     [subjects, questionCount]
   );
   if (qRows.length < questionCount) {
     throw new Error(`প্রশ্ন যথেষ্ট নেই ("${day.auto_exam_subject}") — দরকার ${questionCount}টি, পাওয়া গেছে ${qRows.length}টি`);
   }
+
+  // Distinct, non-empty topics among the picked questions, numbered with
+  // Bengali digits for the exam card's "টপিক:" list.
+  const uniqueTopics = [...new Set(qRows.map(q => q.topic).filter(Boolean))];
+  const bnDigit = n => String(n).replace(/[0-9]/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+  const topicsSummary = uniqueTopics.length
+    ? uniqueTopics.map((t, i) => `${bnDigit(i + 1)}. ${t}`).join('\n')
+    : null;
+
+  // Total days already planned in this routine category, so the card can
+  // tell the student roughly how long the full syllabus takes to finish.
+  const { rows: totalRows } = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM routine_days WHERE category = $1`,
+    [day.category]
+  );
+  const totalDays = totalRows[0].total;
+  const routineNote = `এই রুটিনে সারাবছর জুড়ে পরীক্ষা চলমান থাকে। আপনি আজ থেকে নিয়মিত পরীক্ষা দিলে ${bnDigit(totalDays)} দিনের মধ্যে পুরো সিলেবাস সম্পন্ন হবে।`;
 
   const today = todayDateStr();
   const startTime = `${today}T20:00:00`; // fixed 8pm Asia/Dhaka slot, same as the weekly-model-test template
@@ -60,10 +77,12 @@ async function generateExamForDay(day) {
     await client.query('BEGIN');
     const examResult = await client.query(
       `INSERT INTO exams
-         (title, type, duration_minutes, start_time, serial, status, negative_marks, routine_category)
-       VALUES ($1,'live',$2,$3,$4,'scheduled',0,$5) RETURNING *`,
+         (title, type, duration_minutes, start_time, serial, status, negative_marks, routine_category,
+          subject, topics_summary, routine_note)
+       VALUES ($1,'live',$2,$3,$4,'scheduled',0,$5,$6,$7,$8) RETURNING *`,
       [`রুটিন পরীক্ষা — ${day.auto_exam_subject} (দিন ${day.day_number})`,
-       day.auto_exam_duration_minutes || 30, startTime, genSerial(), day.category]
+       day.auto_exam_duration_minutes || 30, startTime, genSerial(), day.category,
+       day.auto_exam_subject, topicsSummary, routineNote]
     );
     const exam = examResult.rows[0];
     for (let i = 0; i < qRows.length; i++) {
