@@ -3923,12 +3923,23 @@
   // ---------- Load exam lists from the real backend ----------
   let ALL_EXAMS = [];
 
+  // Fix: an exam was flipping to "আর্কাইভ" (badge + central archive) the
+  // instant its own duration_minutes elapsed — a 20-minute exam looked
+  // "gone" just 20 minutes after it started. duration_minutes is how long
+  // ONE student's attempt/timer runs after they click in (unaffected here,
+  // see CURRENT_EXAM timer below) — not how long the exam should stay
+  // visible/"live" for everyone browsing the app. So the live/archive
+  // WINDOW below uses whichever is longer: the real duration, or this fixed
+  // minimum (must match LIVE_WINDOW_MIN_MINUTES in routes/exams.routes.js
+  // so the badge here and the central-archive listing agree).
+  const LIVE_WINDOW_MIN_MS = 12*60*60*1000; // 12 hours
+
   function examStatus(exam){
     const now = Date.now();
     if(exam.type === 'model') return {label:'উপলব্ধ', canEnter:true, cta:'শুরু করুন'};
     if(!exam.start_time) return {label:'সময় নির্ধারিত হয়নি', canEnter:false, cta:'শীঘ্রই আসছে'};
     const start = new Date(exam.start_time).getTime();
-    const end = start + (exam.duration_minutes||60)*60000;
+    const end = start + Math.max((exam.duration_minutes||60)*60000, LIVE_WINDOW_MIN_MS);
     if(now < start) return {label:'শুরু হয়নি', canEnter:false, cta:'অপেক্ষা করুন', countdown: start-now};
     if(now <= end) return {label:'লাইভ চলছে', canEnter:true, cta:'প্রবেশ করুন', live:true};
     return {label:'সময় শেষ', canEnter:true, cta:'সমাধান দেখুন', archive:true};
@@ -4627,12 +4638,13 @@
         CURRENT_QUESTIONS = data.questions;
       }
 
-      if(CURRENT_EXAM.type === 'live' && CURRENT_EXAM.start_time){
-        const end = new Date(CURRENT_EXAM.start_time).getTime() + (CURRENT_EXAM.duration_minutes||60)*60000;
-        timeLeft = Math.max(0, Math.floor((end - Date.now())/1000));
-      } else {
-        timeLeft = (CURRENT_EXAM.duration_minutes||60)*60;
-      }
+      // Every attempt — live or otherwise — gets its own full duration_minutes
+      // starting from the moment the student actually opens the exam. (No
+      // shared start_time+duration cutoff: a live exam stays enterable for
+      // LIVE_WINDOW_MIN_MS above, and whoever walks in at any point during
+      // that window gets a fresh full-length attempt, not whatever time is
+      // left until the original scheduled end.)
+      timeLeft = (CURRENT_EXAM.duration_minutes||60)*60;
 
       document.getElementById('exam-overlay').classList.add('active');
       document.getElementById('admit-title').textContent = CURRENT_EXAM.title || '';
