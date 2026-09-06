@@ -871,13 +871,6 @@
     border-bottom:1px solid var(--line); background:var(--paper);
   }
   .exam-exit{background:none; border:none; color:var(--ink-soft); font-size:20px; cursor:pointer;}
-  .exam-timer{
-    font-family:'Space Mono',monospace; color:var(--ink); font-size:15px;
-    background:var(--paper-deep); border:1px solid var(--line); padding:6px 12px; border-radius:20px;
-    display:flex; align-items:center; gap:6px;
-  }
-  .exam-timer.warn{color:var(--seal-deep); background:var(--wrong-bg); border-color:var(--seal); animation:examPulse 1s infinite;}
-  @keyframes examPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 
   .exam-progress-wrap{padding:12px 18px 0;}
   .admit-strip{
@@ -948,6 +941,97 @@
   .ebtn{flex:1; padding:14px; border-radius:12px; border:none; font-weight:700; font-size:14.5px; font-family:'Noto Sans Bengali'; cursor:pointer;}
   .ebtn.submit{background:linear-gradient(135deg,var(--success) 0%,#3FA06A 100%); color:#fff; box-shadow:0 4px 14px rgba(47,122,79,0.4);}
   .ebtn:disabled{opacity:0.35;}
+
+  /* ---------- Exam-taking screen — colorful neumorphic (সানসেট মুড) ----------
+     Scoped entirely under #exam-overlay so the shared .qcard/.opt/.q-text/
+     .bm-star classes keep their plain look wherever else they're reused
+     (written-result-overlay, review-overlay, etc). */
+  #exam-overlay{
+    --xb:#F7EEE6; --xi:#4A2F1E; --xis:#8A6C56; --xif:#BFA48D;
+    --x-sh: 7px 7px 16px rgba(190,150,110,0.35), -7px -7px 16px rgba(255,255,255,0.95);
+    --x-sh-sm: 4px 4px 10px rgba(190,150,110,0.32), -4px -4px 10px rgba(255,255,255,0.9);
+    --x-sh-in: inset 4px 4px 9px rgba(170,120,80,0.28), inset -4px -4px 9px rgba(255,255,255,0.85);
+    --x-pink:#E0537A; --x-pink-bg:#FBDFE7; --x-pink-ink:#B23A5D;
+    --x-pink-sh: 4px 4px 10px rgba(220,90,130,0.3), -4px -4px 10px rgba(255,255,255,0.9);
+    --x-amber:#F0932B; --x-amber-bg:#FCE4C6; --x-amber-ink:#9C5E10;
+    --x-amber-sh: 4px 4px 10px rgba(220,150,60,0.35), -4px -4px 10px rgba(255,255,255,0.9);
+    --x-teal:#3FA796; --x-teal-bg:#DCF0EA; --x-teal-ink:#1F7C6C;
+    --x-teal-in: inset 4px 4px 9px rgba(50,150,130,0.28), inset -4px -4px 9px rgba(255,255,255,0.85);
+    --x-coral:#F6B93B; --x-coral2:#F0932B;
+    --x-coral-sh: 5px 5px 14px rgba(230,160,50,0.5), -3px -3px 10px rgba(255,255,255,0.6);
+    background:var(--xb);
+  }
+  #exam-overlay .exam-top{ background:var(--xb); padding:18px 18px 0; border-bottom:none; }
+  #exam-overlay .exam-exit{
+    width:32px; height:32px; border-radius:50%; background:var(--xb); box-shadow:var(--x-sh-sm);
+    display:flex; align-items:center; justify-content:center; color:var(--xis); font-size:14px;
+  }
+  #exam-overlay .exam-progress-count{ font-size:11px; color:var(--xis); font-weight:700; font-family:'Noto Sans Bengali'; margin-top:0; letter-spacing:normal; }
+  #exam-overlay .exam-progress-wrap{ padding:12px 18px 0; }
+  #exam-overlay .exam-progress-bar{ height:8px; border-radius:10px; background:var(--xb); box-shadow:var(--x-sh-in); padding:2px; }
+  #exam-overlay .exam-progress-fill{ background:linear-gradient(90deg,var(--x-coral),var(--x-coral2)); border-radius:8px; }
+
+  #exam-overlay .timer-ring-wrap{ display:flex; justify-content:center; margin-top:-30px; position:relative; z-index:2; }
+  #exam-overlay .timer-ring{
+    width:76px; height:76px; border-radius:50%; background:var(--xb); box-shadow:var(--x-sh);
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  #exam-overlay .timer-ring svg{ position:absolute; inset:0; transform:rotate(-90deg); }
+  #exam-overlay .timer-ring .track{ fill:none; stroke:rgba(224,83,122,0.15); stroke-width:5; }
+  #exam-overlay .timer-ring .fill{ fill:none; stroke:var(--x-pink); stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+  #exam-overlay .timer-ring.warn .fill{ stroke:var(--x-amber); }
+  #exam-overlay .timer-num{ font-family:'Space Mono',monospace; font-weight:700; font-size:14px; color:var(--x-pink-ink); z-index:1; }
+  #exam-overlay .timer-ring.warn .timer-num{ color:#C23B54; }
+
+  #exam-overlay .admit-strip{
+    margin:8px 18px 0; background:var(--x-amber-bg); box-shadow:var(--x-amber-sh); border:none; border-radius:16px;
+    padding:12px 14px; display:flex; align-items:center; gap:11px; flex-wrap:nowrap;
+  }
+  #exam-overlay .admit-ic{
+    width:32px; height:32px; border-radius:11px; background:var(--x-amber); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+    box-shadow:2px 2px 6px rgba(220,150,40,0.5);
+  }
+  #exam-overlay .admit-txt{ display:flex; flex-direction:column; flex:1; min-width:0; }
+  #exam-overlay .admit-tag{
+    background:none; color:var(--x-amber-ink); font-family:'Noto Sans Bengali'; font-size:9.5px;
+    font-weight:700; letter-spacing:normal; text-transform:none; padding:0;
+  }
+  #exam-overlay .admit-title{
+    font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; color:var(--xi); font-weight:700;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #exam-overlay .admit-meta{ font-family:'Space Mono',monospace; font-size:10px; color:var(--x-amber-ink); margin-left:0; flex-shrink:0; }
+
+  #exam-overlay .qcard{ background:var(--xb); box-shadow:var(--x-sh); border:none; border-radius:22px; padding:20px 18px; margin-bottom:16px; }
+  #exam-overlay .qcard.answered{ background:var(--xb); border:none; }
+  #exam-overlay .q-label{ margin-bottom:16px; }
+  #exam-overlay .qnum{ background:var(--x-pink-bg); box-shadow:var(--x-pink-sh); color:var(--x-pink-ink); width:28px; height:28px; border-radius:9px; font-family:'Space Mono',monospace; }
+  #exam-overlay .qcard.answered .qnum{ background:var(--x-pink-bg); color:var(--x-pink-ink); box-shadow:var(--x-pink-sh); }
+  #exam-overlay .q-subj-chip{
+    font-size:11.5px; font-weight:700; color:var(--x-teal-ink); background:var(--x-teal-bg);
+    padding:5px 11px; border-radius:20px; font-family:'Noto Sans Bengali';
+  }
+  #exam-overlay .q-text{ font-family:'Noto Sans Bengali',sans-serif; font-size:15.5px; color:var(--xi); margin-bottom:16px; }
+  #exam-overlay .q-source-tag{ background:var(--x-amber-bg); color:var(--x-amber-ink); box-shadow:none; }
+
+  #exam-overlay .opt{ background:var(--xb); box-shadow:var(--x-sh-sm); border:none; border-radius:16px; padding:14px 15px; margin-bottom:12px; color:var(--xi); }
+  #exam-overlay .opt .bullet{ background:var(--xb); box-shadow:var(--x-sh-sm); border:none; width:29px; height:29px; color:var(--xis); }
+  #exam-overlay .opt.selected{ background:var(--x-teal-bg); box-shadow:var(--x-teal-in); border:none; }
+  #exam-overlay .opt.selected .bullet{ background:var(--x-teal); box-shadow:none; color:#fff; }
+
+  #exam-overlay .qutil-row{
+    display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:14px; padding-top:14px;
+    border-top:1.5px dashed rgba(190,150,110,0.4);
+  }
+  #exam-overlay .qutil-row .bm-star{
+    width:28px; height:28px; border-radius:9px; background:var(--xb); box-shadow:var(--x-sh-sm);
+    display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--xif); margin:0; padding:0;
+  }
+  #exam-overlay .qutil-row .bm-star.on{ color:var(--x-amber); box-shadow:var(--x-amber-sh); }
+
+  #exam-overlay .exam-bottom{ background:linear-gradient(0deg, var(--xb) 55%, rgba(247,238,230,0)); }
+  #exam-overlay .ebtn.submit{ background:linear-gradient(135deg,var(--x-coral),var(--x-coral2)); box-shadow:var(--x-coral-sh); border-radius:18px; }
 
   /* ---------- Result overlay — সান্ড/তান নিউমরফিক ---------- */
   .result-overlay{
@@ -1688,17 +1772,27 @@
   <div class="exam-overlay" id="exam-overlay">
     <div class="exam-top">
       <button class="exam-exit" onclick="exitExam()">✕</button>
-      <div class="exam-timer" id="exam-timer">⏱ --:--</div>
-      <div style="width:20px;"></div>
-    </div>
-    <div class="admit-strip" id="admit-strip">
-      <span class="admit-tag">প্রবেশপত্র</span>
-      <span class="admit-title" id="admit-title">—</span>
-      <span class="admit-meta" id="admit-meta">—</span>
+      <div class="exam-progress-count" id="exam-progress-count">০ / ০ উত্তর দেওয়া হয়েছে</div>
     </div>
     <div class="exam-progress-wrap">
       <div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-progress-fill"></div></div>
-      <div class="exam-progress-count" id="exam-progress-count">০ / ০ উত্তর দেওয়া হয়েছে</div>
+    </div>
+    <div class="timer-ring-wrap">
+      <div class="timer-ring" id="timer-ring">
+        <svg viewBox="0 0 76 76">
+          <circle class="track" cx="38" cy="38" r="33"/>
+          <circle class="fill" id="timer-ring-fill" cx="38" cy="38" r="33" stroke-dasharray="207.3" stroke-dashoffset="0"/>
+        </svg>
+        <span class="timer-num" id="exam-timer">--:--</span>
+      </div>
+    </div>
+    <div class="admit-strip" id="admit-strip">
+      <div class="admit-ic">🎓</div>
+      <div class="admit-txt">
+        <span class="admit-tag">প্রবেশপত্র</span>
+        <span class="admit-title" id="admit-title">—</span>
+      </div>
+      <span class="admit-meta" id="admit-meta">—</span>
     </div>
     <div class="exam-body" id="exam-body"></div>
     <div class="exam-bottom">
@@ -4682,6 +4776,7 @@
   let writtenLinkFallback = {}; // { [written_question_id]: true } — যেই প্রশ্নে ছাত্র "লিংক দিন" বেছে নিয়েছে
   let participant = {name:'', phone:''};
   let timeLeft = 0;
+  let examTotalSeconds = 0;
   let timerHandle = null;
 
   async function startExam(examId, name, phone){
@@ -4712,6 +4807,7 @@
       // that window gets a fresh full-length attempt, not whatever time is
       // left until the original scheduled end.)
       timeLeft = (CURRENT_EXAM.duration_minutes||60)*60;
+      examTotalSeconds = timeLeft || 1;
 
       document.getElementById('exam-overlay').classList.add('active');
       document.getElementById('admit-title').textContent = CURRENT_EXAM.title || '';
@@ -4720,6 +4816,10 @@
           .filter(Boolean).join(' · ');
       if(!isWritten && USER_TOKEN) await loadBookmarkIds();
       if(isWritten) renderAllWrittenQuestions(); else renderAllQuestions();
+      const ring = document.getElementById('timer-ring');
+      if(ring) ring.classList.remove('warn');
+      const ringFill = document.getElementById('timer-ring-fill');
+      if(ringFill) ringFill.style.strokeDashoffset = '0';
       clearInterval(timerHandle);
       timerHandle = setInterval(tick, 1000);
     }catch(err){
@@ -4734,9 +4834,17 @@
     const m = String(Math.floor((timeLeft%3600)/60)).padStart(2,'0');
     const s = String(timeLeft%60).padStart(2,'0');
     t.textContent = h > 0
-      ? '⏱ ' + toBnDigits(h) + 'ঘ ' + toBnDigits(m) + 'মি'
-      : '⏱ ' + toBnDigits(m) + ':' + toBnDigits(s);
-    t.classList.toggle('warn', timeLeft <= 60);
+      ? toBnDigits(h) + 'ঘ ' + toBnDigits(m) + 'মি'
+      : toBnDigits(m) + ':' + toBnDigits(s);
+    const isWarn = timeLeft <= 60;
+    const ring = document.getElementById('timer-ring');
+    if(ring) ring.classList.toggle('warn', isWarn);
+    const ringFill = document.getElementById('timer-ring-fill');
+    if(ringFill){
+      const circumference = 207.3; // 2 * PI * r(33)
+      const pctLeft = Math.max(0, Math.min(1, timeLeft / examTotalSeconds));
+      ringFill.style.strokeDashoffset = circumference * (1 - pctLeft);
+    }
     if(timeLeft <= 0){ clearInterval(timerHandle); submitExam(); }
   }
 
@@ -4753,13 +4861,14 @@
       const bmOn = BOOKMARK_IDS.has(q.id);
       return `
         <div class="qcard${answers[q.id]!==undefined ? ' answered' : ''}" id="qcard-${q.id}">
-          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span>${escapeHtml(q.subject)}</span>
-            <button class="bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)" title="বুকমার্ক">${bmOn ? '★' : '☆'}</button>
-            <button class="bm-star" onclick="reportQuestion(${q.id}, event)" title="প্রশ্নে সমস্যা রিপোর্ট করুন" style="font-size:14px;">⚠</button>
-          </div>
+          <div class="q-label"><span class="qnum">${toBnDigits(qi+1)}</span><span class="q-subj-chip">${escapeHtml(q.subject)}</span></div>
           <div class="q-text">${escapeHtml(q.question_text)}</div>
           ${q.tag ? `<div class="q-source-tag">🏷️ ${escapeHtml(q.tag)}</div>` : ''}
           <div>${optsHtml}</div>
+          <div class="qutil-row">
+            <button class="bm-star${bmOn ? ' on' : ''}" id="bm-${q.id}" onclick="toggleBookmark(${q.id}, event)" title="বুকমার্ক">${bmOn ? '★' : '☆'}</button>
+            <button class="bm-star" onclick="reportQuestion(${q.id}, event)" title="প্রশ্নে সমস্যা রিপোর্ট করুন" style="font-size:14px;">⚠</button>
+          </div>
         </div>`;
     }).join('');
     updateProgress();
@@ -4792,7 +4901,7 @@
       return `
         <div class="qcard${(draft.text||'').trim() || (draft.image||'').trim() ? ' answered' : ''}" id="qcard-${q.id}">
           <div class="q-label">
-            <span class="qnum">${toBnDigits(qi+1)}</span><span>${escapeHtml(q.subject)}</span>
+            <span class="qnum">${toBnDigits(qi+1)}</span><span class="q-subj-chip">${escapeHtml(q.subject)}</span>
             <span style="margin-left:auto; font-size:11px; color:var(--ink-soft);">${toBnDigits(q.marks)} মার্ক</span>
           </div>
           <div class="q-text">${escapeHtml(q.question_text)}</div>
