@@ -109,8 +109,12 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
         continue;
       }
       await client.query(
-        `INSERT INTO routine_days (category, day_number, title, tasks, exam_id) VALUES ($1,$2,$3,$4,$5)`,
-        [category, d.day_number, d.title, d.tasks || null, d.exam_id || null]
+        `INSERT INTO routine_days
+           (category, day_number, title, tasks, exam_id,
+            auto_exam_subject, auto_exam_question_count, auto_exam_duration_minutes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [category, d.day_number, d.title, d.tasks || null, d.exam_id || null,
+         d.auto_exam_subject || null, d.auto_exam_question_count || null, d.auto_exam_duration_minutes || null]
       );
       added++;
     }
