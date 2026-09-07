@@ -30,13 +30,12 @@ function buildSignature(params) {
   return crypto.createHash('sha1').update(toSign + CLOUDINARY_API_SECRET).digest('hex');
 }
 
-async function uploadImageBuffer(buffer, originalname) {
+async function uploadImageBuffer(buffer, originalname, folder = 'exam-house/written-answers') {
   if (!isConfigured()) {
     throw new Error('ছবি আপলোড এখনো চালু করা হয়নি (Cloudinary কনফিগার করা নেই)');
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const folder = 'exam-house/written-answers';
   const signature = buildSignature({ timestamp, folder });
 
   const form = new FormData();
