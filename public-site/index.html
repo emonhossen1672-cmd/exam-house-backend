@@ -1440,6 +1440,13 @@
     <div id="search-results-wrap" style="display:none;">
       <div class="sec-head"><h2>অনুসন্ধানের ফলাফল</h2></div>
       <div id="search-results-list"></div>
+
+      <div id="search-questions-wrap" style="display:none; margin-top:18px;">
+        <div class="sec-head"><h2>প্রশ্ন থেকে ফলাফল</h2></div>
+        <div id="search-questions-list"></div>
+        <button id="search-questions-more-btn" class="rl-pager-btn" style="display:none; width:100%; margin-top:10px;" onclick="loadMoreQuestionSearch()">আরও প্রশ্ন দেখুন</button>
+        <div id="search-questions-loading" class="loading-note" style="display:none;">খোঁজা হচ্ছে...</div>
+      </div>
     </div>
 
     <div id="home-normal-content">
@@ -4675,6 +4682,14 @@
   }
 
   // ---------- Global search (title / ministry / post / subject / serial) ----------
+  // Exam matches are instant (filtered client-side from ALL_EXAMS, already
+  // loaded on the homepage). Question matches hit the server
+  // (/api/questions/public/search) since the full question bank is far too
+  // large to ship to the client — debounced so we don't fire one request
+  // per keystroke, and reset to page 1 on every new query.
+  let SEARCH_QUESTIONS_STATE = { q: '', page: 1, total_pages: 1 };
+  let searchQuestionsDebounceTimer = null;
+
   function handleGlobalSearch(query){
     const q = query.trim().toLowerCase();
     const clearBtn = document.getElementById('search-clear-btn');
@@ -4685,6 +4700,8 @@
     if(!q){
       resultsWrap.style.display = 'none';
       normalContent.style.display = 'block';
+      document.getElementById('search-questions-wrap').style.display = 'none';
+      clearTimeout(searchQuestionsDebounceTimer);
       return;
     }
     normalContent.style.display = 'none';
@@ -4696,6 +4713,82 @@
       return haystack.includes(q);
     });
     renderList('search-results-list', matches, 'কোনো পরীক্ষা পাওয়া যায়নি — অন্য কিছু দিয়ে চেষ্টা করুন।');
+
+    clearTimeout(searchQuestionsDebounceTimer);
+    const qWrap = document.getElementById('search-questions-wrap');
+    if(query.trim().length < 2){
+      qWrap.style.display = 'none';
+      return;
+    }
+    searchQuestionsDebounceTimer = setTimeout(()=>runQuestionSearch(query.trim()), 400);
+  }
+
+  async function runQuestionSearch(q){
+    SEARCH_QUESTIONS_STATE = { q, page: 1, total_pages: 1 };
+    const wrap = document.getElementById('search-questions-wrap');
+    const listEl = document.getElementById('search-questions-list');
+    const loadingEl = document.getElementById('search-questions-loading');
+    const moreBtn = document.getElementById('search-questions-more-btn');
+    wrap.style.display = 'block';
+    listEl.innerHTML = '';
+    moreBtn.style.display = 'none';
+    loadingEl.style.display = 'block';
+
+    try{
+      const data = await apiGetAuth('/api/questions/public/search?q=' + encodeURIComponent(q) + '&page=1');
+      // the user may have kept typing while this was in flight — ignore a
+      // stale response that no longer matches the current search box text
+      if(document.getElementById('global-search-input').value.trim() !== q) return;
+      SEARCH_QUESTIONS_STATE.total_pages = data.total_pages;
+      listEl.innerHTML = data.questions.length ? questionSearchCardsHtml(data.questions) : '<div class="empty-note">কোনো প্রশ্ন পাওয়া যায়নি।</div>';
+      moreBtn.style.display = data.page < data.total_pages ? 'block' : 'none';
+    }catch(err){
+      if(document.getElementById('global-search-input').value.trim() !== q) return;
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'প্রশ্ন খোঁজা যায়নি'}</div>`;
+    }finally{
+      loadingEl.style.display = 'none';
+    }
+  }
+
+  async function loadMoreQuestionSearch(){
+    const { q, page, total_pages } = SEARCH_QUESTIONS_STATE;
+    if(page >= total_pages) return;
+    const nextPage = page + 1;
+    const moreBtn = document.getElementById('search-questions-more-btn');
+    moreBtn.disabled = true;
+    moreBtn.textContent = 'লোড হচ্ছে...';
+    try{
+      const data = await apiGetAuth('/api/questions/public/search?q=' + encodeURIComponent(q) + '&page=' + nextPage);
+      document.getElementById('search-questions-list').insertAdjacentHTML('beforeend', questionSearchCardsHtml(data.questions));
+      SEARCH_QUESTIONS_STATE.page = data.page;
+      SEARCH_QUESTIONS_STATE.total_pages = data.total_pages;
+      moreBtn.style.display = data.page < data.total_pages ? 'block' : 'none';
+    }catch(err){
+      alert(err.message || 'আরও প্রশ্ন লোড করা যায়নি');
+    }finally{
+      moreBtn.disabled = false;
+      moreBtn.textContent = 'আরও প্রশ্ন দেখুন';
+    }
+  }
+
+  // Same rl-q-card / selectReadingAnswer pattern as রিডিং লিস্ট (see
+  // renderReadingListPage above) so a question found via search behaves
+  // identically — tap an option to reveal correct/wrong — without a second
+  // card style to maintain.
+  function questionSearchCardsHtml(questions){
+    return questions.map((q, i)=>{
+      const metaParts = [q.subject, q.topic, q.ministry_name, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
+      const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}" onclick="selectReadingAnswer(${q.id}, '${k}', '${q.correct_option}')"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+      const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      return `
+        <div class="rl-q-card" id="rl-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(i + 1)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="rl-q-opts">${opts}</div>
+          ${explainHtml}
+        </div>`;
+    }).join('');
   }
 
   function clearGlobalSearch(){
