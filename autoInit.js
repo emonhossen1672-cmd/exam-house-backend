@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const pool = require('./db');
-const { ADMIN_USERNAME, ADMIN_PASSWORD } = require('./config');
+const { ADMIN_USERNAME, ADMIN_PASSWORD, STUDENT_ID_PREFIX } = require('./config');
 
 async function autoInit() {
   try {
@@ -21,6 +21,14 @@ async function autoInit() {
     } else {
       console.log('ℹ️ Admin user already exists.');
     }
+
+    // Backfill student_code for any user rows created before this column
+    // existed (new registrations/Google sign-ups generate their own in
+    // routes/auth.routes.js, so this only ever touches old rows).
+    await pool.query(
+      `UPDATE users SET student_code = $1 || (1000 + id) WHERE student_code IS NULL`,
+      [STUDENT_ID_PREFIX]
+    );
 
     const ministries = ['স্বাস্থ্য অধিদপ্তর','শিক্ষা মন্ত্রণালয়','ভূমি মন্ত্রণালয়','খাদ্য অধিদপ্তর','ডাক অধিদপ্তর','সমাজসেবা অধিদপ্তর','পরিসংখ্যান ব্যুরো','প্রাথমিক শিক্ষা অধিদপ্তর'];
     for (const m of ministries) {
