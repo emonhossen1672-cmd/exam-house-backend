@@ -64,6 +64,22 @@
   <div id="deleteResult"></div>
 </div>
 
+<div class="card hidden" id="answerAuditCard">
+  <h2>৪. AI দিয়ে উত্তর-কী যাচাই (Answer Key Audit)</h2>
+  <p class="sub" style="margin-bottom:8px;">প্রতিটা প্রশ্ন AI-কে দিয়ে নিজে থেকে সমাধান করানো হয় (উত্তর না জানিয়ে), তারপর ডাটাবেজের correct_option-এর সাথে মিলিয়ে দেখা হয়। যেগুলো না মেলে শুধু সেগুলো নিচে রিভিউ-এর জন্য দেখানো হবে। এটা ফ্রি Gemini API ব্যবহার করে, তাই ধীরে ধীরে (প্রতি প্রশ্নে ~৪-৫ সেকেন্ড) চলে — বড় সাবজেক্ট শেষ করতে সময় লাগবে, এটা স্বাভাবিক।</p>
+  <label>সাবজেক্ট (ঐচ্ছিক — ফাঁকা রাখলে সব সাবজেক্ট, কিন্তু তাহলে অনেক সময় লাগবে)</label>
+  <input id="aa_subject" type="text" placeholder="যেমন: ইংরেজি ব্যাকরণ">
+  <label>ব্যাচ সাইজ (প্রতি রাউন্ডে কতটা প্রশ্ন চেক হবে)</label>
+  <input id="aa_batch" type="number" value="10" min="1" max="25">
+  <div class="toolbar">
+    <button onclick="startAnswerAudit()" id="aa_startBtn">▶️ শুরু করুন</button>
+    <button class="secondary" onclick="stopAnswerAudit()" id="aa_stopBtn" disabled>⏸️ থামান</button>
+  </div>
+  <div id="aa_progress" class="count"></div>
+  <div id="aa_status"></div>
+  <div id="aa_mismatchList"></div>
+</div>
+
 <div class="card hidden" id="topicDeleteCard">
   <h2>৪. টপিক/সাবটপিক অনুযায়ী স্থায়ীভাবে মুছুন</h2>
   <p class="sub" style="margin-bottom:8px;">শুধু ট্যাগ সরানো নয় — এই টপিকের (বা সাবটপিকের) সব প্রশ্ন সম্পূর্ণ মুছে যাবে।</p>
@@ -111,6 +127,7 @@
       token = data.token;
       showResult('loginResult', true, `✅ লগইন সফল — ${data.username}`);
       document.getElementById('scanCard').classList.remove('hidden');
+      document.getElementById('answerAuditCard').classList.remove('hidden');
       document.getElementById('topicDeleteCard').classList.remove('hidden');
     } catch (err) {
       showResult('loginResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
@@ -189,6 +206,114 @@
     } catch (err) {
       showResult('deleteResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
     }
+  }
+
+  let aaRunning = false;
+  let aaAfterId = 0;
+  let aaMismatches = [];
+  let aaTotalChecked = 0;
+  let aaTotalFailed = 0;
+
+  function aaSetButtons(running) {
+    document.getElementById('aa_startBtn').disabled = running;
+    document.getElementById('aa_stopBtn').disabled = !running;
+  }
+
+  async function startAnswerAudit() {
+    const subject = document.getElementById('aa_subject').value.trim();
+    const batch = Math.min(Math.max(parseInt(document.getElementById('aa_batch').value) || 10, 1), 25);
+    aaRunning = true;
+    aaAfterId = 0;
+    aaMismatches = [];
+    aaTotalChecked = 0;
+    aaTotalFailed = 0;
+    aaSetButtons(true);
+    document.getElementById('aa_mismatchList').innerHTML = '';
+    document.getElementById('aa_status').innerHTML = '';
+    await aaRunLoop(subject, batch);
+  }
+
+  function stopAnswerAudit() {
+    aaRunning = false;
+    aaSetButtons(false);
+    showResult('aa_status', true, '⏸️ থামানো হয়েছে — আবার "শুরু করুন" চাপলে যেখানে থেমেছিল সেখান থেকে চলবে না, নতুন করে শুরু হবে ঐ সাবজেক্ট থেকে।');
+  }
+
+  async function aaRunLoop(subject, batch) {
+    while (aaRunning) {
+      document.getElementById('aa_progress').textContent =
+        `⏳ চেক করা হয়েছে: ${aaTotalChecked}টি | মিসম্যাচ: ${aaMismatches.length}টি | ব্যর্থ: ${aaTotalFailed}টি | (আইডি #${aaAfterId} পর্যন্ত)`;
+      try {
+        const url = new URL('/api/questions/admin/audit-answers', window.location.origin);
+        if (subject) url.searchParams.set('subject', subject);
+        url.searchParams.set('limit', batch);
+        if (aaAfterId) url.searchParams.set('after_id', aaAfterId);
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) { showResult('aa_status', false, data.error || 'ব্যর্থ হয়েছে'); break; }
+
+        aaTotalChecked += data.checked;
+        aaTotalFailed += data.failed.length;
+        aaAfterId = data.last_id;
+        if (data.mismatches.length) {
+          aaMismatches = aaMismatches.concat(data.mismatches);
+          renderAnswerMismatches();
+        }
+        if (data.scanned === 0 || data.done) {
+          showResult('aa_status', true, `✅ শেষ — মোট ${aaTotalChecked}টি প্রশ্ন চেক হয়েছে, ${aaMismatches.length}টি মিসম্যাচ পাওয়া গেছে।`);
+          aaRunning = false;
+          aaSetButtons(false);
+          break;
+        }
+      } catch (err) {
+        showResult('aa_status', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+        aaRunning = false;
+        aaSetButtons(false);
+        break;
+      }
+    }
+    document.getElementById('aa_progress').textContent =
+      `চেক করা হয়েছে: ${aaTotalChecked}টি | মিসম্যাচ: ${aaMismatches.length}টি | ব্যর্থ: ${aaTotalFailed}টি`;
+  }
+
+  function renderAnswerMismatches() {
+    const el = document.getElementById('aa_mismatchList');
+    el.innerHTML = aaMismatches.map((m, idx) => `
+      <div class="qitem" id="aa_item_${idx}">
+        <div class="qtext">#${m.id} [${m.subject}] ${escapeHtml(m.question_text)}</div>
+        <div class="opt">A) ${escapeHtml(m.option_a)}</div>
+        <div class="opt">B) ${escapeHtml(m.option_b)}</div>
+        <div class="opt">C) ${escapeHtml(m.option_c)}</div>
+        <div class="opt">D) ${escapeHtml(m.option_d)}</div>
+        <div class="meta">ডাটাবেজে সঠিক: <b>${m.correct_option}</b> &nbsp;|&nbsp; AI বলছে: <b>${m.ai_answer}</b> (${m.ai_confidence === 'high' ? 'নিশ্চিত' : 'অনিশ্চিত'})</div>
+        <div class="meta">AI-এর যুক্তি: ${escapeHtml(m.ai_reason)}</div>
+        <div class="toolbar">
+          <button onclick="aaApply(${idx})">✅ AI-এর উত্তর (${m.ai_answer}) গ্রহণ করুন</button>
+          <button class="secondary" onclick="aaDismiss(${idx})">এটা ঠিকই আছে, বাদ দিন</button>
+        </div>
+        <div id="aa_result_${idx}"></div>
+      </div>
+    `).join('');
+  }
+
+  async function aaApply(idx) {
+    const m = aaMismatches[idx];
+    try {
+      const res = await fetch(`/api/questions/admin/${m.id}/correct-option`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ correct_option: m.ai_answer })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult(`aa_result_${idx}`, false, data.error || 'ব্যর্থ হয়েছে');
+      showResult(`aa_result_${idx}`, true, `✅ আপডেট হয়েছে — সঠিক উত্তর এখন ${data.correct_option}`);
+    } catch (err) {
+      showResult(`aa_result_${idx}`, false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  function aaDismiss(idx) {
+    document.getElementById(`aa_item_${idx}`).remove();
   }
 
   async function previewTopic() {
