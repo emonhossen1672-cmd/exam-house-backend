@@ -90,6 +90,12 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
   let streak = null;
   if (userId) {
     streak = await updateStreak(userId);
+    // Profile screen Level/Points: 1 point per correct answer on this
+    // submission. Level itself is derived from the running total at read
+    // time (see utils/leveling.js) — nothing else to update here.
+    if (correct > 0) {
+      await pool.query('UPDATE users SET points = points + $1 WHERE id=$2', [correct, userId]);
+    }
   }
 
   // Spaced-repetition auto-enroll: every question just answered wrong joins
