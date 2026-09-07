@@ -58,6 +58,12 @@ app.use('/api/revision', require('./routes/revision.routes'));
 app.use('/api/written-questions', require('./routes/writtenQuestions.routes'));
 app.use('/api/written-answers', require('./routes/writtenAnswers.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
+// hit by an external cron so reminders/pushes/templates fire on time even
+// if this Render free instance has spun down from inactivity — see
+// routes/internal.routes.js for setup instructions. A 5-minute cron
+// interval is well under generalLimiter's 100/min cap above, so no
+// separate limiter is needed here.
+app.use('/api/internal', require('./routes/internal.routes'));
 
 // ----- 404 handler — any /api/* route that didn't match above -----
 app.use('/api/', (req, res) => {
