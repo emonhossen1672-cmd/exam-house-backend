@@ -550,7 +550,7 @@ router.delete('/public/mark-read/:questionId', requireUser, asyncHandler(async (
 // (free, instant). Otherwise generate one via AI on first request and cache
 // it onto questions.explanation so every future student who misses the same
 // question gets the cached version instead of a fresh (paid) API call.
-// Fails soft: if ANTHROPIC_API_KEY isn't set or the call fails, respond with
+// Fails soft: if GEMINI_API_KEY isn't set or the call fails, respond with
 // a friendly message instead of a 500 — a missing explanation should never
 // break the revision/result screen.
 router.get('/public/:id/explanation', requireUser, asyncHandler(async (req, res) => {
