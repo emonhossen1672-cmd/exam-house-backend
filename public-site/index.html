@@ -5639,11 +5639,15 @@
         wrap.className = 'rev-explain';
         wrap.innerHTML = `💡 ${escapeHtml(data.explanation)}`;
       } else {
-        wrap.innerHTML = `<span style="color:var(--wrong,#c0392b);">${escapeHtml(data.error || 'ব্যাখ্যা পাওয়া যায়নি')}</span>`;
+        // AI call failed server-side (fail-soft) — offer a retry instead of
+        // leaving a dead-end message with no way to try again.
+        wrap.innerHTML = `<span style="color:var(--wrong,#c0392b);">${escapeHtml(data.error || 'ব্যাখ্যা পাওয়া যায়নি')}</span>
+          <button class="rev-explain-btn" style="margin-top:6px;" onclick="fetchExplanation(${questionId}, this)">🔁 আবার চেষ্টা করুন</button>`;
       }
     }catch(err){
       wrap.style.opacity = '';
-      wrap.innerHTML = `<span style="color:var(--wrong,#c0392b);">লোড করা যায়নি: ${escapeHtml(err.message)}</span>`;
+      wrap.innerHTML = `<span style="color:var(--wrong,#c0392b);">লোড করা যায়নি: ${escapeHtml(err.message)}</span>
+        <button class="rev-explain-btn" style="margin-top:6px;" onclick="fetchExplanation(${questionId}, this)">🔁 আবার চেষ্টা করুন</button>`;
     }
   }
 
