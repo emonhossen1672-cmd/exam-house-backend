@@ -766,6 +766,76 @@
   .streak-num b{font-family:'Space Mono',monospace; font-size:16px;}
   .streak-best{font-size:11px; color:var(--ink-faint); margin-top:2px;}
   .home-streak-pill-old-unused{ display:none; }
+
+  /* ---------- Profile screen redesign (identity card, level bar, package
+     banner, exam-stat grid) — colorful neumorphic style, sunset palette,
+     matching the exam-taking screen redesign. ---------- */
+  .pf-card{
+    background:linear-gradient(135deg,#FFF7EC 0%,#FDEFE3 55%,#FCE8E4 100%);
+    border-radius:22px; padding:20px 16px 18px; box-shadow:var(--neu-shadow);
+    position:relative; overflow:hidden;
+  }
+  .pf-top{display:flex; align-items:center; gap:14px;}
+  .pf-avatar-wrap{position:relative; flex-shrink:0; width:74px; height:74px;}
+  .pf-avatar{
+    width:74px; height:74px; border-radius:50%; object-fit:cover;
+    background:var(--seal); display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Noto Serif Bengali',serif; font-size:28px;
+    border:3px solid #fff; box-shadow:var(--neu-shadow-sm);
+  }
+  .pf-avatar-edit{
+    position:absolute; right:-2px; bottom:-2px; width:26px; height:26px; border-radius:50%;
+    background:var(--seal); color:#fff; border:2px solid #fff; font-size:12px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .pf-name-row{display:flex; align-items:center; gap:6px;}
+  .pf-name{font-family:'Baloo Da 2','Noto Serif Bengali',serif; font-size:17px; color:var(--ink); font-weight:700;}
+  .pf-verified{color:var(--seal); font-size:15px;}
+  .pf-id-row{display:flex; align-items:center; gap:6px; margin-top:3px;}
+  .pf-id{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft);}
+  .pf-copy-btn{background:none; border:none; color:var(--ink-faint); font-size:12px; cursor:pointer; padding:2px;}
+  .pf-meta-list{margin-top:14px; display:flex; flex-direction:column; gap:7px;}
+  .pf-meta-row{display:flex; justify-content:space-between; font-size:12.5px; gap:10px;}
+  .pf-meta-label{color:var(--ink-faint);}
+  .pf-meta-val{color:var(--ink); font-weight:600; text-align:right;}
+  .pf-actions{display:flex; gap:10px; margin-top:14px;}
+  .pf-btn-outline{
+    flex:1; background:rgba(255,255,255,0.6); border:1.5px solid var(--line); color:var(--ink);
+    border-radius:11px; padding:10px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Noto Sans Bengali';
+  }
+  .pf-level-card{
+    margin-top:12px; background:var(--card); border-radius:16px; padding:14px 16px; box-shadow:var(--neu-shadow-sm);
+  }
+  .pf-level-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+  .pf-level-name{font-weight:700; font-size:13.5px; color:var(--ink);}
+  .pf-level-points{font-size:11.5px; color:var(--ink-faint); font-family:'Space Mono',monospace;}
+  .pf-level-bar-track{height:9px; border-radius:6px; background:var(--paper-deep); overflow:hidden;}
+  .pf-level-bar-fill{height:100%; border-radius:6px; background:linear-gradient(90deg,#F3A65A,#EF7C7C); transition:width .3s;}
+  .pf-package-banner{
+    margin-top:12px; border-radius:16px; padding:14px 16px;
+    background:linear-gradient(135deg,#E8F3EE 0%,#DDEFEA 100%); border:1px solid #BFE0D4;
+  }
+  .pf-package-banner.pf-package-empty{background:var(--paper-deep); border:1px dashed var(--line);}
+  .pf-package-title{font-size:11.5px; color:var(--ink-faint); margin-bottom:3px;}
+  .pf-package-name{font-weight:700; font-size:13.5px; color:var(--ink);}
+  .pf-package-expiry{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .pf-exam-bar{
+    margin-top:14px; background:var(--navy-deep); border-radius:16px; padding:14px 16px;
+    display:flex; justify-content:space-between; color:#fff;
+  }
+  .pf-exam-bar div{text-align:center; flex:1;}
+  .pf-exam-bar b{display:block; font-family:'Space Mono',monospace; font-size:18px;}
+  .pf-exam-bar span{font-size:10.5px; color:#B9C3DC;}
+  .pf-stats-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+  .pf-stat-box{background:var(--card); border-radius:14px; padding:12px; text-align:center; box-shadow:var(--neu-shadow-sm);}
+  .pf-stat-box b{display:block; font-family:'Space Mono',monospace; font-size:16px; color:var(--ink);}
+  .pf-stat-box span{font-size:10.5px; color:var(--ink-faint);}
+  .pf-stat-box.pf-right b{color:var(--success);}
+  .pf-stat-box.pf-wrong b{color:var(--wrong);}
+  .pf-edit-form{margin-top:12px; background:var(--card); border-radius:16px; padding:14px 16px; box-shadow:var(--neu-shadow-sm);}
+  .pf-edit-form .auth-label{margin:8px 0 5px;}
+  .pf-edit-actions{display:flex; gap:10px; margin-top:12px;}
+  .pf-edit-actions button{flex:1;}
   .ph-item{
     background:var(--card); border:1px solid var(--line); border-radius:13px;
     padding:13px 14px; margin-bottom:9px;
@@ -1612,21 +1682,83 @@
     </div>
 
     <div id="auth-profile" style="display:none;">
-      <div class="profile-card">
-        <span class="profile-eyebrow">Member ID</span>
-        <div class="profile-avatar" id="profile-initial">এ</div>
-        <div>
-          <div class="profile-name" id="profile-name">—</div>
-          <div class="profile-phone" id="profile-phone">—</div>
-          <div class="profile-roll" id="profile-roll"></div>
+      <div class="pf-card">
+        <div class="pf-top">
+          <div class="pf-avatar-wrap">
+            <div class="pf-avatar" id="pf-avatar">এ</div>
+            <div class="pf-avatar-edit" onclick="triggerAvatarPick()">✎</div>
+            <input type="file" id="pf-avatar-input" accept="image/*" style="display:none;" onchange="onAvatarFileChange(this)">
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div class="pf-name-row">
+              <span class="pf-name" id="pf-name">—</span>
+              <span class="pf-verified" id="pf-verified" style="display:none;" title="ভেরিফাইড">✔️</span>
+            </div>
+            <div class="pf-id-row">
+              <span class="pf-id" id="pf-id">ID: —</span>
+              <button class="pf-copy-btn" onclick="copyStudentCode()">⧉</button>
+            </div>
+          </div>
         </div>
-        <button class="profile-logout" onclick="doUserLogout()">লগআউট</button>
+
+        <div class="pf-meta-list">
+          <div class="pf-meta-row"><span class="pf-meta-label">Member Since</span><span class="pf-meta-val" id="pf-member-since">—</span></div>
+          <div class="pf-meta-row"><span class="pf-meta-label">Study Group</span><span class="pf-meta-val" id="pf-study-group">n/a</span></div>
+          <div class="pf-meta-row"><span class="pf-meta-label">Preparing For</span><span class="pf-meta-val" id="pf-preparing-for">—</span></div>
+          <div class="pf-meta-row"><span class="pf-meta-label">Login Method</span><span class="pf-meta-val" id="pf-login-method">—</span></div>
+        </div>
+
+        <div class="pf-actions">
+          <button class="pf-btn-outline" onclick="openEditProfile()">✎ প্রোফাইল এডিট</button>
+          <button class="pf-btn-outline" onclick="doUserLogout()">লগআউট</button>
+        </div>
+
+        <div class="pf-edit-form" id="pf-edit-form" style="display:none;">
+          <label class="auth-label">নাম</label>
+          <input class="auth-input" id="pf-edit-name">
+          <label class="auth-label">স্টাডি গ্রুপ</label>
+          <input class="auth-input" id="pf-edit-study-group" placeholder="যেমন: BCS গ্রুপ ৩">
+          <label class="auth-label">Preparing For</label>
+          <input class="auth-input" id="pf-edit-preparing-for" placeholder="যেমন: BCS">
+          <div class="auth-err" id="pf-edit-err"></div>
+          <div class="pf-edit-actions">
+            <button class="auth-btn" style="margin-top:0; background:var(--ink-faint);" onclick="closeEditProfile()">বাতিল</button>
+            <button class="auth-btn" style="margin-top:0;" onclick="saveEditProfile()">সংরক্ষণ করুন</button>
+          </div>
+        </div>
       </div>
 
-      <div class="profile-stats-strip">
-        <div><b id="profile-stat-exams">০</b><span>মোট পরীক্ষা</span></div>
-        <div><b id="profile-stat-correct">০</b><span>সঠিক উত্তর</span></div>
+      <div class="pf-level-card">
+        <div class="pf-level-top">
+          <span class="pf-level-name" id="pf-level-name">Level ১</span>
+          <span class="pf-level-points" id="pf-level-points">০ pts</span>
+        </div>
+        <div class="pf-level-bar-track"><div class="pf-level-bar-fill" id="pf-level-bar-fill" style="width:0%;"></div></div>
       </div>
+
+      <div class="pf-package-banner" id="pf-package-banner">
+        <div class="pf-package-title">সক্রিয় প্যাকেজ</div>
+        <div class="pf-package-name" id="pf-package-name">কোনো প্যাকেজ নেই</div>
+        <div class="pf-package-expiry" id="pf-package-expiry" style="display:none;"></div>
+      </div>
+
+      <div class="pf-exam-bar">
+        <div><b id="pf-total-exam">০</b><span>Total Exam</span></div>
+        <div><b id="pf-total-passed">০</b><span>Total Passed</span></div>
+      </div>
+
+      <div class="pf-stats-grid">
+        <div class="pf-stat-box"><b id="pf-total-questions">০</b><span>Total Questions</span></div>
+        <div class="pf-stat-box pf-right"><b id="pf-total-right">০</b><span>Right Answer</span></div>
+        <div class="pf-stat-box"><b id="pf-total-unanswered">০</b><span>Unanswered</span></div>
+        <div class="pf-stat-box pf-wrong"><b id="pf-total-wrong">০</b><span>Wrong Answer</span></div>
+      </div>
+
+      <div class="pf-actions" style="margin-top:12px;">
+        <button class="pf-btn-outline" onclick="goScreen('packages')">📦 Buy Package</button>
+        <button class="pf-btn-outline" onclick="ehToast('শীঘ্রই আসছে')">🧾 Package History</button>
+      </div>
+      <button class="pf-btn-outline" style="width:100%; margin-top:10px;" onclick="ehToast('শীঘ্রই আসছে')">📞 Contact Us</button>
 
       <div class="streak-card" id="profile-streak-card" style="display:none;">
         <div class="streak-flame">🔥</div>
@@ -2315,19 +2447,14 @@
       return;
     }
     try{
-      if(!USER_INFO) USER_INFO = await apiGetAuth('/api/auth/me');
+      USER_INFO = await apiGetAuth('/api/auth/me');
       document.getElementById('auth-guest').style.display = 'none';
       document.getElementById('auth-profile').style.display = 'block';
-      document.getElementById('profile-name').textContent = USER_INFO.name;
-      document.getElementById('profile-phone').textContent = USER_INFO.phone || USER_INFO.email || '';
-      document.getElementById('profile-roll').textContent = 'EH-' + String(USER_INFO.id).padStart(4, '0');
-      document.getElementById('profile-initial').textContent = USER_INFO.name.trim()[0] || 'এ';
+      renderProfileCard();
       applyStreakDisplay(USER_INFO.current_streak || 0, USER_INFO.longest_streak || 0);
 
       const history = await apiGetAuth('/api/results/me');
       renderTrendChart(history);
-      document.getElementById('profile-stat-exams').textContent = toBnDigits(history.length);
-      document.getElementById('profile-stat-correct').textContent = toBnDigits(history.reduce((sum, h) => sum + h.correct_count, 0));
       HISTORY_FULL_CACHE = history;
       HISTORY_SHOWN_COUNT = HISTORY_PAGE_SIZE;
       renderHistoryList();
@@ -2343,6 +2470,132 @@
       // token expired/invalid — log out silently
       doUserLogout();
     }
+  }
+
+  // Fills in the redesigned profile card (identity, level/points bar,
+  // package banner, and the six-number exam-stat breakdown) from whatever
+  // GET /api/auth/me last returned into USER_INFO.
+  function renderProfileCard(){
+    const u = USER_INFO;
+    document.getElementById('pf-name').textContent = u.name;
+    document.getElementById('pf-verified').style.display = u.verified ? 'inline' : 'none';
+    document.getElementById('pf-id').textContent = 'ID: ' + (u.student_code || ('EH-' + String(u.id).padStart(4,'0')));
+    const avatarEl = document.getElementById('pf-avatar');
+    if(u.avatar_url){
+      avatarEl.innerHTML = '';
+      avatarEl.style.backgroundImage = `url('${u.avatar_url.replace(/'/g,"")}')`;
+      avatarEl.style.backgroundSize = 'cover';
+      avatarEl.style.backgroundPosition = 'center';
+    }else{
+      avatarEl.style.backgroundImage = 'none';
+      avatarEl.textContent = (u.name||'').trim()[0] || 'এ';
+    }
+    document.getElementById('pf-member-since').textContent = u.member_since ? new Date(u.member_since).toLocaleDateString('bn-BD', {year:'numeric', month:'short', day:'numeric'}) : '—';
+    document.getElementById('pf-study-group').textContent = u.study_group || 'n/a';
+    document.getElementById('pf-preparing-for').textContent = u.preparing_for || 'n/a';
+    document.getElementById('pf-login-method').textContent = u.login_method === 'Google' ? 'Google' : 'Mobile';
+
+    document.getElementById('pf-level-name').textContent = 'Level ' + toBnDigits(u.level || 1);
+    document.getElementById('pf-level-points').textContent = toBnDigits(u.points || 0) + ' pts' + (u.points_for_next_level != null ? ' / ' + toBnDigits(u.points_for_next_level) : '');
+    document.getElementById('pf-level-bar-fill').style.width = (u.progress_percent || 0) + '%';
+
+    const pkgBanner = document.getElementById('pf-package-banner');
+    const pkgExpiry = document.getElementById('pf-package-expiry');
+    if(u.active_package){
+      pkgBanner.classList.remove('pf-package-empty');
+      document.getElementById('pf-package-name').textContent = u.active_package.name;
+      if(u.active_package.expires_at){
+        pkgExpiry.style.display = 'block';
+        pkgExpiry.textContent = 'মেয়াদ: ' + new Date(u.active_package.expires_at).toLocaleDateString('bn-BD', {year:'numeric', month:'short', day:'numeric'}) + ' পর্যন্ত';
+      }else{
+        pkgExpiry.style.display = 'none';
+      }
+    }else{
+      pkgBanner.classList.add('pf-package-empty');
+      document.getElementById('pf-package-name').textContent = 'কোনো প্যাকেজ নেই';
+      pkgExpiry.style.display = 'none';
+    }
+
+    const s = u.stats || {};
+    document.getElementById('pf-total-exam').textContent = toBnDigits(s.total_exam || 0);
+    document.getElementById('pf-total-passed').textContent = toBnDigits(s.total_passed || 0);
+    document.getElementById('pf-total-questions').textContent = toBnDigits(s.total_questions || 0);
+    document.getElementById('pf-total-right').textContent = toBnDigits(s.total_right || 0);
+    document.getElementById('pf-total-unanswered').textContent = toBnDigits(s.total_unanswered || 0);
+    document.getElementById('pf-total-wrong').textContent = toBnDigits(s.total_wrong || 0);
+  }
+
+  function copyStudentCode(){
+    const code = (USER_INFO && (USER_INFO.student_code || ('EH-' + String(USER_INFO.id).padStart(4,'0')))) || '';
+    if(navigator.clipboard) navigator.clipboard.writeText(code).then(()=> ehToast('ID কপি হয়েছে'));
+  }
+
+  function openEditProfile(){
+    document.getElementById('pf-edit-name').value = USER_INFO.name || '';
+    document.getElementById('pf-edit-study-group').value = USER_INFO.study_group || '';
+    document.getElementById('pf-edit-preparing-for').value = USER_INFO.preparing_for || '';
+    document.getElementById('pf-edit-err').textContent = '';
+    document.getElementById('pf-edit-form').style.display = 'block';
+  }
+  function closeEditProfile(){
+    document.getElementById('pf-edit-form').style.display = 'none';
+  }
+  async function saveEditProfile(){
+    const name = document.getElementById('pf-edit-name').value.trim();
+    const study_group = document.getElementById('pf-edit-study-group').value.trim();
+    const preparing_for = document.getElementById('pf-edit-preparing-for').value.trim();
+    if(!name){
+      document.getElementById('pf-edit-err').textContent = 'নাম দিন';
+      return;
+    }
+    try{
+      await apiAuth('/api/auth/me', 'PATCH', { name, study_group, preparing_for });
+      USER_INFO.name = name; USER_INFO.study_group = study_group; USER_INFO.preparing_for = preparing_for;
+      closeEditProfile();
+      renderProfileCard();
+      ehToast('প্রোফাইল আপডেট হয়েছে');
+    }catch(err){
+      document.getElementById('pf-edit-err').textContent = err.message || 'সমস্যা হয়েছে';
+    }
+  }
+
+  function triggerAvatarPick(){
+    document.getElementById('pf-avatar-input').click();
+  }
+  async function onAvatarFileChange(input){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    try{
+      const url = await uploadAvatarImage(file);
+      USER_INFO.avatar_url = url;
+      renderProfileCard();
+      ehToast('ছবি আপলোড হয়েছে');
+    }catch(err){
+      alert(err.message || 'ছবি আপলোড ব্যর্থ হয়েছে');
+    }finally{
+      input.value = '';
+    }
+  }
+  // Same XMLHttpRequest pattern as uploadWrittenImage — multipart upload
+  // with the user's auth token, hitting the profile-photo-specific endpoint
+  // (routes/upload.routes.js: POST /api/upload/avatar) which saves
+  // avatar_url on the user row server-side too.
+  function uploadAvatarImage(file){
+    return new Promise((resolve, reject)=>{
+      const form = new FormData();
+      form.append('image', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/api/upload/avatar');
+      if(USER_TOKEN) xhr.setRequestHeader('Authorization', 'Bearer ' + USER_TOKEN);
+      xhr.onload = ()=>{
+        let data = {};
+        try{ data = JSON.parse(xhr.responseText); }catch(err){}
+        if(xhr.status >= 200 && xhr.status < 300 && data.avatar_url) resolve(data.avatar_url);
+        else reject(new Error(data.error || 'ছবি আপলোড ব্যর্থ হয়েছে'));
+      };
+      xhr.onerror = ()=> reject(new Error('নেটওয়ার্ক সমস্যা — আবার চেষ্টা করুন'));
+      xhr.send(form);
+    });
   }
 
   // ---------- Result history list: type icon + colour-coded score + "আরও দেখুন" paging ----------
