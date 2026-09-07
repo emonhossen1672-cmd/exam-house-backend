@@ -5617,8 +5617,9 @@
   // an AI-generated one from GET /api/questions/public/:id/explanation.
   function explanationBoxHtml(q){
     if(q.explanation) return `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>`;
+    const label = q.status === 'wrong' ? '💡 কেন ভুল হলো?' : '💡 ব্যাখ্যা দেখুন';
     return `<div class="rev-explain-wrap" data-qid="${q.id}">
-      <button class="rev-explain-btn" onclick="fetchExplanation(${q.id}, this)">💡 কেন ভুল হলো?</button>
+      <button class="rev-explain-btn" onclick="fetchExplanation(${q.id}, this)">${label}</button>
     </div>`;
   }
 
