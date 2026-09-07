@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explanation টেস্ট টুল</title>
+<style>
+  body { font-family: sans-serif; max-width: 480px; margin: 20px auto; padding: 0 16px; }
+  input, button { width: 100%; padding: 12px; margin: 6px 0; font-size: 16px; box-sizing: border-box; }
+  button { background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  button:disabled { background: #999; }
+  #result { margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 6px; white-space: pre-wrap; min-height: 40px; }
+  .step { margin-top: 24px; padding-top: 16px; border-top: 1px solid #ddd; }
+  label { font-size: 14px; color: #555; }
+</style>
+</head>
+<body>
+  <h2>Explanation ফিচার টেস্ট</h2>
+
+  <div class="step">
+    <label>১. আগে লগইন করুন</label>
+    <input id="phone" placeholder="ফোন নাম্বার">
+    <input id="password" type="password" placeholder="পাসওয়ার্ড">
+    <button onclick="login()">লগইন করুন</button>
+    <div id="loginStatus"></div>
+  </div>
+
+  <div class="step">
+    <label>২. প্রশ্নের ID দিন</label>
+    <input id="questionId" placeholder="যেমন: 15" type="number">
+    <button onclick="testExplanation()">ব্যাখ্যা দেখান</button>
+  </div>
+
+  <div id="result">এখানে ফলাফল দেখাবে...</div>
+
+<script>
+let token = '';
+
+async function login() {
+  const phone = document.getElementById('phone').value.trim();
+  const password = document.getElementById('password').value;
+  const statusEl = document.getElementById('loginStatus');
+  statusEl.textContent = 'লগইন হচ্ছে...';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      statusEl.textContent = '❌ লগইন ব্যর্থ: ' + (data.error || res.status);
+      return;
+    }
+    token = data.token || data.accessToken || data.jwt;
+    if (!token) {
+      statusEl.textContent = '❌ টোকেন পাওয়া যায়নি, রেসপন্স: ' + JSON.stringify(data);
+      return;
+    }
+    statusEl.textContent = '✅ লগইন সফল';
+  } catch (e) {
+    statusEl.textContent = '❌ এরর: ' + e.message;
+  }
+}
+
+async function testExplanation() {
+  const resultEl = document.getElementById('result');
+  const qId = document.getElementById('questionId').value.trim();
+  if (!token) {
+    resultEl.textContent = '⚠️ আগে লগইন করুন';
+    return;
+  }
+  if (!qId) {
+    resultEl.textContent = '⚠️ প্রশ্নের ID দিন';
+    return;
+  }
+  resultEl.textContent = 'লোড হচ্ছে... (নতুন ব্যাখ্যা হলে কয়েক সেকেন্ড লাগতে পারে)';
+  try {
+    const res = await fetch(`/api/questions/public/${qId}/explanation`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      resultEl.textContent = '❌ এরর (' + res.status + '): ' + JSON.stringify(data, null, 2);
+      return;
+    }
+    if (data.explanation) {
+      resultEl.textContent = '✅ সোর্স: ' + data.source + '\n\n' + data.explanation;
+    } else {
+      resultEl.textContent = '⚠️ ' + (data.error || 'কোনো ব্যাখ্যা পাওয়া যায়নি');
+    }
+  } catch (e) {
+    resultEl.textContent = '❌ এরর: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
