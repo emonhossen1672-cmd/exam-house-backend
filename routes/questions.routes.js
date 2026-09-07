@@ -545,6 +545,44 @@ router.delete('/public/mark-read/:questionId', requireUser, asyncHandler(async (
   res.json({ ok: true });
 }));
 
+// GET /api/questions/public/:id/explanation — "কেন ভুল হলো?" button target.
+// If an admin already wrote an explanation, return it straight from the DB
+// (free, instant). Otherwise generate one via AI on first request and cache
+// it onto questions.explanation so every future student who misses the same
+// question gets the cached version instead of a fresh (paid) API call.
+// Fails soft: if ANTHROPIC_API_KEY isn't set or the call fails, respond with
+// a friendly message instead of a 500 — a missing explanation should never
+// break the revision/result screen.
+router.get('/public/:id/explanation', requireUser, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT question_text, option_a, option_b, option_c, option_d, correct_option, explanation
+     FROM questions WHERE id = $1`,
+    [req.params.id]
+  );
+  const q = rows[0];
+  if (!q) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
+
+  if (q.explanation && q.explanation.trim()) {
+    return res.json({ explanation: q.explanation, source: 'admin' });
+  }
+
+  try {
+    const { explainQuestion } = require('../services/aiExplanation');
+    const explanation = await explainQuestion({
+      questionText: q.question_text,
+      optionA: q.option_a,
+      optionB: q.option_b,
+      optionC: q.option_c,
+      optionD: q.option_d,
+      correctOption: q.correct_option,
+    });
+    await pool.query('UPDATE questions SET explanation = $1 WHERE id = $2', [explanation, req.params.id]);
+    res.json({ explanation, source: 'ai' });
+  } catch (err) {
+    res.status(200).json({ explanation: null, error: 'এই মুহূর্তে ব্যাখ্যা তৈরি করা যায়নি, একটু পরে আবার চেষ্টা করুন।' });
+  }
+}));
+
 // GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
 // in the bank with its question count and which of the 12 fixed টপিকভিত্তিক
 // GET /api/questions/admin/subjects-raw — every distinct raw `subject` value
