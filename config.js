@@ -43,6 +43,17 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 
+// Optional — powers on-demand AI explanations for MCQ questions
+// (services/aiExplanation.js, GET /api/questions/public/:id/explanation).
+// Uses Google's Gemini API instead of Anthropic because Gemini has a
+// genuinely free tier (no billing/card required) via Google AI Studio
+// (aistudio.google.com → "Get API key") — appropriate for this
+// low-stakes, rate-limited, cacheable-per-question use case. Left
+// optional so the server still starts without it; that route just
+// returns a friendly "not configured yet" error until this is set.
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+
 // Optional — powers real image upload (camera/gallery) for handwritten
 // রিটেন answers (services/imageUpload.js + routes/upload.routes.js). Left
 // optional so the server still starts without it; /api/upload/image just
@@ -75,7 +86,7 @@ const CRON_SECRET = process.env.CRON_SECRET || '';
 
 module.exports = {
   JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID,
-  ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
+  ANTHROPIC_API_KEY, ANTHROPIC_MODEL, GEMINI_API_KEY, GEMINI_MODEL,
   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
   STUDENT_ID_PREFIX, CRON_SECRET
 };
