@@ -7,6 +7,7 @@ const { parse } = require('csv-parse/sync');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, snapToFixedSubject, normalizeText } = require('../utils/topicJobSubjects');
+const { checkAnswer } = require('../services/aiAnswerCheck');
 
 const subjectFixUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -802,6 +803,95 @@ router.get('/admin/audit-corrupted', requireAdmin, asyncHandler(async (req, res)
     params
   );
   res.json({ count: rows.length, questions: rows });
+}));
+
+// PATCH /api/questions/admin/:id/correct-option  body: { correct_option: 'A' }
+// Lightweight fix-just-the-answer-key endpoint — unlike PUT /:id this
+// doesn't require resending question_text/options, so the audit-answers
+// tool below can apply an AI-suggested correction with one call.
+router.patch('/admin/:id/correct-option', requireAdmin, asyncHandler(async (req, res) => {
+  const correct = String(req.body.correct_option || '').trim().toUpperCase();
+  if (!['A', 'B', 'C', 'D'].includes(correct)) {
+    return res.status(400).json({ error: 'correct_option এর মান A/B/C/D হতে হবে' });
+  }
+  const { rows } = await pool.query(
+    'UPDATE questions SET correct_option = $1 WHERE id = $2 RETURNING id, correct_option',
+    [correct, req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
+  res.json(rows[0]);
+}));
+
+// GET /api/questions/admin/audit-answers?subject=&limit=20&after_id=0
+// Answer-key audit: independently asks the AI to solve each question
+// (without telling it the stored correct_option) and flags rows where the
+// AI's answer disagrees with what's in the database — a much smaller list
+// than the full question bank for an admin to actually review.
+//
+// Runs one small batch per request (default/max 25 questions) with a
+// delay between each Gemini call to stay under the free-tier rate limit
+// (see services/aiAnswerCheck.js). The client calls this repeatedly,
+// paging forward with after_id, until done=true.
+//
+// This is a signal, not a verdict — the AI can be wrong too, especially on
+// ambiguous or oddly-worded questions (that's what "confidence: low" is
+// for). Nothing gets changed automatically; the admin reviews and decides.
+const AUDIT_ANSWERS_DELAY_MS = 4500; // ~13 req/min, under Gemini free-tier RPM caps
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+router.get('/admin/audit-answers', requireAdmin, asyncHandler(async (req, res) => {
+  const { subject, after_id } = req.query;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 25);
+
+  const params = [];
+  const clauses = [];
+  if (subject) { params.push(subject); clauses.push(`subject = $${params.length}`); }
+  if (after_id) { params.push(parseInt(after_id) || 0); clauses.push(`id > $${params.length}`); }
+  const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
+  params.push(limit);
+
+  const { rows } = await pool.query(
+    `SELECT id, subject, question_text, option_a, option_b, option_c, option_d, correct_option
+     FROM questions ${where} ORDER BY id ASC LIMIT $${params.length}`,
+    params
+  );
+
+  const mismatches = [];
+  const failed = [];
+  let checked = 0;
+  let lastId = after_id ? parseInt(after_id) || 0 : 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const q = rows[i];
+    lastId = q.id;
+    if (i > 0) await sleep(AUDIT_ANSWERS_DELAY_MS);
+    try {
+      const result = await checkAnswer({
+        questionText: q.question_text,
+        optionA: q.option_a, optionB: q.option_b, optionC: q.option_c, optionD: q.option_d,
+      });
+      checked++;
+      if (result.answer !== q.correct_option) {
+        mismatches.push({
+          id: q.id, subject: q.subject, question_text: q.question_text,
+          option_a: q.option_a, option_b: q.option_b, option_c: q.option_c, option_d: q.option_d,
+          correct_option: q.correct_option,
+          ai_answer: result.answer, ai_confidence: result.confidence, ai_reason: result.reason,
+        });
+      }
+    } catch (err) {
+      failed.push({ id: q.id, error: err.message });
+    }
+  }
+
+  res.json({
+    checked,
+    scanned: rows.length,
+    mismatches,
+    failed,
+    last_id: lastId,
+    done: rows.length < limit,
+  });
 }));
 
 // DELETE /api/questions/admin/bulk  body: { ids: [1,2,3] }
