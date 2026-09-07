@@ -52,7 +52,7 @@ const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 // optional so the server still starts without it; that route just
 // returns a friendly "not configured yet" error until this is set.
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
 // Optional — powers real image upload (camera/gallery) for handwritten
 // রিটেন answers (services/imageUpload.js + routes/upload.routes.js). Left
