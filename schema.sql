@@ -1,5 +1,12 @@
 -- Exam House database schema
 
+-- Powers GET /api/questions/public/search (routes/questions.routes.js): lets
+-- an ILIKE '%...%' substring search on question_text use a fast trigram GIN
+-- index instead of a full table scan, and lets similarity() rank results by
+-- relevance. Standard Postgres contrib extension — Render's managed
+-- Postgres allows creating it on your own database without extra setup.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE TABLE IF NOT EXISTS admin_users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
@@ -129,6 +136,8 @@ ALTER TABLE exams ADD COLUMN IF NOT EXISTS quiz_date DATE;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_exams_daily_date ON exams(quiz_date) WHERE is_daily = true;
 
 CREATE INDEX IF NOT EXISTS idx_questions_ministry ON questions(ministry_id);
+-- Trigram index for GET /api/questions/public/search's ILIKE + similarity() ranking.
+CREATE INDEX IF NOT EXISTS idx_questions_text_trgm ON questions USING GIN (question_text gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_exam ON results(exam_id);
 CREATE INDEX IF NOT EXISTS idx_results_user ON results(user_id);
