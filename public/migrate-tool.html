@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ডাটাবেস মাইগ্রেশন টুল</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Noto Sans Bengali", sans-serif; background:#0f1115; color:#e8e8e8; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:#9aa0a6; font-size:14px; margin:0 0 20px; }
+  .card { background:#1a1d24; border:1px solid #2a2e37; border-radius:12px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:13px; color:#c0c4cc; margin:10px 0 4px; }
+  input { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #333844; background:#0f1115; color:#fff; font-size:15px; }
+  button { margin-top:14px; width:100%; padding:12px; border:none; border-radius:8px; background:#4f8cff; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333844; color:#888; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
+  .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
+  .hidden { display:none; }
+  .warn { background:#3a2f16; color:#ffcf80; border:1px solid #5c4a1f; border-radius:8px; padding:10px; font-size:13px; margin-bottom:16px; }
+</style>
+</head>
+<body>
+
+<h1>🔄 ডাটাবেস মাইগ্রেশন টুল</h1>
+<p class="sub">Render-এর পুরনো ডাটাবেস থেকে সব ডেটা নতুন Neon ডাটাবেসে কপি করার জন্য।</p>
+
+<div class="warn">
+  ⚠️ চালানোর আগে নিশ্চিত করুন Render-এর Environment ট্যাবে <b>NEON_DATABASE_URL</b> নামে একটা env var যোগ করা আছে (ভ্যালু: আপনার Neon কানেকশন স্ট্রিং, পুল করা/pooler URL) — আর সেটা যোগ করার পর সার্ভিস redeploy হয়ে গেছে।
+  <br><br>
+  একাধিকবার চালালেও সমস্যা নেই — প্রতিবার টার্গেট ডাটাবেসের টেবিলগুলো খালি করে আবার নতুন করে কপি করে।
+</div>
+
+<div class="card" id="loginCard">
+  <h2>১. অ্যাডমিন লগইন</h2>
+  <label>ইউজারনেম</label>
+  <input id="username" type="text" autocomplete="username">
+  <label>পাসওয়ার্ড</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">লগইন করুন</button>
+  <div id="loginResult"></div>
+</div>
+
+<div class="card hidden" id="migrateCard">
+  <h2>২. মাইগ্রেশন চালান</h2>
+  <p class="sub" style="margin-bottom:8px;">এতে কিছুক্ষণ সময় লাগতে পারে — শেষ না হওয়া পর্যন্ত পেজ বন্ধ করবেন না।</p>
+  <button id="runBtn" onclick="runMigration()">এখনই মাইগ্রেট করুন</button>
+  <div id="migrateResult"></div>
+</div>
+
+<script>
+  let token = null;
+
+  function showResult(elId, ok, text) {
+    const el = document.getElementById(elId);
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) return showResult('loginResult', false, 'ইউজারনেম ও পাসওয়ার্ড দিন');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('loginResult', false, data.error || 'লগইন ব্যর্থ');
+      token = data.token;
+      showResult('loginResult', true, `✅ লগইন সফল — ${data.username}`);
+      document.getElementById('migrateCard').classList.remove('hidden');
+    } catch (err) {
+      showResult('loginResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function runMigration() {
+    const btn = document.getElementById('runBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ চলছে... (পেজ বন্ধ করবেন না)';
+    showResult('migrateResult', true, '⏳ মাইগ্রেশন শুরু হয়েছে, একটু অপেক্ষা করুন...');
+    try {
+      const res = await fetch('/api/migrate/run', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showResult('migrateResult', false, data.error || 'ব্যর্থ হয়েছে');
+      } else {
+        const lines = (data.log || []).join('\n');
+        const tableSummary = (data.tables || [])
+          .map(t => `  • ${t.table}: ${t.copied ?? 0} row(s)`)
+          .join('\n');
+        showResult('migrateResult', true,
+          `✅ মাইগ্রেশন সম্পন্ন হয়েছে!\n\n${lines}\n\n${tableSummary}`);
+      }
+    } catch (err) {
+      showResult('migrateResult', false, 'নেটওয়ার্ক সমস্যা (হয়তো টাইমআউট হয়েছে, কিন্তু ব্যাকগ্রাউন্ডে চলতে থাকতে পারে): ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'এখনই মাইগ্রেট করুন';
+    }
+  }
+</script>
+
+</body>
+</html>
