@@ -14,7 +14,10 @@
 //      order by hand.
 //   3. For each table, in that order: empties it on the target (TRUNCATE
 //      ... CASCADE, so this is safe to run more than once), reads every row
-//      from the source, and re-inserts them on the target in batches.
+//      from the source, and re-inserts them on the target in batches —
+//      only for columns that exist on BOTH sides, so schema drift on the
+//      source (a column added by hand and never recorded anywhere) can't
+//      block the whole table.
 //   4. Resets every SERIAL/IDENTITY sequence on the target to match the
 //      highest id actually copied, so new rows created after the switch
 //      don't collide with migrated ones.
@@ -108,13 +111,29 @@ async function getTablesInDependencyOrder(client) {
 }
 
 async function copyTable(sourceClient, targetPool, tableName, log) {
-  const { rows: columnsInfo } = await sourceClient.query(`
+  const { rows: sourceColumnsInfo } = await sourceClient.query(`
     SELECT column_name FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = $1
     ORDER BY ordinal_position
   `, [tableName]);
-  const columns = columnsInfo.map(c => c.column_name);
-  if (columns.length === 0) return { table: tableName, copied: 0, skipped: 'no columns found' };
+  const sourceColumns = sourceColumnsInfo.map(c => c.column_name);
+  if (sourceColumns.length === 0) return { table: tableName, copied: 0, skipped: 'no columns found' };
+
+  // The live source database may have drifted from schema.sql over time
+  // (e.g. a column added by hand and never recorded in an ALTER TABLE
+  // statement). Only copy columns that exist on BOTH sides, so a stray
+  // extra column on the source doesn't block the whole table's migration.
+  const { rows: targetColumnsInfo } = await targetPool.query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = $1
+  `, [tableName]);
+  const targetColumnSet = new Set(targetColumnsInfo.map(c => c.column_name));
+  const columns = sourceColumns.filter(c => targetColumnSet.has(c));
+  const skippedColumns = sourceColumns.filter(c => !targetColumnSet.has(c));
+  if (skippedColumns.length > 0) {
+    log(`  ⚠️ ${tableName}: column(s) not in target schema, skipped — ${skippedColumns.join(', ')}`);
+  }
+  if (columns.length === 0) return { table: tableName, copied: 0, skipped: 'no matching columns' };
 
   const { rows } = await sourceClient.query(`SELECT * FROM "${tableName}"`);
 
@@ -140,8 +159,10 @@ async function copyTable(sourceClient, targetPool, tableName, log) {
   }
 
   // Reset any SERIAL/IDENTITY sequence on this table so future inserts
-  // don't collide with the ids we just copied in.
-  const { rows: seqCols } = await sourceClient.query(`
+  // don't collide with the ids we just copied in. Checked against the
+  // TARGET's own schema (not the source's) so this never references a
+  // column that doesn't actually exist there.
+  const { rows: seqCols } = await targetPool.query(`
     SELECT column_name FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = $1
       AND column_default LIKE 'nextval%'
