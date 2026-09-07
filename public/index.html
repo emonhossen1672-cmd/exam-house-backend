@@ -2386,7 +2386,10 @@ async function loadQuestions(){
           <td>${q.grade || '-'}</td>
           <td><span class="pill correct-pill">${q.correct_option}</span></td>
           <td>${q.ministry_name ? escapeHtml(q.ministry_name) : '-'}</td>
-          <td class="row-actions"><button class="btn btn-ghost btn-small danger" onclick="deleteQuestion(${q.id})">মুছুন</button></td>
+          <td class="row-actions">
+            <button class="btn btn-ghost btn-small" onclick='openEditQuestion(${JSON.stringify(q).replace(/'/g, "&#39;")})'>এডিট</button>
+            <button class="btn btn-ghost btn-small danger" onclick="deleteQuestion(${q.id})">মুছুন</button>
+          </td>
         </tr>
       `).join('')}
     </table>`;
@@ -2653,5 +2656,127 @@ async function resolveReport(id){
 
 if (TOKEN) showApp(); else showLogin();
 </script>
+  <div id="editModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(23,34,59,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; max-width:640px; width:100%; max-height:90vh; overflow-y:auto; padding:22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="margin:0; font-size:16px; color:var(--ink);">প্রশ্ন এডিট করুন</h3>
+        <button class="btn btn-ghost btn-small" onclick="closeEditQuestion()">✕</button>
+      </div>
+      <div class="err-box" id="editErr" style="display:none;"></div>
+      <div class="ok-box" id="editOk" style="display:none;"></div>
+      <form id="editForm">
+        <input type="hidden" id="e_id">
+        <input type="hidden" id="e_ministry_id">
+        <div class="grid-2">
+          <div class="field">
+            <label>গ্রেড (ঐচ্ছিক)</label>
+            <input type="number" id="e_grade">
+          </div>
+          <div class="field">
+            <label>বিষয়</label>
+            <input type="text" id="e_subject" required>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>টপিক (ঐচ্ছিক)</label>
+            <input type="text" id="e_topic">
+          </div>
+          <div class="field">
+            <label>সাবটপিক (ঐচ্ছিক)</label>
+            <input type="text" id="e_subtopic">
+          </div>
+        </div>
+        <div class="field">
+          <label>প্রশ্ন</label>
+          <textarea id="e_text" rows="3" required></textarea>
+        </div>
+        <div class="field">
+          <label>ব্যাখ্যা (ঐচ্ছিক)</label>
+          <textarea id="e_explanation" rows="2"></textarea>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>অপশন A</label><input type="text" id="e_a" required></div>
+          <div class="field"><label>অপশন B</label><input type="text" id="e_b" required></div>
+          <div class="field"><label>অপশন C</label><input type="text" id="e_c" required></div>
+          <div class="field"><label>অপশন D</label><input type="text" id="e_d" required></div>
+        </div>
+        <div class="field" style="max-width:200px;">
+          <label>সঠিক উত্তর</label>
+          <select id="e_correct" required>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:6px;">
+          <button type="submit" class="btn btn-primary" id="editBtn" style="width:auto; padding-left:26px; padding-right:26px;">সংরক্ষণ করুন</button>
+          <button type="button" class="btn btn-ghost" onclick="closeEditQuestion()">বাতিল</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    function openEditQuestion(q){
+      document.getElementById('e_id').value = q.id;
+      document.getElementById('e_ministry_id').value = q.ministry_id || '';
+      document.getElementById('e_grade').value = q.grade || '';
+      document.getElementById('e_subject').value = q.subject || '';
+      document.getElementById('e_topic').value = q.topic || '';
+      document.getElementById('e_subtopic').value = q.subtopic || '';
+      document.getElementById('e_text').value = q.question_text || '';
+      document.getElementById('e_explanation').value = q.explanation || '';
+      document.getElementById('e_a').value = q.option_a || '';
+      document.getElementById('e_b').value = q.option_b || '';
+      document.getElementById('e_c').value = q.option_c || '';
+      document.getElementById('e_d').value = q.option_d || '';
+      document.getElementById('e_correct').value = q.correct_option || 'A';
+      document.getElementById('editErr').style.display = 'none';
+      document.getElementById('editOk').style.display = 'none';
+      document.getElementById('editModalOverlay').style.display = 'flex';
+    }
+    function closeEditQuestion(){
+      document.getElementById('editModalOverlay').style.display = 'none';
+    }
+    document.getElementById('editModalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'editModalOverlay') closeEditQuestion();
+    });
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById('editErr');
+      const okBox = document.getElementById('editOk');
+      errBox.style.display = 'none'; okBox.style.display = 'none';
+      const btn = document.getElementById('editBtn');
+      btn.disabled = true; const original = btn.textContent; btn.innerHTML = '<span class="spinner"></span>';
+      try{
+        const id = document.getElementById('e_id').value;
+        const payload = {
+          ministry_id: document.getElementById('e_ministry_id').value || null,
+          grade: document.getElementById('e_grade').value || null,
+          subject: document.getElementById('e_subject').value.trim(),
+          topic: document.getElementById('e_topic').value.trim() || null,
+          subtopic: document.getElementById('e_subtopic').value.trim() || null,
+          question_text: document.getElementById('e_text').value.trim(),
+          explanation: document.getElementById('e_explanation').value.trim() || null,
+          option_a: document.getElementById('e_a').value.trim(),
+          option_b: document.getElementById('e_b').value.trim(),
+          option_c: document.getElementById('e_c').value.trim(),
+          option_d: document.getElementById('e_d').value.trim(),
+          correct_option: document.getElementById('e_correct').value
+        };
+        await api('/api/questions/' + id, { method: 'PUT', body: JSON.stringify(payload) });
+        okBox.textContent = 'প্রশ্ন সফলভাবে আপডেট হয়েছে ✓';
+        okBox.style.display = 'block';
+        loadQuestions();
+        setTimeout(closeEditQuestion, 700);
+      } catch(err){
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = original;
+      }
+    });
+  </script>
 </body>
 </html>
