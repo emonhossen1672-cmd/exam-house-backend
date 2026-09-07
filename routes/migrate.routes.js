@@ -18,13 +18,20 @@ router.post('/run', requireAdmin, asyncHandler(async (req, res) => {
   }
 
   const logLines = [];
-  const result = await migrateToNeon({
-    sourceConnectionString: process.env.DATABASE_URL,
-    targetConnectionString: target,
-    logFn: (line) => logLines.push(line),
-  });
-
-  res.json({ ...result, log: logLines });
+  try {
+    const result = await migrateToNeon({
+      sourceConnectionString: process.env.DATABASE_URL,
+      targetConnectionString: target,
+      logFn: (line) => logLines.push(line),
+    });
+    res.json({ ...result, log: logLines });
+  } catch (err) {
+    console.error('❌ Migration failed:', err);
+    res.status(500).json({
+      error: 'মাইগ্রেশনের সময় সমস্যা হয়েছে: ' + err.message,
+      log: logLines,
+    });
+  }
 }));
 
 module.exports = router;
