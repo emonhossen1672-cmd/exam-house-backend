@@ -579,6 +579,12 @@ router.get('/public/:id/explanation', requireUser, asyncHandler(async (req, res)
     await pool.query('UPDATE questions SET explanation = $1 WHERE id = $2', [explanation, req.params.id]);
     res.json({ explanation, source: 'ai' });
   } catch (err) {
+    // Log the real reason (rate limit, bad key, network blip, etc.) so it's
+    // visible in Render logs — the JSON response to the student stays a
+    // generic friendly message either way, per aiExplanation.js's fail-soft
+    // contract, but silently swallowing it here made this impossible to
+    // debug from the outside.
+    console.error(`❌ AI explanation failed for question ${req.params.id}:`, err.message);
     res.status(200).json({ explanation: null, error: 'এই মুহূর্তে ব্যাখ্যা তৈরি করা যায়নি, একটু পরে আবার চেষ্টা করুন।' });
   }
 }));
