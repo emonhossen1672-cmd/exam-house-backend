@@ -58,9 +58,24 @@ const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 // profile screen (e.g. "EH1024"). Defaults to 'EH' (Exam House) if unset.
 const STUDENT_ID_PREFIX = process.env.STUDENT_ID_PREFIX || 'EH';
 
+// Optional — shared secret for POST /api/internal/tick (routes/internal.routes.js).
+// All four background schedulers (exam reminders, daily quiz push, exam
+// templates, routine exams) run on setInterval inside this same web
+// process. On a Render FREE web service the process spins down after ~15
+// minutes with no incoming HTTP traffic, so a due reminder/push/template
+// just sits there until some student's request happens to wake the app back
+// up. Setting CRON_SECRET and pointing a free external cron (e.g.
+// cron-job.org, every 5 minutes) at POST /api/internal/tick with header
+// `x-cron-secret: <value>` keeps the process awake and runs all four checks
+// on a reliable schedule instead of hoping for organic traffic. Left
+// optional so the server still starts without it — the route just responds
+// 503 until this is set, and the existing in-process intervals keep running
+// as a fallback either way.
+const CRON_SECRET = process.env.CRON_SECRET || '';
+
 module.exports = {
   JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID,
   ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
-  STUDENT_ID_PREFIX
+  STUDENT_ID_PREFIX, CRON_SECRET
 };
