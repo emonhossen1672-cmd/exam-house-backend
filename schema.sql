@@ -72,6 +72,26 @@ ALTER TABLE results ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id
 ALTER TABLE users ADD COLUMN IF NOT EXISTS current_streak INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS longest_streak INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_date DATE;
+
+-- Profile screen fields (redesigned profile: student ID badge, study group,
+-- "preparing for" target exam, and a Level/Points progress bar). student_code
+-- is the short public-facing ID shown on the profile (e.g. "EH1024") —
+-- backfilled for existing rows in autoInit.js, generated at insert time for
+-- new registrations/Google sign-ups in routes/auth.routes.js.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS student_code VARCHAR(20) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS study_group VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS preparing_for VARCHAR(100);
+-- Points are earned 1-per-correct-answer on exam submission (see
+-- routes/results.routes.js); Level is derived from points at read time
+-- (see utils/leveling.js) rather than stored, so the thresholds can change
+-- later without a data migration.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 0;
+-- Placeholder only — there's no real package/subscription system yet. These
+-- two columns just let the profile screen show an active package name and
+-- expiry (or "no package") until a full packages table + admin panel is
+-- built. Set manually for now (e.g. via the admin panel / a DB update).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_name VARCHAR(150);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_expires_at DATE;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS post_name VARCHAR(200);
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS subject VARCHAR(30);
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS explanation TEXT;
