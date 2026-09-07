@@ -7,8 +7,9 @@ const { requireUser } = require('../middleware/auth');
 const { sendSMS } = require('../services/sms');
 const { verifyGoogleToken, isConfigured: googleConfigured } = require('../services/google');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimit');
-const { JWT_SECRET, IS_PRODUCTION } = require('../config');
+const { JWT_SECRET, IS_PRODUCTION, STUDENT_ID_PREFIX } = require('../config');
 const asyncHandler = require('../utils/asyncHandler');
+const { levelProgress } = require('../utils/leveling');
 
 const PHONE_RE = /^01[3-9]\d{8}$/; // Bangladeshi mobile number
 const OTP_TTL_MINUTES = 5;
@@ -138,6 +139,10 @@ router.post('/register', asyncHandler(async (req, res) => {
       'INSERT INTO users (name, phone, password_hash, phone_verified) VALUES ($1,$2,$3,true) RETURNING id, name, phone',
       [name, phone, hash]
     );
+    // Assign the profile screen's public student ID (e.g. "EH1024") now that
+    // we have the new row's id to base it on.
+    const studentCode = `${STUDENT_ID_PREFIX}${1000 + rows[0].id}`;
+    await client.query('UPDATE users SET student_code=$1 WHERE id=$2', [studentCode, rows[0].id]);
     await client.query('UPDATE otp_codes SET consumed_at = NOW() WHERE id=$1', [otpRes.rows[0].id]);
     await client.query('COMMIT');
 
@@ -244,6 +249,10 @@ router.post('/google', asyncHandler(async (req, res) => {
         [name || 'শিক্ষার্থী', email, googleId, picture || null]
       );
       user = inserted.rows[0];
+      // Same public student ID as phone registration (see /register above).
+      const studentCode = `${STUDENT_ID_PREFIX}${1000 + user.id}`;
+      await pool.query('UPDATE users SET student_code=$1 WHERE id=$2', [studentCode, user.id]);
+      user.student_code = studentCode;
     }
   }
 
@@ -291,18 +300,72 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// GET /api/auth/me — current logged-in student's profile
+// GET /api/auth/me — current logged-in student's full profile, matching the
+// redesigned profile screen: identity/badge info, Level+Points progress,
+// placeholder active package, and lifetime exam stats (Total Exam / Passed /
+// Questions / Right / Wrong / Unanswered).
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT current_streak, longest_streak, email, avatar_url FROM users WHERE id=$1',
+    `SELECT current_streak, longest_streak, email, avatar_url, created_at,
+      student_code, study_group, preparing_for, points, google_id, phone_verified,
+      active_package_name, active_package_expires_at
+     FROM users WHERE id=$1`,
     [req.user.id]
   );
   const info = rows[0] || {};
+
+  const statsRes = await pool.query(
+    `SELECT
+      COUNT(*)::int AS total_exam,
+      COUNT(*) FILTER (WHERE score >= 40)::int AS total_passed,
+      COALESCE(SUM(correct_count + wrong_count + skipped_count), 0)::int AS total_questions,
+      COALESCE(SUM(correct_count), 0)::int AS total_right,
+      COALESCE(SUM(wrong_count), 0)::int AS total_wrong,
+      COALESCE(SUM(skipped_count), 0)::int AS total_unanswered
+     FROM results WHERE user_id=$1`,
+    [req.user.id]
+  );
+  const stats = statsRes.rows[0];
+
   res.json({
     id: req.user.id, name: req.user.name, phone: req.user.phone,
+    student_code: info.student_code || null,
     email: info.email || null, avatar_url: info.avatar_url || null,
-    current_streak: info.current_streak || 0, longest_streak: info.longest_streak || 0
+    member_since: info.created_at || null,
+    study_group: info.study_group || null,
+    preparing_for: info.preparing_for || null,
+    login_method: info.google_id ? 'Google' : 'Mobile',
+    verified: !!(info.phone_verified || info.google_id),
+    current_streak: info.current_streak || 0, longest_streak: info.longest_streak || 0,
+    ...levelProgress(info.points || 0),
+    points: info.points || 0,
+    active_package: info.active_package_name
+      ? { name: info.active_package_name, expires_at: info.active_package_expires_at }
+      : null,
+    stats
   });
+}));
+
+// PATCH /api/auth/me — lets a student edit the fields shown on their own
+// profile screen ("Edit Profile" button). Only these three are editable
+// here; phone/email changes go through their own verified flows.
+router.patch('/me', requireUser, asyncHandler(async (req, res) => {
+  const { name, study_group, preparing_for } = req.body;
+  const fields = [];
+  const values = [];
+  let i = 1;
+  if (name !== undefined) { fields.push(`name=$${i++}`); values.push(name); }
+  if (study_group !== undefined) { fields.push(`study_group=$${i++}`); values.push(study_group || null); }
+  if (preparing_for !== undefined) { fields.push(`preparing_for=$${i++}`); values.push(preparing_for || null); }
+
+  if (!fields.length) return res.status(400).json({ error: 'কোনো পরিবর্তনযোগ্য তথ্য দেওয়া হয়নি' });
+
+  values.push(req.user.id);
+  const { rows } = await pool.query(
+    `UPDATE users SET ${fields.join(', ')} WHERE id=$${i} RETURNING name, study_group, preparing_for`,
+    values
+  );
+  res.json(rows[0]);
 }));
 
 module.exports = router;
