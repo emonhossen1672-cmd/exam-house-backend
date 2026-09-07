@@ -28,10 +28,27 @@ const { Pool } = require('pg');
 
 const BATCH_SIZE = 500;
 
+function sslConfigFor(connectionString) {
+  // Render's *internal* Postgres URL (short hostname like "dpg-xxxxx-a",
+  // no domain) doesn't speak SSL — forcing it causes the connection to
+  // fail outright. Render's *external* URLs (...render.com) and Neon
+  // (...neon.tech) both require SSL. Detect which kind we have and only
+  // turn SSL on when the host actually needs it.
+  try {
+    const { hostname } = new URL(connectionString);
+    if (hostname.includes('render.com') || hostname.includes('neon.tech')) {
+      return { rejectUnauthorized: false };
+    }
+    return false;
+  } catch (e) {
+    return { rejectUnauthorized: false };
+  }
+}
+
 function makePool(connectionString) {
   return new Pool({
     connectionString,
-    ssl: { rejectUnauthorized: false },
+    ssl: sslConfigFor(connectionString),
   });
 }
 
