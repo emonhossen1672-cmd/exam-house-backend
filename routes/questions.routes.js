@@ -165,6 +165,75 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
   res.json({ subject, page, total_pages: totalPages, total_count: total, questions: rows });
 }));
 
+// GET /api/questions/public/search?q=&subject=&page=1&unique=1 — free-text
+// search across the WHOLE question bank (not just the 12 fixed টপিকভিত্তিক
+// subjects — Reading List's scope). Students had no way to look up a
+// question by keyword anywhere on the public site before this; everything
+// else requires drilling down Subject → Topic → Subtopic first.
+//
+// Uses ILIKE '%q%' for substring matching (works for partial Bengali words
+// too) plus pg_trgm's similarity() to rank hits by closeness rather than
+// just newest-first — both backed by the idx_questions_text_trgm GIN index
+// (schema.sql) so this stays fast as the question bank grows.
+//
+// `unique=0` disables the default dedup-by-identical-text behavior (same
+// question re-entered from multiple ministry exams collapses to its
+// earliest copy by default, same as /public/topic-questions above).
+const SEARCH_PAGE_SIZE = 20;
+router.get('/public/search', optionalUser, asyncHandler(async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const subject = (req.query.subject || '').trim();
+  const unique = req.query.unique !== '0' && req.query.unique !== 'false';
+  let page = parseInt(req.query.page, 10);
+  if (!Number.isFinite(page) || page < 1) page = 1;
+
+  if (q.length < 2) return res.status(400).json({ error: 'অন্তত ২টি অক্ষর লিখে সার্চ করুন' });
+
+  const clauses = ['q.question_text ILIKE $1'];
+  const params = [`%${q}%`];
+  if (subject) { params.push(subject); clauses.push(`q.subject = $${params.length}`); }
+  const where = clauses.join(' AND ');
+
+  const userId = req.user ? req.user.id : null;
+  params.push(userId);
+  const userParamIdx = params.length;
+  params.push(q);
+  const simIdx = params.length;
+
+  const scopedCte = `
+    SELECT q.id, q.subject, q.topic, q.subtopic, q.grade, q.question_text,
+           q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option,
+           q.explanation, q.post_name, q.exam_year, m.name AS ministry_name,
+           similarity(q.question_text, $${simIdx}) AS rank,
+           ROW_NUMBER() OVER (PARTITION BY q.question_text ORDER BY q.id ASC) AS dup_rank,
+           EXISTS(SELECT 1 FROM question_reads qr WHERE qr.question_id = q.id AND qr.user_id = $${userParamIdx}) AS is_read,
+           EXISTS(SELECT 1 FROM bookmarks b WHERE b.question_id = q.id AND b.user_id = $${userParamIdx}) AS is_favorite
+    FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
+    WHERE ${where}`;
+  const dedupClause = unique ? 'AND dup_rank = 1' : '';
+
+  const countRes = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM (${scopedCte}) t WHERE 1=1 ${dedupClause}`,
+    params
+  );
+  const total = countRes.rows[0].total;
+  const totalPages = Math.max(1, Math.ceil(total / SEARCH_PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+  const offset = (page - 1) * SEARCH_PAGE_SIZE;
+
+  const { rows } = await pool.query(
+    `SELECT id, subject, topic, subtopic, grade, question_text, option_a, option_b, option_c, option_d,
+            correct_option, explanation, post_name, exam_year, ministry_name, is_read, is_favorite
+     FROM (${scopedCte}) t
+     WHERE 1=1 ${dedupClause}
+     ORDER BY rank DESC, id ASC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, SEARCH_PAGE_SIZE, offset]
+  );
+
+  res.json({ q, subject: subject || null, page, total_pages: totalPages, total_count: total, questions: rows });
+}));
+
 // GET /api/questions/public/reading-list/topics?subject=X — topic cards for
 // রিডিং লিস্ট's OWN Subject → Topic → Subtopic → Questions drill-down.
 // Same shape as /public/topics below, but — unlike that endpoint — this one
