@@ -875,6 +875,9 @@
   .rev-opt.is-correct{ background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700; }
   .rev-opt.is-wrong{ background:var(--wrong-bg); border-color:var(--wrong); color:var(--wrong); font-weight:700; }
   .rev-explain{ margin-top:10px; background:var(--paper); border-left:3px solid var(--gold); padding:9px 11px; font-size:12px; color:var(--ink-soft); border-radius:0 8px 8px 0; }
+  .rev-explain-wrap{ margin-top:10px; }
+  .rev-explain-btn{ background:none; border:1px solid var(--gold); color:var(--ink-soft); font-size:12px; padding:7px 12px; border-radius:14px; cursor:pointer; }
+  .rev-explain-btn:active{ opacity:0.7; }
   .rev-opt.clickable{ cursor:pointer; }
   .rev-opt.clickable:active{ opacity:0.7; }
   .revision-trigger{
@@ -5594,7 +5597,7 @@
         else if(letter === q.given) cls = 'is-wrong';
         return `<div class="rev-opt ${cls}">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
       }).join('');
-      const explain = q.explanation ? `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      const explainBox = explanationBoxHtml(q);
       return `<div class="rev-q">
         <div class="rev-q-top">
           <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
@@ -5602,9 +5605,46 @@
         </div>
         <div class="rev-q-text">${escapeHtml(q.question_text)}</div>
         ${opts}
-        ${explain}
+        ${explainBox}
       </div>`;
     }).join('');
+  }
+
+  // ---------- On-demand AI explanation ("কেন ভুল হলো?") ----------
+  // Shared by both the post-exam review screen and the revision-practice
+  // screen. If the question already has an admin-written explanation it's
+  // shown immediately; otherwise a button fetches (and server-side caches)
+  // an AI-generated one from GET /api/questions/public/:id/explanation.
+  function explanationBoxHtml(q){
+    if(q.explanation) return `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>`;
+    return `<div class="rev-explain-wrap" data-qid="${q.id}">
+      <button class="rev-explain-btn" onclick="fetchExplanation(${q.id}, this)">💡 কেন ভুল হলো?</button>
+    </div>`;
+  }
+
+  async function fetchExplanation(questionId, btnEl){
+    // Two callers: renderReviewBody wraps the button in .rev-explain-wrap
+    // (always visible); renderRevisionBody puts it straight inside
+    // .rev-explain (hidden until the student answers, then shown by
+    // answerRevisionOption). Either way we just swap that container's
+    // inner content in place — never replace the element itself, so an
+    // already-revealed .rev-explain's display:block state isn't lost.
+    const wrap = btnEl.closest('.rev-explain-wrap') || btnEl.closest('.rev-explain');
+    wrap.innerHTML = 'ব্যাখ্যা তৈরি হচ্ছে...';
+    wrap.style.opacity = '.7';
+    try{
+      const data = await apiGetAuth('/api/questions/public/'+questionId+'/explanation');
+      wrap.style.opacity = '';
+      if(data.explanation){
+        wrap.className = 'rev-explain';
+        wrap.innerHTML = `💡 ${escapeHtml(data.explanation)}`;
+      } else {
+        wrap.innerHTML = `<span style="color:var(--wrong,#c0392b);">${escapeHtml(data.error || 'ব্যাখ্যা পাওয়া যায়নি')}</span>`;
+      }
+    }catch(err){
+      wrap.style.opacity = '';
+      wrap.innerHTML = `<span style="color:var(--wrong,#c0392b);">লোড করা যায়নি: ${escapeHtml(err.message)}</span>`;
+    }
   }
 
   function openReview(){
@@ -5643,7 +5683,14 @@
         const letter = k.toUpperCase();
         return `<div class="rev-opt clickable" data-qid="${q.id}" data-letter="${letter}" data-correct="${q.correct_option}" onclick="answerRevisionOption(this)">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
       }).join('');
-      const explain = q.explanation ? `<div class="rev-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      // Kept hidden (display:none) until answerRevisionOption() reveals it,
+      // so the student sees their own attempt before the explanation —
+      // same "answer first, then explain" flow as before this feature,
+      // just with an AI fallback when no admin explanation exists yet.
+      const explainInner = q.explanation
+        ? `💡 ${escapeHtml(q.explanation)}`
+        : `<button class="rev-explain-btn" onclick="fetchExplanation(${q.id}, this)">💡 কেন ভুল হলো?</button>`;
+      const explain = `<div class="rev-explain" style="display:none;">${explainInner}</div>`;
       return `<div class="rev-q">
         <div class="rev-q-top">
           <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
