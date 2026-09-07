@@ -54,8 +54,13 @@ const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
 const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 
+// Optional — short prefix for the public-facing student ID shown on the
+// profile screen (e.g. "EH1024"). Defaults to 'EH' (Exam House) if unset.
+const STUDENT_ID_PREFIX = process.env.STUDENT_ID_PREFIX || 'EH';
+
 module.exports = {
   JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID,
   ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
-  CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+  CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
+  STUDENT_ID_PREFIX
 };
