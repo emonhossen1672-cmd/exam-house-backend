@@ -874,9 +874,11 @@
   .rev-opt{ font-size:12.5px; padding:8px 10px; border-radius:9px; border:1px solid var(--line); margin-bottom:6px; background:var(--paper); }
   .rev-opt.is-correct{ background:var(--success-bg); border-color:var(--success); color:var(--success); font-weight:700; }
   .rev-opt.is-wrong{ background:var(--wrong-bg); border-color:var(--wrong); color:var(--wrong); font-weight:700; }
-  .rev-explain{ margin-top:10px; background:var(--paper); border-left:3px solid var(--gold); padding:9px 11px; font-size:12px; color:var(--ink-soft); border-radius:0 8px 8px 0; }
+  .rev-explain{ margin-top:12px; }
+  .rev-explain-badge{ display:inline-block; font-family:'Noto Sans Bengali'; font-weight:700; background:var(--gold-soft); color:#7A5E12; font-size:12.5px; padding:5px 13px; border-radius:20px; margin-bottom:8px; }
+  .rev-explain-text{ background:var(--paper); border-radius:12px; padding:13px 14px; font-size:15px; font-weight:600; color:var(--ink); line-height:1.75; }
   .rev-explain-wrap{ margin-top:10px; }
-  .rev-explain-btn{ background:none; border:1px solid var(--gold); color:var(--ink-soft); font-size:12px; padding:7px 12px; border-radius:14px; cursor:pointer; }
+  .rev-explain-btn{ background:none; border:1px solid var(--gold); color:var(--ink-soft); font-size:13px; padding:8px 13px; border-radius:14px; cursor:pointer; font-family:'Noto Sans Bengali'; }
   .rev-explain-btn:active{ opacity:0.7; }
   .rev-opt.clickable{ cursor:pointer; }
   .rev-opt.clickable:active{ opacity:0.7; }
@@ -2729,7 +2731,7 @@
           const cls = letter === q.correct_option ? 'is-correct' : '';
           return `<div class="rev-opt ${cls}">${letter}. ${escapeHtml(q['option_'+k])}</div>`;
         }).join('');
-        const explain = q.explanation ? `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>` : '';
+        const explain = q.explanation ? `<div class="rev-explain">${explainContentHtml(q.explanation)}</div>` : '';
         return `<div class="rev-q">
           <div class="rev-q-top">
             <span class="rev-q-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</span>
@@ -5615,8 +5617,16 @@
   // screen. If the question already has an admin-written explanation it's
   // shown immediately; otherwise a button fetches (and server-side caches)
   // an AI-generated one from GET /api/questions/public/:id/explanation.
+  // Shared markup for a revealed explanation: a small "💡 ব্যাখ্যা" pill
+  // above a larger, higher-contrast text panel — used for both admin-
+  // written and AI-generated explanations (the label doesn't distinguish
+  // the source, since either can appear here).
+  function explainContentHtml(text){
+    return `<div class="rev-explain-badge">💡 ব্যাখ্যা</div><div class="rev-explain-text">${escapeHtml(text)}</div>`;
+  }
+
   function explanationBoxHtml(q){
-    if(q.explanation) return `<div class="rev-explain">💡 ${escapeHtml(q.explanation)}</div>`;
+    if(q.explanation) return `<div class="rev-explain">${explainContentHtml(q.explanation)}</div>`;
     const label = q.status === 'wrong' ? '💡 কেন ভুল হলো?' : '💡 ব্যাখ্যা দেখুন';
     return `<div class="rev-explain-wrap" data-qid="${q.id}">
       <button class="rev-explain-btn" onclick="fetchExplanation(${q.id}, this)">${label}</button>
@@ -5638,7 +5648,7 @@
       wrap.style.opacity = '';
       if(data.explanation){
         wrap.className = 'rev-explain';
-        wrap.innerHTML = `💡 ${escapeHtml(data.explanation)}`;
+        wrap.innerHTML = explainContentHtml(data.explanation);
       } else {
         // AI call failed server-side (fail-soft) — offer a retry instead of
         // leaving a dead-end message with no way to try again.
@@ -5693,7 +5703,7 @@
       // same "answer first, then explain" flow as before this feature,
       // just with an AI fallback when no admin explanation exists yet.
       const explainInner = q.explanation
-        ? `💡 ${escapeHtml(q.explanation)}`
+        ? explainContentHtml(q.explanation)
         : `<button class="rev-explain-btn" onclick="fetchExplanation(${q.id}, this)">💡 কেন ভুল হলো?</button>`;
       const explain = `<div class="rev-explain" style="display:none;">${explainInner}</div>`;
       return `<div class="rev-q">
