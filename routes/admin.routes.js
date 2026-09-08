@@ -8,6 +8,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { JWT_SECRET } = require('../config');
 const asyncHandler = require('../utils/asyncHandler');
 const { runSeed } = require('../scripts/seedStudyPlan');
+const { runSeed: runYearlyCycleSeed } = require('../scripts/seedYearlyCycle');
 
 // POST /api/admin/login
 router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
@@ -34,6 +35,15 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
 // more than once (wipes and rebuilds only 'bcs-200' and 'job-solution').
 router.post('/seed-study-plan', requireAdmin, asyncHandler(async (req, res) => {
   const result = await runSeed(pool);
+  res.json(result);
+}));
+
+// POST /api/admin/seed-yearly-cycle — runs the same logic as
+// `node scripts/seedYearlyCycle.js`, exposed over HTTP for the same reason
+// as seed-study-plan above (no Shell access on the free Render plan). Safe
+// to call more than once (wipes and rebuilds only 'yearly-cycle').
+router.post('/seed-yearly-cycle', requireAdmin, asyncHandler(async (req, res) => {
+  const result = await runYearlyCycleSeed(pool);
   res.json(result);
 }));
 
