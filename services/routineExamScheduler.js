@@ -13,6 +13,7 @@
 // that wakes it, not necessarily exactly at midnight.
 const pool = require('../db');
 const { TOPIC_JOB_TO_CANONICAL } = require('../utils/subjectMap');
+const { TOPIC_JOB_SUBJECTS, FULL_SYLLABUS_LABEL } = require('../utils/topicJobSubjects');
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
 
@@ -36,6 +37,9 @@ function genSerial() {
 // the 5 canonical group names — either way this returns the list of exact
 // `subject` values to pull questions from.
 function subjectsFor(autoExamSubject) {
+  // সারাবছর চক্রাকার রুটিনের রিভিশন/ফুল মডেল টেস্ট দিনগুলো এই sentinel value
+  // ব্যবহার করে — সব ১২টা বিষয় থেকে প্রশ্ন আসবে।
+  if (autoExamSubject === FULL_SYLLABUS_LABEL) return TOPIC_JOB_SUBJECTS;
   if (CANONICAL_TO_SUBJECTS[autoExamSubject]) return CANONICAL_TO_SUBJECTS[autoExamSubject];
   return [autoExamSubject]; // treat as an exact subject already
 }
