@@ -557,3 +557,16 @@ CREATE INDEX IF NOT EXISTS idx_written_answers_status ON written_answers(status)
 -- grading_mode is copied onto the generated exam when exam_type='written'.
 ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS exam_type VARCHAR(10) NOT NULL DEFAULT 'live'; -- live | written
 ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS grading_mode VARCHAR(15);
+
+-- Admin-posted announcements shown via the floating bell button on the
+-- student site (routes/notices.routes.js). Deliberately no per-user
+-- read-tracking table — "unread" is computed client-side by comparing the
+-- newest notice id against a last-seen id kept in localStorage.
+CREATE TABLE IF NOT EXISTS notices (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  body TEXT NOT NULL,
+  is_pinned BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notices_pinned_created ON notices(is_pinned DESC, created_at DESC);
