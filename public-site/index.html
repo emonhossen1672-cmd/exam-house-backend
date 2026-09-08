@@ -1402,6 +1402,18 @@
     </div>
   </div>
 
+  <!-- ============ FLOATING NOTICE BELL ============ -->
+  <button id="notice-bell-btn" onclick="openNoticeBoard()" title="নোটিশ বোর্ড" style="
+    position:fixed; right:16px; bottom:96px; z-index:60; width:46px; height:46px; border-radius:50%;
+    border:none; background:var(--gold, #C9962F); color:#2B2317; box-shadow:0 6px 16px -6px rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;">
+    <span style="font-size:20px; line-height:1;">🔔</span>
+    <span id="notice-bell-badge" style="
+      display:none; position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 3px;
+      border-radius:9px; background:#E0537A; color:#fff; font-size:10px; font-weight:700;
+      align-items:center; justify-content:center; line-height:16px; font-family:'Space Mono',monospace;">0</span>
+  </button>
+
   <!-- ============ SIDE MENU ============ -->
   <div class="side-menu-overlay" id="side-menu-overlay" onclick="if(event.target===this) closeSideMenu()">
     <div class="side-menu-panel">
@@ -2059,6 +2071,16 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="notify-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ NOTICE BOARD OVERLAY ============ -->
+  <div class="exam-overlay" id="notice-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeNoticeBoard()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">নোটিশ বোর্ড</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="notice-body" style="padding:14px 18px 40px;"></div>
   </div>
 
   <!-- ============ ARCHIVE OVERLAY ============ -->
@@ -3005,7 +3027,7 @@
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
     'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay',
-    'cat-result-overlay','cat-archive-overlay','written-result-overlay'];
+    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -4575,6 +4597,57 @@
     document.getElementById('notify-overlay').classList.remove('active');
   }
 
+  // ---------- Notice Board ----------
+  // Unread state is just a "last seen id" kept in localStorage, compared
+  // against the newest notice id from the server — no per-user DB table.
+  let NOTICE_CACHE = [];
+  async function loadNoticeBadge(){
+    try{
+      const data = await apiGet('/api/notices?limit=30');
+      NOTICE_CACHE = data.notices || [];
+      const lastSeen = parseInt(localStorage.getItem('noticeLastSeenId') || '0');
+      const unread = data.latest_id > lastSeen;
+      const badge = document.getElementById('notice-bell-badge');
+      const unreadCount = NOTICE_CACHE.filter(n => n.id > lastSeen).length;
+      if(unread && unreadCount > 0){
+        badge.style.display = 'flex';
+        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      } else {
+        badge.style.display = 'none';
+      }
+    }catch(e){ /* silent — badge just won't show */ }
+  }
+  function openNoticeBoard(){
+    document.getElementById('notice-overlay').classList.add('active');
+    renderNoticeBoard();
+    // mark everything currently loaded as seen
+    if(NOTICE_CACHE.length){
+      const maxId = Math.max(...NOTICE_CACHE.map(n => n.id));
+      localStorage.setItem('noticeLastSeenId', maxId);
+    }
+    document.getElementById('notice-bell-badge').style.display = 'none';
+  }
+  function closeNoticeBoard(){
+    document.getElementById('notice-overlay').classList.remove('active');
+  }
+  function renderNoticeBoard(){
+    const body = document.getElementById('notice-body');
+    if(!NOTICE_CACHE.length){
+      body.innerHTML = '<p style="color:var(--ink-faint,#888); text-align:center; margin-top:30px;">কোনো নোটিশ নেই।</p>';
+      return;
+    }
+    body.innerHTML = NOTICE_CACHE.map(n => `
+      <div style="background:var(--card,#fff); border-radius:14px; padding:14px 16px; margin-bottom:12px; box-shadow:0 2px 8px -4px rgba(0,0,0,.15);">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+          ${n.is_pinned ? '<span style="font-size:11px;">📌</span>' : ''}
+          <div style="font-weight:700; font-size:14px; color:var(--ink);">${escapeHtml(n.title)}</div>
+        </div>
+        <div style="font-size:13px; color:var(--ink-soft,#555); line-height:1.6; white-space:pre-wrap;">${escapeHtml(n.body)}</div>
+        <div style="font-size:10.5px; color:var(--ink-faint,#999); margin-top:8px; font-family:'Space Mono',monospace;">${new Date(n.created_at).toLocaleDateString('bn-BD', {day:'numeric', month:'short', year:'numeric'})}</div>
+      </div>
+    `).join('');
+  }
+
   async function loadNotifySettings(){
     const body = document.getElementById('notify-body');
     body.innerHTML = '<p style="color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
@@ -4831,6 +4904,7 @@
     }
   }
   loadHome();
+  loadNoticeBadge();
 
   // Homepage category tiles that carry a data-live-cat attribute get a small
   // red dot the moment a live exam is actually running (examStatus().live)
