@@ -14,6 +14,12 @@ const CATEGORIES = [
   { slug: 'topic-wise', title: 'টপিকভিত্তিক রুটিন', subtitle: 'টপিক ধরে ধরে পরিকল্পিত পড়াশোনা', icon: '🗂️' },
   { slug: 'job-solution', title: 'জব সলুশন শেষ করার রুটিন', subtitle: 'নির্দিষ্ট সময়ে সম্পূর্ণ জব সলুশন', icon: '✅' },
   { slug: 'weekly-model-test', title: 'সাপ্তাহিক মডেল টেস্ট', subtitle: 'প্রতি সপ্তাহে নতুন মডেল টেস্ট', icon: '📝' },
+  // পরীক্ষাভিত্তিক একটানা চক্র (প্রতি ২-৪ দিনে একটা বিষয়ভিত্তিক পরীক্ষা, প্রতি
+  // ৬টার পর রিভিশন + ফুল মডেল টেস্ট), scripts/seedYearlyCycle.js দিয়ে তৈরি।
+  // একবার activate করার পর services/yearlyCycleScheduler.js নিজে থেকেই চক্র
+  // শেষ হলে (দৈর্ঘ্য routine_days থেকে গণনা করা হয়, হার্ডকোড না) পুরো চক্রটা
+  // আবার দিন ১ থেকে শুরু করে দেয় — admin-কে বারবার activate করতে হয় না।
+  { slug: 'yearly-cycle', title: 'পরীক্ষাভিত্তিক চক্রাকার রুটিন', subtitle: 'প্রতি ২-৪ দিনে পরীক্ষা, চক্র শেষ হলে আবার শুরু', icon: '🔄' },
 ];
 const CATEGORY_SLUGS = CATEGORIES.map(c => c.slug);
 
