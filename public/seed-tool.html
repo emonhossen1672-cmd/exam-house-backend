@@ -44,12 +44,20 @@
   <div id="seedResult"></div>
 </div>
 
+<div class="card hidden" id="seedYearlyCard">
+  <h2>২ক. সারাবছর চক্রাকার রুটিন সিড করুন</h2>
+  <p class="sub" style="margin-bottom:8px;">yearly-cycle (পরীক্ষাভিত্তিক চক্র — প্রতি ২-৪ দিনে একটা বিষয়ভিত্তিক পরীক্ষা, প্রতি ৬টা পরীক্ষার পর রিভিশন + ফুল মডেল টেস্ট) ক্যাটাগরিতে কনটেন্ট বসাবে। একবার নিচে Activate করলে এটি চক্র শেষ হওয়া মাত্র নিজে থেকেই আবার দিন ১ থেকে শুরু হবে — বারবার সিড/activate করা লাগবে না।</p>
+  <button class="secondary" onclick="runSeedYearly()">সিড চালান</button>
+  <div id="seedYearlyResult"></div>
+</div>
+
 <div class="card hidden" id="activateCard">
   <h2>৩. রুটিন চালু করুন (তারিখ সেট)</h2>
   <label>ক্যাটাগরি</label>
   <select id="activateCategory">
     <option value="bcs-200">২০০ দিনে বিসিএস প্রস্তুতি</option>
     <option value="job-solution">জব সলুশন শেষ করার রুটিন</option>
+    <option value="yearly-cycle">পরীক্ষাভিত্তিক চক্রাকার রুটিন (স্বয়ংক্রিয় পুনরাবৃত্তি)</option>
   </select>
   <label>শুরুর তারিখ</label>
   <input id="startDate" type="date">
@@ -81,6 +89,7 @@
       token = data.token;
       showResult('loginResult', true, `✅ লগইন সফল — ${data.username}`);
       document.getElementById('seedCard').classList.remove('hidden');
+      document.getElementById('seedYearlyCard').classList.remove('hidden');
       document.getElementById('activateCard').classList.remove('hidden');
     } catch (err) {
       showResult('loginResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
@@ -104,6 +113,23 @@
           : 'ℹ️ সাপ্তাহিক মডেল টেস্ট টেমপ্লেট আগে থেকেই ছিল'));
     } catch (err) {
       showResult('seedResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
+    }
+  }
+
+  async function runSeedYearly() {
+    showResult('seedYearlyResult', true, '⏳ চলছে...');
+    try {
+      const res = await fetch('/api/admin/seed-yearly-cycle', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) return showResult('seedYearlyResult', false, data.error || 'ব্যর্থ হয়েছে');
+      showResult('seedYearlyResult', true,
+        `✅ yearly-cycle: ${data.inserted} দিন যোগ হয়েছে (মোট ${data.totalDays} দিন)\n` +
+        'এবার নিচে "yearly-cycle" ক্যাটাগরি বেছে একটি শুরুর তারিখ দিয়ে Activate করুন — এরপর এটি নিজে থেকেই প্রতি বছর আবার শুরু হবে।');
+    } catch (err) {
+      showResult('seedYearlyResult', false, 'নেটওয়ার্ক সমস্যা: ' + err.message);
     }
   }
 
