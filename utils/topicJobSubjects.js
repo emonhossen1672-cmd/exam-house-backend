@@ -26,6 +26,14 @@ const TOPIC_JOB_SUBJECTS = [
 const UNTAGGED_TOPIC = 'অন্যান্য';
 const UNTAGGED_SUBTOPIC = 'অন্যান্য';
 
+// FULL_SYLLABUS_LABEL — sentinel auto_exam_subject value meaning "pull
+// questions from all 12 subjects", used by routine_days rows that are a
+// রিভিশন পরীক্ষা or ফুল মডেল টেস্ট (scripts/seedYearlyCycle.js) rather than
+// a single-subject exam. services/routineExamScheduler.js special-cases
+// this exact string and returns TOPIC_JOB_SUBJECTS (below) for it instead
+// of trying to match it as a real subject/canonical group.
+const FULL_SYLLABUS_LABEL = 'সম্পূর্ণ সিলেবাস';
+
 // normalizeText — cleans up subject/topic/subtopic text before it's saved,
 // so invisible differences (which are extremely common with Bengali text
 // typed on a phone keyboard or edited in a mobile spreadsheet app — e.g. a
@@ -62,4 +70,4 @@ function snapToFixedSubject(raw) {
   return NORMALIZED_TO_FIXED.get(cleaned) || cleaned;
 }
 
-module.exports = { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, normalizeText, snapToFixedSubject };
+module.exports = { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, FULL_SYLLABUS_LABEL, normalizeText, snapToFixedSubject };
