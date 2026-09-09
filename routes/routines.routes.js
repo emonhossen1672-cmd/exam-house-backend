@@ -42,6 +42,8 @@ router.get('/public/:category', optionalUser, asyncHandler(async (req, res) => {
   }
   const { rows } = await pool.query(
     `SELECT d.id, d.day_number, d.title, d.tasks, d.exam_id,
+            d.auto_exam_subject, d.auto_exam_topics,
+            d.auto_exam_question_count, d.auto_exam_duration_minutes,
             e.title AS exam_title, e.start_time AS exam_start_time, e.type AS exam_type,
             EXISTS(
               SELECT 1 FROM user_routine_progress p
