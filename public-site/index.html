@@ -6203,8 +6203,10 @@
     const d = new Date(exam.start_time);
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
-  function groupExamsByDateHtml(examsList){
-    const dated = examsList.filter(e => e.start_time).sort((a,b) => new Date(a.start_time) - new Date(b.start_time));
+  function groupExamsByDateHtml(examsList, desc){
+    const dated = examsList.filter(e => e.start_time).sort((a,b) => desc
+      ? new Date(b.start_time) - new Date(a.start_time)
+      : new Date(a.start_time) - new Date(b.start_time));
     const undated = examsList.filter(e => !e.start_time);
     let html = '';
     let lastKey = null;
@@ -6237,7 +6239,7 @@
   function openCatLiveExams(){
     document.getElementById('cat-archive-overlay-title').textContent = CURRENT_CAT_TITLE + ' — লাইভ পরীক্ষা';
     document.getElementById('cat-archive-overlay').classList.add('active');
-    const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG && e.type === 'live');
+    const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG && e.type === 'live' && !examStatus(e).archive);
     const body = document.getElementById('cat-archive-body');
     body.innerHTML = catExams.length
       ? `<div class="date-jump-row">
@@ -6258,14 +6260,19 @@
       : '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো মডেল টেস্ট যোগ করা হয়নি।</div>';
   }
 
-  // ---- Archive (every exam ever posted in this category, live or model) ----
+  // ---- Archive (model tests + live exams whose window has ended, this
+  // category only) — a live exam only shows up here once it's actually
+  // finished; still-running or upcoming live exams stay in "লাইভ পরীক্ষা"
+  // (see openCatLiveExams). Sorted latest-ended-first (desc) so the most
+  // recently closed exam appears at the top and older ones fall behind. ----
   function openCatArchive(){
     document.getElementById('cat-archive-overlay-title').textContent = CURRENT_CAT_TITLE + ' — আর্কাইভ';
     document.getElementById('cat-archive-overlay').classList.add('active');
-    const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG);
+    const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG
+      && (e.type === 'model' || (e.type === 'live' && examStatus(e).archive)));
     const body = document.getElementById('cat-archive-body');
     body.innerHTML = catExams.length
-      ? groupExamsByDateHtml(catExams)
+      ? groupExamsByDateHtml(catExams, true)
       : '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো পরীক্ষা যোগ করা হয়নি।</div>';
   }
   function closeCatArchive(){
