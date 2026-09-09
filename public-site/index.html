@@ -550,6 +550,11 @@
     display:inline-block; background:var(--paper-deep); color:var(--ink);
     font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; margin-bottom:6px;
   }
+  .live-window-banner{
+    background:#E7EEF9; border:1px solid #C6D6EE; color:var(--seal-deep);
+    border-radius:12px; padding:10px 14px; margin-bottom:12px;
+    font-size:12.5px; font-weight:600; text-align:center; line-height:1.5;
+  }
   .rd-exam-btn{
     display:block; width:calc(100% - 29px); margin:10px 0 0 29px; background:var(--paper-deep); border:1px solid var(--line);
     border-radius:10px; padding:9px 12px; font-size:12px; font-weight:700; color:var(--seal); cursor:pointer; text-align:left; font-family:'Noto Sans Bengali';
@@ -6018,7 +6023,15 @@
       wrap.innerHTML = '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো পরীক্ষা যোগ করা হয়নি।</div>';
       return;
     }
-    wrap.innerHTML = ticketHtml(exam);
+    // Reassurance banner: today's exam has a wide flexible window (see
+    // LIVE_WINDOW_MIN_MS), not a fixed slot — remind the student they don't
+    // have to rush in at a specific minute.
+    const st = examStatus(exam);
+    const windowHours = Math.round(LIVE_WINDOW_MIN_MS / 3600000);
+    const bannerHtml = st.live
+      ? `<div class="live-window-banner">আজ লাইভ পরীক্ষা চলছে।<br>${toBnDigits(windowHours)} ঘণ্টার যেকোনো সময় পরীক্ষা দিতে পারবেন।</div>`
+      : '';
+    wrap.innerHTML = bannerHtml + ticketHtml(exam);
   }
 
   // ---- Result (category-scoped exam history) ----
@@ -6270,7 +6283,12 @@
       wrap.innerHTML = '<div class="empty-note">এই বিষয়ে এখনো কোনো পরীক্ষা যোগ করা হয়নি।</div>';
       return;
     }
-    wrap.innerHTML = ticketHtml(exam);
+    const st = examStatus(exam);
+    const windowHours = Math.round(LIVE_WINDOW_MIN_MS / 3600000);
+    const bannerHtml = st.live
+      ? `<div class="live-window-banner">আজ লাইভ পরীক্ষা চলছে।<br>${toBnDigits(windowHours)} ঘণ্টার যেকোনো সময় পরীক্ষা দিতে পারবেন।</div>`
+      : '';
+    wrap.innerHTML = bannerHtml + ticketHtml(exam);
   }
 
   // ---- Result ----
