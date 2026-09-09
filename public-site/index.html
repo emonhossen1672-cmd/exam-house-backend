@@ -4482,6 +4482,22 @@
     }
   }
 
+  // Archived live exam's "পরীক্ষা দিন" — the original exam is type='live'
+  // and permanently blocks a second submission (one official attempt while
+  // it was actually live). This clones it server-side into a fresh, freely
+  // repeatable practice exam (same questions/order/duration) and opens
+  // that one instead — the original archived result stays exactly as-is.
+  async function retakeArchivedExam(examId){
+    ehToast('পরীক্ষা প্রস্তুত হচ্ছে...');
+    try{
+      const exam = await apiPost('/api/exams/public/' + examId + '/retake', {});
+      ALL_EXAMS.push(exam);
+      openNameSheet(exam.id, 'model');
+    }catch(err){
+      alert(err.message || 'পরীক্ষা শুরু করা যায়নি');
+    }
+  }
+
   function ticketHtml(exam){
     const st = examStatus(exam);
     const tagsHtml = `
@@ -4521,7 +4537,7 @@
           if(st.archive){
             return `<div class="ticket-btn-group">
                  <button class="btn-enter archive" onclick="openArchive(${exam.id})">🧾 সমাধান দেখুন</button>
-                 <button class="btn-enter" onclick="openNameSheet(${exam.id})">📝 পরীক্ষা দিন</button>
+                 <button class="btn-enter" onclick="retakeArchivedExam(${exam.id})">📝 পরীক্ষা দিন</button>
                </div>`;
           }
           const disabled = st.canEnter ? '' : 'disabled';
