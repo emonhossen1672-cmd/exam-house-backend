@@ -177,6 +177,67 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
   res.status(201).json({ ...rows[0], review, streak, rank_info: rankInfo, duel: duelUpdate });
 }));
 
+// GET /api/results/mine/:examId — this user's own most recent result for a
+// specific exam, reconstructed in the exact same shape POST /api/results
+// returns (review/rank_info included) so the frontend can call showResult()
+// with it directly.
+//
+// WHY THIS EXISTS: POST /api/results already blocks a second submission for
+// a 'live' exam (409 "আপনি এই পরীক্ষা আগেই সাবমিট করেছেন") — but before this
+// route existed, the frontend only found that out AFTER a student sat
+// through the entire timed exam again, right at the final submit tap. This
+// lets the "পরীক্ষা দিন" button check first and, if they've already
+// completed it, skip straight to their existing result instead of wasting
+// their time — same idea as a competitor site graying out a completed
+// exam's button and showing "মার্ক শীট" instead of a fresh attempt.
+router.get('/mine/:examId', requireUser, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT * FROM results WHERE exam_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1`,
+    [req.params.examId, req.user.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'এই পরীক্ষায় আপনার কোনো ফলাফল নেই' });
+  const result = rows[0];
+
+  // Rebuild `review` the same way POST /api/results does at submission time:
+  // join this exam's questions against the answers JSON stored on the
+  // result row, so the review screen looks identical whether it's opened
+  // right after submitting or reopened later via this route.
+  const qRes = await pool.query(
+    `SELECT q.id, q.subject, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+      q.correct_option, q.explanation, eq.position
+     FROM exam_questions eq JOIN questions q ON q.id = eq.question_id
+     WHERE eq.exam_id=$1 ORDER BY eq.position`,
+    [result.exam_id]
+  );
+  const review = qRes.rows.map(q => {
+    const given = result.answers && result.answers[q.id] ? String(result.answers[q.id]).toUpperCase() : null;
+    let status;
+    if (!given) status = 'skipped';
+    else if (given === q.correct_option) status = 'correct';
+    else status = 'wrong';
+    return {
+      id: q.id, subject: q.subject, question_text: q.question_text,
+      option_a: q.option_a, option_b: q.option_b, option_c: q.option_c, option_d: q.option_d,
+      correct_option: q.correct_option, explanation: q.explanation,
+      given, status
+    };
+  });
+
+  const rankRes = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE score > $2)::int + 1 AS rank,
+       COUNT(*)::int AS total_participants
+     FROM results WHERE exam_id = $1`,
+    [result.exam_id, result.score]
+  );
+  const { rank, total_participants } = rankRes.rows[0];
+  const percentile = total_participants > 1
+    ? Math.round(((total_participants - rank) / (total_participants - 1)) * 10000) / 100
+    : 100;
+
+  res.json({ ...result, review, rank_info: { rank, total_participants, percentile }, duel: null });
+}));
+
 // Updates a logged-in user's daily streak after they submit a result.
 // Same day again -> unchanged. Consecutive day -> +1. Gap -> resets to 1.
 async function updateStreak(userId) {
