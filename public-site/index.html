@@ -542,6 +542,14 @@
   .rd-check{background:none; border:none; font-size:19px; cursor:pointer; flex-shrink:0; padding:0; line-height:1.4;}
   .rd-title{font-size:13.5px; color:var(--ink); line-height:1.4;}
   .rd-tasks{font-size:12px; color:var(--ink-soft); margin-top:6px; margin-left:29px; line-height:1.5;}
+  /* বিষয়/টপিক structured breakdown — Live MCQ-স্টাইল লেবেলড লাইন */
+  .rd-meta{margin-top:6px; margin-left:29px;}
+  .rd-meta-row{font-size:12px; color:var(--ink-soft); line-height:1.55;}
+  .rd-meta-row b{color:var(--ink); font-weight:700;}
+  .rd-subject-pill{
+    display:inline-block; background:var(--paper-deep); color:var(--ink);
+    font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; margin-bottom:6px;
+  }
   .rd-exam-btn{
     display:block; width:calc(100% - 29px); margin:10px 0 0 29px; background:var(--paper-deep); border:1px solid var(--line);
     border-radius:10px; padding:9px 12px; font-size:12px; font-weight:700; color:var(--seal); cursor:pointer; text-align:left; font-family:'Noto Sans Bengali';
@@ -5162,15 +5170,27 @@
         <div class="routine-progress-top"><span>${toBnDigits(done)}/${toBnDigits(CURRENT_ROUTINE_DAYS.length)} দিন সম্পন্ন</span><span>${toBnDigits(pct)}%</span></div>
         <div class="routine-progress-track"><div class="routine-progress-fill" style="width:${pct}%;"></div></div>
       </div>` +
-      CURRENT_ROUTINE_DAYS.map(d => `
+      CURRENT_ROUTINE_DAYS.map(d => {
+        // structured breakdown (subject/topics/marks/duration) when the day
+        // has an auto-generated exam attached; otherwise fall back to the
+        // free-text `tasks` blob (gap days, older non-structured categories).
+        const hasStructured = !!d.auto_exam_subject;
+        const metaHtml = hasStructured ? `
+          <div class="rd-meta">
+            <span class="rd-subject-pill">📘 ${escapeHtml(d.auto_exam_subject)}</span>
+            ${d.auto_exam_topics ? `<div class="rd-meta-row"><b>টপিক:</b> ${escapeHtml(d.auto_exam_topics)}</div>` : ''}
+            <div class="rd-meta-row"><b>নাম্বার:</b> ${toBnDigits(d.auto_exam_question_count || 0)} &nbsp; <b>সময়:</b> ${toBnDigits(d.auto_exam_duration_minutes || 0)} মিনিট</div>
+          </div>` : (d.tasks ? `<div class="rd-tasks">${escapeHtml(d.tasks)}</div>` : '');
+        return `
         <div class="routine-day-card ${d.completed ? 'done' : ''}">
           <div class="rd-top">
             <button class="rd-check" onclick="toggleRoutineDay(${d.id})">${d.completed ? '✅' : '⬜'}</button>
             <div class="rd-title"><b>দিন ${toBnDigits(d.day_number)}:</b> ${escapeHtml(d.title)}</div>
           </div>
-          ${d.tasks ? `<div class="rd-tasks">${escapeHtml(d.tasks)}</div>` : ''}
+          ${metaHtml}
           ${d.exam_id ? `<button class="rd-exam-btn" onclick="openExamFromRoutine(${d.exam_id}, '${d.exam_type}')">${d.exam_type==='live' ? '🔴' : '📘'} ${escapeHtml(d.exam_title || 'পরীক্ষা শুরু করুন')} →</button>` : ''}
-        </div>`).join('');
+        </div>`;
+      }).join('');
   }
 
   async function toggleRoutineDay(dayId){
