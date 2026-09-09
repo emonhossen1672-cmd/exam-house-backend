@@ -58,6 +58,10 @@
     --neu-shadow-sm:3px 3px 7px rgba(163,153,120,0.26), -3px -3px 7px rgba(255,255,255,0.8);
     --neu-shadow-sm-inset:inset 2px 2px 5px rgba(163,153,120,0.26), inset -2px -2px 5px rgba(255,255,255,0.8);
     --opt-blue:#1E4F78;
+    /* লাইভ পরীক্ষা কার্ড — ফ্ল্যাট সাদা ডিজাইন (চ্যাটে চূড়ান্ত করা, ২০২৬-০৯-০৯) */
+    --live-red:#E2352B;
+    --live-red-deep:#B82720;
+    --live-red-bg:#FBEAE9;
     /* সান্ড/ট্যান নিউমরফিক প্রশ্ন-কার্ড থিম (ভ্যারিয়েন্ট ১১, ফাইনাল) — ইচ্ছাকৃতভাবে
        dark mode ব্লকে override করা হয়নি, তাই থিম যাই হোক এই কার্ড সবসময় হালকা/ট্যান থাকবে। */
     --q-tan-bg:#F5F0E6;
@@ -367,37 +371,48 @@
   .ticket-btn-group{display:flex; gap:8px;}
   .btn-enter.practice{background:var(--gold, #C9973B);}
 
-  /* Live exam tickets — neumorphic, light white-bluish surface instead of a
-     flat saturated blue. Applied via .ticket-live wherever a live exam's
-     card renders (home strip, Live tab, search, category browsing, etc.) —
-     not just two specific containers. Dark navy text stays since the
-     surface is light. Model-test / archive / history tickets untouched. */
-  /* সান্ড/তান নিউমরফিক — লাইভ পরীক্ষা কার্ড (q-tan থিমের সাথে মিলিয়ে) */
+  /* Live exam tickets — flat white card, plain (non-decorative) text, and a
+     small red "লাইভ" corner badge instead of pill tags/countdown box.
+     Applied via .ticket-live wherever a live exam's card renders (home
+     strip, Live tab, search, category browsing, etc.) — not just two
+     specific containers. Model-test / archive / history tickets untouched.
+     Design finalized in chat on 2026-09-09. */
   .ticket-live{
-    background:var(--q-tan-bg);
-    border-inline-start-color:var(--q-tan-accent);
-    box-shadow:var(--q-tan-shadow);
+    background:#FFFFFF;
+    border:1.5px solid var(--line);
+    border-inline-start:1.5px solid var(--line);
+    border-radius:10px;
+    box-shadow:none;
+    overflow:visible;
   }
-  .ticket-live .ticket-name{ color:var(--q-tan-ink); }
-  .ticket-live .ticket-meta{ color:var(--q-tan-ink-soft); }
-  .ticket-live .tag.ministry{ background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-sm); color:var(--q-tan-ink-soft); }
-  .ticket-live .tag.grade{ background:var(--q-tan-accent-bg); color:var(--q-tan-accent); }
-  .ticket-live .tag.live{ background:var(--q-tan-accent); color:#fff; }
-  .ticket-live .tag.live::before{ background:#fff; }
-  .ticket-live .tag.closed{ background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-sm); color:var(--q-tan-ink-soft); }
-  .ticket-live .ticket-cd{ background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-inset); border-radius:12px; padding:6px 4px; }
-  .ticket-live .ticket-cd b{ color:var(--q-tan-accent); }
-  .ticket-live .ticket-cd span{ color:var(--q-tan-ink-soft); }
-  .ticket-live .ticket-divider{ border-top-color:var(--q-tan-line); }
-  .ticket-live .ticket-divider::before, .ticket-live .ticket-divider::after{ background:var(--q-tan-bg); }
-  .ticket-live .ticket-serial{ color:var(--q-tan-ink-soft); }
-  .ticket-live .btn-enter{ background:var(--q-tan-accent-bg); color:var(--q-tan-accent); box-shadow:var(--q-tan-shadow-sm); }
-  .ticket-live .btn-enter.model{ background:var(--q-tan-accent-bg); color:var(--q-tan-accent); }
-  .ticket-live .btn-enter.archive{ background:var(--q-tan-accent-bg); color:var(--q-tan-accent); }
-  .ticket-live .btn-enter:active{ box-shadow:var(--q-tan-shadow-inset); }
-  .ticket-live .btn-enter:disabled{ background:var(--q-tan-bg); color:var(--q-tan-line); box-shadow:none; }
-  .ticket-live .remind-btn{ background:var(--q-tan-bg); box-shadow:var(--q-tan-shadow-sm); color:var(--q-tan-accent); border-color:transparent; }
-  .ticket-live .remind-btn.active{ background:var(--q-tan-accent-bg); box-shadow:var(--q-tan-shadow-inset); }
+  .ticket-live .ticket-top{padding-top:20px;}
+  .ticket-badge{
+    position:absolute; top:-1.5px; right:18px; background:var(--live-red); color:#fff;
+    font-size:10.5px; font-weight:600; letter-spacing:0.3px;
+    padding:6px 12px 8px; border-radius:0 0 6px 6px;
+    display:flex; align-items:center; gap:5px; z-index:1;
+  }
+  .ticket-badge::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.2s infinite;}
+  .ticket-badge.closed{ background:var(--ink-faint); }
+  .ticket-badge.closed::before{ display:none; }
+  .ticket-meta-line{ font-size:12px; color:var(--ink-faint); margin-bottom:5px; }
+  .ticket-live .ticket-name{ font-family:'Noto Sans Bengali', sans-serif; font-weight:500; color:var(--ink); }
+  .ticket-live .ticket-meta{ color:var(--ink-soft); font-weight:400; }
+  .ticket-live .ticket-divider{ border-top:1.5px solid var(--line); margin:0 16px; }
+  .ticket-live .ticket-divider::before, .ticket-live .ticket-divider::after{ display:none; }
+  .ticket-live .ticket-serial{ color:var(--ink-faint); }
+  .ticket-bottom-right{ display:flex; align-items:center; gap:12px; }
+  .ticket-status-inline{ font-size:12px; color:var(--live-red-deep); font-weight:500; white-space:nowrap; }
+  .ticket-live .btn-enter{
+    background:#FFFFFF; color:var(--live-red); border:1.5px solid var(--live-red);
+    box-shadow:none; font-weight:500;
+  }
+  .ticket-live .btn-enter.model{ background:#FFFFFF; color:var(--live-red); border:1.5px solid var(--live-red); }
+  .ticket-live .btn-enter.archive{ background:#FFFFFF; color:var(--ink-faint); border:1.5px solid var(--line); }
+  .ticket-live .btn-enter:active{ box-shadow:none; opacity:0.85; }
+  .ticket-live .btn-enter:disabled{ background:#fff; color:var(--line); border-color:var(--line); }
+  .ticket-live .remind-btn{ background:#FFFFFF; box-shadow:none; color:var(--ink-soft); border:1.5px solid var(--line); }
+  .ticket-live .remind-btn.active{ background:var(--live-red-bg); box-shadow:none; color:var(--live-red-deep); border-color:var(--live-red); }
   .remind-btn{
     display:flex; align-items:center; gap:6px; background:var(--paper-deep); color:var(--ink-soft);
     border:1.5px solid var(--line); padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600;
@@ -4391,11 +4406,6 @@
       ${exam.grade ? `<span class="tag grade">গ্রেড ${toBnDigits(exam.grade)}</span>` : ''}
       ${st.live ? `<span class="tag live">লাইভ</span>` : (st.archive ? `<span class="tag closed">আর্কাইভ</span>` : '')}
     `;
-    const cdHtml = exam.type==='live'
-      ? (st.countdown!==undefined
-          ? `<div class="ticket-cd"><b>${fmtCountdown(st.countdown)}</b><span>বাকি</span></div>`
-          : `<div class="ticket-cd"><b>${st.live?'চলছে':'শেষ'}</b><span>&nbsp;</span></div>`)
-      : '';
 
     // Subject/topic breakdown + routine-progress note, only present on
     // routine-auto-generated exams (routineExamScheduler.js fills these in).
@@ -4444,15 +4454,46 @@
           return enterBtn;
         })();
 
+    // Live exam cards use a flatter, plain-text layout — white card, plain
+    // (non-decorative) title font, a small red "লাইভ" corner badge instead
+    // of pill tags, and no countdown box (status shown as plain inline text
+    // next to the button). Agreed & finalized in chat on 2026-09-09.
+    // Model-test cards keep the original pill-tag ticket markup below.
+    if(exam.type === 'live'){
+      const metaBits = [exam.ministry_name, exam.grade ? `গ্রেড ${toBnDigits(exam.grade)}` : ''].filter(Boolean);
+      const badgeLabel = st.live ? 'লাইভ' : (st.archive ? 'আর্কাইভ' : '');
+      const badgeHtml = badgeLabel ? `<div class="ticket-badge${st.archive ? ' closed' : ''}">${badgeLabel}</div>` : '';
+      const statusTxt = st.countdown!==undefined ? `${fmtCountdown(st.countdown)} বাকি` : (st.live ? 'চলছে' : (st.archive ? 'শেষ' : ''));
+      return `
+        <div class="ticket ticket-live" data-exam-id="${exam.id}">
+          ${badgeHtml}
+          <div class="ticket-top">
+            <div>
+              ${metaBits.length ? `<div class="ticket-meta-line">${metaBits.join(' · ')}</div>` : ''}
+              <div class="ticket-name">${exam.title}</div>
+              <div class="ticket-meta">${toBnDigits(exam.question_count)} প্রশ্ন · ${toBnDigits(exam.duration_minutes)} মিনিট</div>
+            </div>
+          </div>
+          <div class="ticket-divider"></div>
+          ${detailsHtml}
+          <div class="ticket-bottom">
+            <span class="ticket-serial">${exam.serial||''}</span>
+            <div class="ticket-bottom-right">
+              ${statusTxt ? `<span class="ticket-status-inline">${statusTxt}</span>` : ''}
+              ${bottomHtml}
+            </div>
+          </div>
+        </div>`;
+    }
+
     return `
-      <div class="ticket${exam.type==='live' ? ' ticket-live' : ''}" data-exam-id="${exam.id}">
+      <div class="ticket" data-exam-id="${exam.id}">
         <div class="ticket-top">
           <div>
             <div class="ticket-tags">${tagsHtml}</div>
             <div class="ticket-name">${exam.title}</div>
             <div class="ticket-meta">${toBnDigits(exam.question_count)} প্রশ্ন · ${toBnDigits(exam.duration_minutes)} মিনিট</div>
           </div>
-          ${cdHtml}
         </div>
         <div class="ticket-divider"></div>
         ${detailsHtml}
@@ -4998,7 +5039,10 @@
     renderLiveList();
   }
   function renderLiveList(){
-    const live = ALL_EXAMS.filter(e => e.type==='live' && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
+    // "লাইভ পরীক্ষা" ট্যাবে শুধু আসলেই-চলমান/আসন্ন পরীক্ষা দেখাবে — সময় শেষ
+    // হওয়া (আর্কাইভ) পরীক্ষাগুলো এখান থেকে বাদ। আর্কাইভ এখনো খোঁজা যাবে
+    // সার্চ ও নির্দিষ্ট আর্কাইভ স্ক্রিন থেকে।
+    const live = ALL_EXAMS.filter(e => e.type==='live' && !examStatus(e).archive && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
     renderList('live-list', live, LIVE_CATEGORY_FILTER ? 'এই ক্যাটাগরিতে এখন কোনো লাইভ পরীক্ষা নেই।' : 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
   }
 
