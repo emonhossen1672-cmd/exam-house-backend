@@ -1599,6 +1599,7 @@
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
+    <div id="home-live-banner"></div>
     <div id="home-live-list"><div class="loading-note">লোড হচ্ছে...</div></div>
     </div>
   </div>
@@ -4988,6 +4989,16 @@
     handleGlobalSearch('');
   }
 
+  // একই ব্যানার cat-hub/subject-hub-এ ব্যবহার হওয়া লজিক — হোমপেজেও যেকোনো
+  // লাইভ পরীক্ষা এই মুহূর্তে চলছে থাকলে দেখাবে, একবারই (একাধিক লাইভ থাকলেও)।
+  function updateHomeLiveBanner(currentlyLiveCount){
+    const el = document.getElementById('home-live-banner');
+    if(!el) return;
+    if(!currentlyLiveCount){ el.innerHTML = ''; return; }
+    const windowHours = Math.round(LIVE_WINDOW_MIN_MS / 3600000);
+    el.innerHTML = `<div class="live-window-banner">আজ লাইভ পরীক্ষা চলছে।<br>${toBnDigits(windowHours)} ঘণ্টার যেকোনো সময় পরীক্ষা দিতে পারবেন।</div>`;
+  }
+
   async function loadHome(){
     try{
       const all = await apiGet('/api/exams/public/list');
@@ -5008,6 +5019,7 @@
       // শুরু না হওয়া বা শেষ হয়ে যাওয়া live-type এক্সাম বাদ, খালি থাকলে খালি থাকবে।
       const currentlyLive = live.filter(e => examStatus(e).live);
       renderList('home-live-list', currentlyLive.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
+      updateHomeLiveBanner(currentlyLive.length);
       renderLiveList();
       loadLiveCategoryList();
       renderModelScreen();
@@ -5243,6 +5255,7 @@
       const model = ALL_EXAMS.filter(e=>e.type==='model');
       const currentlyLive = live.filter(e => examStatus(e).live);
       renderList('home-live-list', currentlyLive.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
+      updateHomeLiveBanner(currentlyLive.length);
       renderLiveList();
       if(document.getElementById('screen-model').classList.contains('active') && MODEL_MODE === 'ministry'){
         renderModelScreen();
