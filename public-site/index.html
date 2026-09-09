@@ -5157,7 +5157,19 @@
     // হওয়া (আর্কাইভ) পরীক্ষাগুলো এখান থেকে বাদ। আর্কাইভ এখনো খোঁজা যাবে
     // সার্চ ও নির্দিষ্ট আর্কাইভ স্ক্রিন থেকে।
     const live = ALL_EXAMS.filter(e => e.type==='live' && !examStatus(e).archive && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
-    renderList('live-list', live, LIVE_CATEGORY_FILTER ? 'এই ক্যাটাগরিতে এখন কোনো লাইভ পরীক্ষা নেই।' : 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।');
+    const el = document.getElementById('live-list');
+    if(!live.length){
+      el.innerHTML = `<div class="empty-note">${LIVE_CATEGORY_FILTER ? 'এই ক্যাটাগরিতে এখন কোনো লাইভ পরীক্ষা নেই।' : 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।'}</div>`;
+      return;
+    }
+    // তারিখ অনুযায়ী গ্রুপ করা — একই groupExamsByDateHtml() যেটা ক্যাটাগরি
+    // হাবের "লাইভ পরীক্ষা"/"আর্কাইভ" তালিকাতেও ব্যবহার হয় (দেখুন
+    // openCatLiveExams/openCatArchive), যাতে এই মূল ট্যাব আর ক্যাটাগরি হাব
+    // দুটোতেই একই রকম তারিখ-হেডিং ও "তারিখ অনুযায়ী যান" অভিজ্ঞতা মেলে।
+    el.innerHTML = `<div class="date-jump-row">
+        <label for="live-date-jump">📅 তারিখ অনুযায়ী যান:</label>
+        <input type="date" id="live-date-jump" onchange="goToExamDate(this.value)">
+      </div>` + groupExamsByDateHtml(live);
   }
 
   // ---------- লাইভ রুটিন (structured day-by-day prep plans) ----------
