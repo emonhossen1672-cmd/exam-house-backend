@@ -386,20 +386,22 @@
     border-inline-start:1.5px solid var(--line);
     border-radius:10px;
     box-shadow:none;
-    overflow:visible;
+    overflow:hidden;
   }
-  .ticket-live .ticket-top{padding-top:20px;}
-  .ticket-badge{
-    position:absolute; top:-1.5px; right:18px; background:var(--live-red); color:#fff;
-    font-size:10.5px; font-weight:600; letter-spacing:0.3px;
-    padding:6px 12px 8px; border-radius:0 0 6px 6px;
-    display:flex; align-items:center; gap:5px; z-index:1;
-  }
-  .ticket-badge::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.2s infinite;}
+  /* Per-ticket date strip (Option 5, chosen 2026-09-09): same header-strip
+     pattern as .archive-strip below, so a live ticket's own date is visible
+     even before it's grouped under a date-group-header (see
+     groupExamsByDateHtml) — e.g. inside a routine day's single-ticket view
+     where no outer date heading exists at all. */
+  .live-strip{ background:var(--live-red-bg); padding:9px 16px; display:flex; align-items:center; justify-content:space-between; }
+  .live-strip-date{ font-size:11px; font-weight:600; color:var(--live-red-deep); }
+  .live-strip-badge{ font-size:10.5px; font-weight:600; color:#fff; background:var(--live-red); padding:3px 10px; border-radius:20px; display:flex; align-items:center; gap:5px; }
+  .live-strip-badge::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.2s infinite;}
+  .ticket-live .ticket-top{padding-top:14px;}
   .ticket-meta-line{ font-size:12px; color:var(--ink-faint); margin-bottom:5px; }
   .ticket-live .ticket-name{ font-family:'Noto Sans Bengali', sans-serif; font-weight:500; color:var(--ink); }
   .ticket-live .ticket-meta{ color:var(--ink-soft); font-weight:400; }
-  .ticket-live .ticket-divider{ border-top:1.5px solid var(--line); margin:0 16px; }
+  .ticket-live .ticket-divider{ border-top:1.5px dashed var(--line); margin:0 16px; }
   .ticket-live .ticket-divider::before, .ticket-live .ticket-divider::after{ display:none; }
   .ticket-live .ticket-serial{ color:var(--ink-faint); }
   .ticket-bottom-right{ display:flex; align-items:center; gap:12px; }
@@ -4565,11 +4567,22 @@
           </div>`;
       }
       const metaBits = [exam.ministry_name, exam.grade ? `গ্রেড ${toBnDigits(exam.grade)}` : ''].filter(Boolean);
-      const badgeHtml = st.live ? `<div class="ticket-badge">লাইভ</div>` : '';
+      // Date strip (Option 5): shows this ticket's own date + a লাইভ badge
+      // when it's actually running right now. Falls back to no strip only
+      // if the exam has no start_time at all (shouldn't happen for type
+      // 'live', but keeps this safe if one's ever created without one).
+      const stripDate = exam.start_time
+        ? new Date(exam.start_time).toLocaleDateString('bn-BD', {weekday:'long', day:'numeric', month:'long'})
+        : '';
+      const stripHtml = stripDate ? `
+        <div class="live-strip">
+          <span class="live-strip-date">${stripDate}</span>
+          ${st.live ? `<span class="live-strip-badge">লাইভ</span>` : ''}
+        </div>` : '';
       const statusTxt = st.countdown!==undefined ? `${fmtCountdown(st.countdown)} বাকি` : (st.live ? 'চলছে' : '');
       return `
         <div class="ticket ticket-live" data-exam-id="${exam.id}">
-          ${badgeHtml}
+          ${stripHtml}
           <div class="ticket-top">
             <div>
               ${metaBits.length ? `<div class="ticket-meta-line">${metaBits.join(' · ')}</div>` : ''}
