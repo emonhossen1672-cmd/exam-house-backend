@@ -527,7 +527,51 @@ router.post('/public/reading-quiz', asyncHandler(async (req, res) => {
   }
 }));
 
-// GET /api/exams/public/smart-practice?count=15 — auto-generates a MIXED
+// POST /api/exams/public/:id/retake — an archived (window-closed) live exam's
+// "পরীক্ষা দিন" button hits this instead of starting the original exam again.
+// The original is type='live', which POST /api/results permanently blocks a
+// second submission on (by design — one official attempt while it's actually
+// live). This clones the exam's own questions, in the same order, into a
+// fresh type='model' + is_practice=true exam — same question set, same
+// duration/negative marks, but unlimited repeatable attempts, each one
+// separately scored and saved to history (exactly like any other model
+// test). The original archived exam and its one-time result are untouched.
+router.post('/public/:id/retake', asyncHandler(async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const origRes = await client.query(`SELECT * FROM exams WHERE id = $1`, [req.params.id]);
+    if (!origRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
+    const orig = origRes.rows[0];
+
+    const qRes = await client.query(
+      `SELECT question_id FROM exam_questions WHERE exam_id = $1 ORDER BY position`,
+      [orig.id]
+    );
+    if (!qRes.rows.length) return res.status(404).json({ error: 'এই পরীক্ষায় কোনো প্রশ্ন নেই' });
+
+    await client.query('BEGIN');
+    const serial = genSerial('model');
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, subject, duration_minutes, negative_marks, status, serial, is_practice)
+       VALUES ($1,'model',$2,$3,$4,'active',$5,true) RETURNING *`,
+      [`পুনরায় দিন: ${orig.title}`, orig.subject, orig.duration_minutes, orig.negative_marks || 0, serial]
+    );
+    const exam = examResult.rows[0];
+    for (let i = 0; i < qRes.rows.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, qRes.rows[i].question_id, i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ...exam, question_count: qRes.rows.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
 // practice quiz weighted toward this student's weakest subjects (based on
 // their accuracy in /api/results/me/subject-stats), instead of making them
 // pick one subject. A subject they've never attempted counts as fully weak
