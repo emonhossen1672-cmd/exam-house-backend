@@ -2169,6 +2169,16 @@
     return String(str).replace(/[0-9]/g, d=>bn[d]);
   }
 
+  // Marks display for merit lists/results: whole numbers show as-is
+  // ("১৪"), but negative marking can leave a fractional raw_marks value
+  // (e.g. 13.75), which is shown with 2 decimals so nothing gets silently
+  // rounded away.
+  function fmtMarks(n){
+    const num = Number(n);
+    const isWhole = Math.abs(num - Math.round(num)) < 0.001;
+    return toBnDigits(isWhole ? Math.round(num) : num.toFixed(2));
+  }
+
   // ---------- Dark mode ----------
   // The actual attribute is already set (or not) by the tiny blocking script
   // in <head>, before first paint — this just keeps the toggle button's icon
@@ -5750,7 +5760,7 @@
         <div class="merit-item ${m.id===result.id ? 'me' : ''}">
           <div class="merit-rank">${toBnDigits(i+1)}</div>
           <div class="merit-name">${escapeHtml(m.participant_name)}</div>
-          <div class="merit-score">${m.score}%</div>
+          <div class="merit-score">${fmtMarks(m.raw_marks)}/${toBnDigits(m.correct_count + m.wrong_count + m.skipped_count)}</div>
         </div>`).join('');
     }catch(e){
       document.getElementById('merit-list').innerHTML = '';
