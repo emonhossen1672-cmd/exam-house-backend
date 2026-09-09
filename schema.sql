@@ -399,6 +399,10 @@ ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS scheduled_date DATE;
 ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_subject VARCHAR(60);
 ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_question_count INTEGER DEFAULT 25;
 ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_duration_minutes INTEGER DEFAULT 30;
+-- Structured topic list for a routine day's exam (separate from the free-text
+-- `tasks` blob) so the public exam card can render বিষয়/টপিক as their own
+-- labeled lines instead of one preformatted paragraph.
+ALTER TABLE routine_days ADD COLUMN IF NOT EXISTS auto_exam_topics TEXT;
 CREATE INDEX IF NOT EXISTS idx_routine_days_scheduled_date ON routine_days(scheduled_date) WHERE scheduled_date IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS user_routine_progress (
