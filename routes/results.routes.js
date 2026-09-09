@@ -559,7 +559,7 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
 router.get('/exam/:examId', optionalUser, asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 100, 500);
   const { rows } = await pool.query(
-    `SELECT id, participant_name, correct_count, wrong_count, skipped_count, score, submitted_at,
+    `SELECT id, participant_name, correct_count, wrong_count, skipped_count, score, raw_marks, submitted_at,
        RANK() OVER (ORDER BY score DESC, submitted_at ASC)::int AS rank,
        COUNT(*) OVER ()::int AS total_participants
      FROM results WHERE exam_id=$1
