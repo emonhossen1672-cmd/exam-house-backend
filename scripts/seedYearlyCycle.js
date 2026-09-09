@@ -868,6 +868,7 @@ function buildYearlyCycleDays() {
         auto_exam_subject: exam.subject,
         auto_exam_question_count: exam.q,
         auto_exam_duration_minutes: exam.min,
+        auto_exam_topics: exam.topics,
       });
       continue;
     }
@@ -891,6 +892,7 @@ function buildYearlyCycleDays() {
       auto_exam_subject: null,
       auto_exam_question_count: null,
       auto_exam_duration_minutes: null,
+      auto_exam_topics: next ? next.topics : null,
     });
   }
 
@@ -908,10 +910,12 @@ async function seedYearlyCycle(client, days) {
     await client.query(
       `INSERT INTO routine_days
          (category, day_number, title, tasks, exam_id, scheduled_date,
-          auto_exam_subject, auto_exam_question_count, auto_exam_duration_minutes)
-       VALUES ('yearly-cycle',$1,$2,$3,NULL,$4,$5,$6,$7)`,
+          auto_exam_subject, auto_exam_question_count, auto_exam_duration_minutes,
+          auto_exam_topics)
+       VALUES ('yearly-cycle',$1,$2,$3,NULL,$4,$5,$6,$7,$8)`,
       [d.day_number, d.title, d.tasks, savedDates[d.day_number] || null,
-       d.auto_exam_subject || null, d.auto_exam_question_count || null, d.auto_exam_duration_minutes || null]
+       d.auto_exam_subject || null, d.auto_exam_question_count || null, d.auto_exam_duration_minutes || null,
+       d.auto_exam_topics || null]
     );
   }
   return days.length;
