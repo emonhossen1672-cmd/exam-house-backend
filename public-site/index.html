@@ -5500,6 +5500,14 @@
       timeLeft = (CURRENT_EXAM.duration_minutes||60)*60;
       examTotalSeconds = timeLeft || 1;
 
+      // Close any wrapping overlay (category archive/result list etc — the
+      // exam might have been entered from deep inside one of those) BEFORE
+      // opening the exam itself. Every overlay shares the same .exam-overlay
+      // CSS class/z-index, so whichever is later in the DOM just visually
+      // sits on top — without this, the exam silently opens *behind* the
+      // list the student tapped from, looking like nothing happened until
+      // they close that list manually.
+      closeAllOverlays();
       document.getElementById('exam-overlay').classList.add('active');
       document.getElementById('admit-title').textContent = CURRENT_EXAM.title || '';
       document.getElementById('admit-meta').textContent =
