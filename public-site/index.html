@@ -5153,7 +5153,7 @@
             <div class="rd-title"><b>দিন ${toBnDigits(d.day_number)}:</b> ${escapeHtml(d.title)}</div>
           </div>
           ${d.tasks ? `<div class="rd-tasks">${escapeHtml(d.tasks)}</div>` : ''}
-          ${d.exam_id ? `<button class="rd-exam-btn" onclick="openExamFromRoutine(${d.exam_id})">${d.exam_type==='live' ? '🔴' : '📘'} ${escapeHtml(d.exam_title || 'পরীক্ষা শুরু করুন')} →</button>` : ''}
+          ${d.exam_id ? `<button class="rd-exam-btn" onclick="openExamFromRoutine(${d.exam_id}, '${d.exam_type}')">${d.exam_type==='live' ? '🔴' : '📘'} ${escapeHtml(d.exam_title || 'পরীক্ষা শুরু করুন')} →</button>` : ''}
         </div>`).join('');
   }
 
@@ -5172,8 +5172,8 @@
     }
   }
 
-  function openExamFromRoutine(examId){
-    openNameSheet(examId);
+  function openExamFromRoutine(examId, examType){
+    openNameSheet(examId, examType);
   }
 
   // Deep-link support: a shared duel link like /?duel=a1b2c3d4 opens straight
@@ -5222,18 +5222,24 @@
     }
   }
 
-  async function openNameSheet(examId){
+  async function openNameSheet(examId, examTypeHint){
     const exam = ALL_EXAMS.find(e=>e.id===examId);
+    // Routine-generated exams (see routes/routines.routes.js) aren't part of
+    // the homepage's ALL_EXAMS list, so `exam` is undefined when this is
+    // opened from there — fall back to the type the routine screen already
+    // knows (openExamFromRoutine passes it along) so the already-attempted
+    // check below still runs for those too, not just homepage tickets.
+    const examType = exam ? exam.type : examTypeHint;
     if(USER_TOKEN && USER_INFO){
       // Live exams only allow one official attempt per user (backend
       // enforces this — POST /api/results returns 409 on a second try).
       // Check first so a student who already completed it goes straight to
       // their result instead of sitting through the whole timed exam again
       // only to be blocked at the final submit tap.
-      if(exam && exam.type === 'live'){
+      if(examType === 'live'){
         try{
           const existing = await apiGetAuth('/api/results/mine/'+examId);
-          CURRENT_EXAM = exam;
+          CURRENT_EXAM = exam || { id: examId, title: existing.exam_title };
           showResult(existing);
           return;
         }catch(err){ /* 404 = no prior attempt yet — proceed to start normally */ }
