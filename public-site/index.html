@@ -553,6 +553,11 @@
     display:inline-block; background:var(--paper-deep); color:var(--ink);
     font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; margin-bottom:6px;
   }
+  .rsf-chip{
+    display:inline-block; background:var(--card); border:1px solid var(--line); color:var(--ink-soft);
+    font-size:12px; font-weight:700; padding:6px 13px; border-radius:20px; margin-right:8px; cursor:pointer;
+  }
+  .rsf-chip.active{ background:var(--seal,#1B5FA8); border-color:var(--seal,#1B5FA8); color:#fff; }
   .live-window-banner{
     background:#E7EEF9; border:1px solid #C6D6EE; color:var(--seal-deep);
     border-radius:12px; padding:10px 14px; margin-bottom:12px;
@@ -1697,6 +1702,7 @@
     <button class="model-back" onclick="goScreen('routine')">← পেছনে</button>
     <div class="sec-head" style="margin-top:4px;"><h2 id="routine-days-title">রুটিন</h2></div>
     <p id="routine-days-subtitle" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;"></p>
+    <div id="routine-subject-filter-wrap" style="display:none; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; margin:-4px 0 14px; padding-bottom:2px;"></div>
     <div id="routine-days-list"><div class="loading-note">লোড হচ্ছে...</div></div>
   </div>
 
@@ -5213,6 +5219,7 @@
   }
 
   let CURRENT_ROUTINE_DAYS = [];
+  let ROUTINE_SUBJECT_FILTER = null; // null = সব বিষয়
   async function openRoutineCategory(slug){
     goScreen('routine-days');
     const list = document.getElementById('routine-days-list');
@@ -5222,16 +5229,43 @@
       document.getElementById('routine-days-title').textContent = data.category.title;
       document.getElementById('routine-days-subtitle').textContent = data.category.subtitle;
       CURRENT_ROUTINE_DAYS = data.days;
+      ROUTINE_SUBJECT_FILTER = null;
+      renderRoutineSubjectFilter();
       renderRoutineDaysList();
     }catch(err){
       list.innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
     }
   }
 
+  // "বিষয় ভিত্তিক" filter chips — built from whatever subjects actually
+  // appear in this category's days (auto_exam_subject), so it never shows
+  // an empty/irrelevant chip. Hidden entirely when there's only one subject
+  // or none at all (nothing meaningful to filter).
+  function renderRoutineSubjectFilter(){
+    const wrap = document.getElementById('routine-subject-filter-wrap');
+    const subjects = [...new Set(CURRENT_ROUTINE_DAYS.map(d => d.auto_exam_subject).filter(Boolean))];
+    if(subjects.length < 2){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    wrap.style.display = 'block';
+    const chip = (label, value) => `<span class="rsf-chip ${ROUTINE_SUBJECT_FILTER === value ? 'active' : ''}" onclick="setRoutineSubjectFilter(${JSON.stringify(value)})">${escapeHtml(label)}</span>`;
+    wrap.innerHTML = chip('সব বিষয়', null) + subjects.map(s => chip(s, s)).join('');
+  }
+  function setRoutineSubjectFilter(value){
+    ROUTINE_SUBJECT_FILTER = value;
+    renderRoutineSubjectFilter();
+    renderRoutineDaysList();
+  }
+
   function renderRoutineDaysList(){
     const list = document.getElementById('routine-days-list');
     if(!CURRENT_ROUTINE_DAYS.length){
       list.innerHTML = '<div class="empty-note">এই রুটিনের দিন এখনো যোগ করা হয়নি — শীঘ্রই আসছে।</div>';
+      return;
+    }
+    const daysToShow = ROUTINE_SUBJECT_FILTER
+      ? CURRENT_ROUTINE_DAYS.filter(d => d.auto_exam_subject === ROUTINE_SUBJECT_FILTER)
+      : CURRENT_ROUTINE_DAYS;
+    if(!daysToShow.length){
+      list.innerHTML = '<div class="empty-note">এই বিষয়ে এখনো কোনো দিন যোগ করা হয়নি।</div>';
       return;
     }
     const done = CURRENT_ROUTINE_DAYS.filter(d=>d.completed).length;
@@ -5241,7 +5275,7 @@
         <div class="routine-progress-top"><span>${toBnDigits(done)}/${toBnDigits(CURRENT_ROUTINE_DAYS.length)} দিন সম্পন্ন</span><span>${toBnDigits(pct)}%</span></div>
         <div class="routine-progress-track"><div class="routine-progress-fill" style="width:${pct}%;"></div></div>
       </div>` +
-      CURRENT_ROUTINE_DAYS.map(d => {
+      daysToShow.map(d => {
         // structured breakdown (subject/topics/marks/duration) when the day
         // has an auto-generated exam attached; otherwise fall back to the
         // free-text `tasks` blob (gap days, older non-structured categories).
