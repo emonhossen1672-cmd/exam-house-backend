@@ -192,7 +192,9 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
 // exam's button and showing "মার্ক শীট" instead of a fresh attempt.
 router.get('/mine/:examId', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT * FROM results WHERE exam_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1`,
+    `SELECT r.*, e.title AS exam_title FROM results r
+     JOIN exams e ON e.id = r.exam_id
+     WHERE r.exam_id=$1 AND r.user_id=$2 ORDER BY r.submitted_at DESC LIMIT 1`,
     [req.params.examId, req.user.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'এই পরীক্ষায় আপনার কোনো ফলাফল নেই' });
