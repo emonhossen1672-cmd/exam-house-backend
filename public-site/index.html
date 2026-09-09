@@ -410,6 +410,7 @@
   }
   .ticket-live .btn-enter.model{ background:#FFFFFF; color:var(--live-red); border:1.5px solid var(--live-red); }
   .ticket-live .btn-enter.archive{ background:#FFFFFF; color:var(--ink-faint); border:1.5px solid var(--line); }
+  .ticket-live .btn-enter.practice{ background:#FFFFFF; color:var(--gold, #C9973B); border:1.5px solid var(--gold-soft, #E3C77A); }
   .ticket-live .btn-enter:active{ box-shadow:none; opacity:0.85; }
   .ticket-live .btn-enter:disabled{ background:#fff; color:var(--line); border-color:var(--line); }
   .ticket-live .remind-btn{ background:#FFFFFF; box-shadow:none; color:var(--ink-soft); border:1.5px solid var(--line); }
@@ -4457,6 +4458,22 @@
     return toBnDigits(m)+':'+toBnDigits(String(s).padStart(2,'0'));
   }
 
+  // Warm-up practice for a currently-live exam (see ticketHtml's practiceBtn):
+  // draws random questions from the exam's own subject bank via the existing
+  // is_practice='model' machinery — ungraded, no attempt-limit, doesn't touch
+  // the student's one official attempt on the real live exam.
+  async function startExamSubjectPractice(subject){
+    ehToast('কুইজ তৈরি হচ্ছে...');
+    try{
+      const exam = await apiGet('/api/exams/public/practice?subject=' + encodeURIComponent(subject) + '&count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      openNameSheet(exam.id);
+    }catch(err){
+      alert(err.message || 'কুইজ শুরু করা যায়নি');
+    }
+  }
+
   function ticketHtml(exam){
     const st = examStatus(exam);
     const tagsHtml = `
@@ -4501,6 +4518,15 @@
           }
           const disabled = st.canEnter ? '' : 'disabled';
           const enterBtn = `<button class="btn-enter" ${disabled} onclick="openNameSheet(${exam.id})">${st.cta}</button>`;
+          // While the live exam is actually running, offer an ungraded
+          // warm-up drawn from the same subject's bank alongside the real
+          // (graded, one-attempt-only) entry — lets a nervous student
+          // practice first without spending their one official attempt.
+          // Needs exam.subject to draw from — routine-auto-generated exams
+          // have it; a manually uploaded exam without one just skips this.
+          const practiceBtn = (st.live && exam.subject)
+            ? `<button class="btn-enter practice" onclick='startExamSubjectPractice(${JSON.stringify(exam.subject)})'>📖 প্র্যাকটিস কুইজ</button>`
+            : '';
           // Reminder bell: only for a logged-in student, only while the exam
           // hasn't started yet (st.countdown is set precisely in that window).
           if(USER_TOKEN && st.countdown !== undefined){
@@ -4508,6 +4534,9 @@
             const remindBtn = `<button class="remind-btn ${isSet ? 'active' : ''}" onclick="toggleReminder(${exam.id}, this)">
               ${isSet ? '🔔 রিমাইন্ডার সেট' : '🔕 মনে করিয়ে দিন'}</button>`;
             return `<div class="ticket-btn-group">${remindBtn}${enterBtn}</div>`;
+          }
+          if(practiceBtn){
+            return `<div class="ticket-btn-group">${practiceBtn}${enterBtn}</div>`;
           }
           return enterBtn;
         })();
