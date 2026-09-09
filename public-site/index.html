@@ -62,6 +62,9 @@
     --live-red:#E2352B;
     --live-red-deep:#B82720;
     --live-red-bg:#FBEAE9;
+    --archive-strip-bg:#FDF3E0;
+    --archive-strip-fg:#8A6410;
+    --archive-strip-dot:#C98E1F;
     /* সান্ড/ট্যান নিউমরফিক প্রশ্ন-কার্ড থিম (ভ্যারিয়েন্ট ১১, ফাইনাল) — ইচ্ছাকৃতভাবে
        dark mode ব্লকে override করা হয়নি, তাই থিম যাই হোক এই কার্ড সবসময় হালকা/ট্যান থাকবে। */
     --q-tan-bg:#F5F0E6;
@@ -393,8 +396,6 @@
     display:flex; align-items:center; gap:5px; z-index:1;
   }
   .ticket-badge::before{content:""; width:5px; height:5px; border-radius:50%; background:#fff; animation:blink 1.2s infinite;}
-  .ticket-badge.closed{ background:var(--ink-faint); }
-  .ticket-badge.closed::before{ display:none; }
   .ticket-meta-line{ font-size:12px; color:var(--ink-faint); margin-bottom:5px; }
   .ticket-live .ticket-name{ font-family:'Noto Sans Bengali', sans-serif; font-weight:500; color:var(--ink); }
   .ticket-live .ticket-meta{ color:var(--ink-soft); font-weight:400; }
@@ -413,6 +414,33 @@
   .ticket-live .btn-enter:disabled{ background:#fff; color:var(--line); border-color:var(--line); }
   .ticket-live .remind-btn{ background:#FFFFFF; box-shadow:none; color:var(--ink-soft); border:1.5px solid var(--line); }
   .ticket-live .remind-btn.active{ background:var(--live-red-bg); box-shadow:none; color:var(--live-red-deep); border-color:var(--live-red); }
+
+  /* Archived live-exam tickets (window's over) — a distinct "gold-tint
+     header strip" card, chosen in chat on 2026-09-09 so ended exams read
+     visually different from currently-live ones instead of both being
+     plain white. Only exam cards whose live window has closed use this;
+     currently-live/upcoming cards keep the plain white .ticket-live look
+     above. */
+  .ticket-archive{
+    background:#FFFFFF;
+    border:1px solid var(--line);
+    border-inline-start:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:0 3px 10px rgba(23,34,59,0.06);
+    overflow:hidden;
+  }
+  .archive-strip{ background:var(--archive-strip-bg); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; }
+  .archive-lbl{ font-size:11px; font-weight:700; color:var(--archive-strip-fg); display:flex; align-items:center; gap:6px; }
+  .archive-lbl .dot{ width:6px; height:6px; border-radius:50%; background:var(--archive-strip-dot); }
+  .archive-code{ font-family:'Space Mono',monospace; font-size:10px; color:var(--archive-strip-fg); opacity:0.8; }
+  .archive-body{ padding:14px 16px 15px; }
+  .archive-name{ font-family:'Noto Sans Bengali', sans-serif; font-weight:500; font-size:15px; color:var(--ink); line-height:1.4; }
+  .archive-meta{ font-size:11.5px; color:var(--ink-faint); margin-top:4px; }
+  .archive-foot{ display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:14px; }
+  .ticket-archive .btn-enter{ background:var(--live-red); color:#fff; border:none; box-shadow:none; font-weight:600; }
+  .ticket-archive .btn-enter.archive{ background:transparent; color:var(--ink-soft); border:1.4px solid var(--line); }
+  .ticket-archive .btn-enter:active{ opacity:0.85; box-shadow:none; }
+  .ticket-archive .ticket-btn-group{ display:flex; gap:8px; }
   .remind-btn{
     display:flex; align-items:center; gap:6px; background:var(--paper-deep); color:var(--ink-soft);
     border:1.5px solid var(--line); padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600;
@@ -4460,10 +4488,26 @@
     // next to the button). Agreed & finalized in chat on 2026-09-09.
     // Model-test cards keep the original pill-tag ticket markup below.
     if(exam.type === 'live'){
+      // Archived (window closed) — gold-tint header-strip card, distinct
+      // from the plain-white currently-live look below.
+      if(st.archive){
+        return `
+          <div class="ticket ticket-archive" data-exam-id="${exam.id}">
+            <div class="archive-strip">
+              <span class="archive-lbl"><span class="dot"></span> আর্কাইভ</span>
+              <span class="archive-code">${exam.serial||''}</span>
+            </div>
+            <div class="archive-body">
+              <div class="archive-name">${exam.title}</div>
+              <div class="archive-meta">${toBnDigits(exam.question_count)} প্রশ্ন · ${toBnDigits(exam.duration_minutes)} মিনিট · শেষ</div>
+              ${detailsHtml}
+              <div class="archive-foot">${bottomHtml}</div>
+            </div>
+          </div>`;
+      }
       const metaBits = [exam.ministry_name, exam.grade ? `গ্রেড ${toBnDigits(exam.grade)}` : ''].filter(Boolean);
-      const badgeLabel = st.live ? 'লাইভ' : (st.archive ? 'আর্কাইভ' : '');
-      const badgeHtml = badgeLabel ? `<div class="ticket-badge${st.archive ? ' closed' : ''}">${badgeLabel}</div>` : '';
-      const statusTxt = st.countdown!==undefined ? `${fmtCountdown(st.countdown)} বাকি` : (st.live ? 'চলছে' : (st.archive ? 'শেষ' : ''));
+      const badgeHtml = st.live ? `<div class="ticket-badge">লাইভ</div>` : '';
+      const statusTxt = st.countdown!==undefined ? `${fmtCountdown(st.countdown)} বাকি` : (st.live ? 'চলছে' : '');
       return `
         <div class="ticket ticket-live" data-exam-id="${exam.id}">
           ${badgeHtml}
