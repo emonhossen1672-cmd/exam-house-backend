@@ -449,6 +449,12 @@
   .remind-btn.active{background:var(--gold-soft); color:var(--seal-deep); border-color:var(--gold);}
   .remind-btn:active{opacity:0.85;}
   .empty-note{text-align:center; padding:40px 20px; color:var(--ink-faint); font-size:13px;}
+  /* LiveMCQ-style agenda view: date-section headers grouping exam tickets by
+     day, plus a "go to date" jump control — see groupExamsByDateHtml() and
+     openCatLiveExams() in the script. */
+  .date-group-header{font-size:12.5px; font-weight:700; color:var(--ink-soft,#666); padding:14px 2px 6px; border-bottom:1px solid var(--paper-deep,#eee); margin-bottom:8px;}
+  .date-jump-row{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--ink-soft,#666); padding:0 2px 14px;}
+  .date-jump-row input[type="date"]{border:1px solid var(--paper-deep,#ddd); border-radius:8px; padding:5px 8px; font-size:12.5px; background:var(--paper,#fff); color:var(--ink,#222);}
   .trend-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px 6px;}
   .trend-head{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--ink-soft); margin-bottom:4px;}
   .search-bar-wrap{position:relative; margin-bottom:16px;}
@@ -6028,6 +6034,47 @@
     }
   }
 
+  // Groups a list of exams into date-section headers (LiveMCQ-style "Tuesday,
+  // 08 Sep, 2026" agenda view) instead of one long undifferentiated list, plus
+  // gives each date group an anchor id so a "তারিখ অনুযায়ী যান" date-picker can
+  // jump straight to it. Exams with no start_time (most model tests) are
+  // listed under a single "তারিখ নির্ধারিত হয়নি" group at the end, since they
+  // aren't tied to a specific day.
+  function dateKeyOf(exam){
+    if(!exam.start_time) return null;
+    const d = new Date(exam.start_time);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function groupExamsByDateHtml(examsList){
+    const dated = examsList.filter(e => e.start_time).sort((a,b) => new Date(a.start_time) - new Date(b.start_time));
+    const undated = examsList.filter(e => !e.start_time);
+    let html = '';
+    let lastKey = null;
+    dated.forEach(exam => {
+      const key = dateKeyOf(exam);
+      if(key !== lastKey){
+        const d = new Date(exam.start_time);
+        const label = d.toLocaleDateString('bn-BD', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+        html += `<div class="date-group-header" id="date-${key}">${label}</div>`;
+        lastKey = key;
+      }
+      html += ticketHtml(exam);
+    });
+    if(undated.length){
+      html += `<div class="date-group-header">তারিখ নির্ধারিত হয়নি</div>` + undated.map(ticketHtml).join('');
+    }
+    return html;
+  }
+  // "Go to date" control — an HTML date input's value is always YYYY-MM-DD,
+  // matching dateKeyOf() above, so this can jump straight to that group's
+  // header without any parsing/timezone guesswork.
+  function goToExamDate(value){
+    if(!value) return;
+    const el = document.getElementById('date-' + value);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    else alert('এই তারিখে কোনো পরীক্ষা নেই');
+  }
+
   // ---- লাইভ পরীক্ষা (live exams only, scoped to this category) ----
   function openCatLiveExams(){
     document.getElementById('cat-archive-overlay-title').textContent = CURRENT_CAT_TITLE + ' — লাইভ পরীক্ষা';
@@ -6035,7 +6082,10 @@
     const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG && e.type === 'live');
     const body = document.getElementById('cat-archive-body');
     body.innerHTML = catExams.length
-      ? catExams.map(ticketHtml).join('')
+      ? `<div class="date-jump-row">
+           <label for="cat-live-date-jump">📅 তারিখ অনুযায়ী যান:</label>
+           <input type="date" id="cat-live-date-jump" onchange="goToExamDate(this.value)">
+         </div>` + groupExamsByDateHtml(catExams)
       : '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো লাইভ পরীক্ষা যোগ করা হয়নি।</div>';
   }
 
@@ -6057,7 +6107,7 @@
     const catExams = ALL_EXAMS.filter(e => e.routine_category === CURRENT_CAT_SLUG);
     const body = document.getElementById('cat-archive-body');
     body.innerHTML = catExams.length
-      ? catExams.map(ticketHtml).join('')
+      ? groupExamsByDateHtml(catExams)
       : '<div class="empty-note">এই ক্যাটাগরিতে এখনো কোনো পরীক্ষা যোগ করা হয়নি।</div>';
   }
   function closeCatArchive(){
