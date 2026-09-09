@@ -5222,9 +5222,22 @@
     }
   }
 
-  function openNameSheet(examId){
+  async function openNameSheet(examId){
     const exam = ALL_EXAMS.find(e=>e.id===examId);
     if(USER_TOKEN && USER_INFO){
+      // Live exams only allow one official attempt per user (backend
+      // enforces this — POST /api/results returns 409 on a second try).
+      // Check first so a student who already completed it goes straight to
+      // their result instead of sitting through the whole timed exam again
+      // only to be blocked at the final submit tap.
+      if(exam && exam.type === 'live'){
+        try{
+          const existing = await apiGetAuth('/api/results/mine/'+examId);
+          CURRENT_EXAM = exam;
+          showResult(existing);
+          return;
+        }catch(err){ /* 404 = no prior attempt yet — proceed to start normally */ }
+      }
       // already logged in — skip the sheet, use their account name/phone directly
       startExam(examId, USER_INFO.name, USER_INFO.phone);
       return;
@@ -5587,6 +5600,19 @@
       }, true);
       showResult(result);
     }catch(err){
+      // Belt-and-suspenders: openNameSheet already checks for a prior
+      // attempt before a live exam even starts, but if this still happens
+      // (e.g. two tabs open, or a very stale page reused after a while),
+      // show the existing result instead of just an error with no way
+      // forward — the student's just-filled-in answers for this duplicate
+      // attempt aren't saved either way, but at least they land somewhere useful.
+      if(USER_TOKEN && err.message && err.message.includes('আগেই সাবমিট')){
+        try{
+          const existing = await apiGetAuth('/api/results/mine/'+CURRENT_EXAM.id);
+          showResult(existing);
+          return;
+        }catch(e2){ /* fall through to the plain alert below */ }
+      }
       alert('জমা দেওয়া যায়নি: ' + err.message);
     }
   }
