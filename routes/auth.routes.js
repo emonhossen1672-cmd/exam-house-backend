@@ -17,6 +17,12 @@ const OTP_MAX_PER_WINDOW = 3;   // max OTP requests per phone per window
 const OTP_WINDOW_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;     // max wrong-code tries per OTP row
 const OTP_VERIFIED_VALID_MINUTES = 15; // how long a verified OTP stays usable for register
+// Referral bonuses — added on top of the base free-trial exam count in
+// utils/packageAccess.js (trial_bonus_exams column). Referee gets a small
+// welcome bonus for signing up via a code; the referrer gets the bigger
+// bonus since they're doing the inviting, per product decision.
+const REFERRAL_BONUS_REFEREE = 5;
+const REFERRAL_BONUS_REFERRER = 10;
 
 function genOtp() {
   return String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
@@ -105,9 +111,12 @@ router.post('/otp/verify', asyncHandler(async (req, res) => {
   res.json({ verified: true });
 }));
 
-// POST /api/auth/register — requires a phone already verified via /otp/verify
+// POST /api/auth/register — requires a phone already verified via /otp/verify.
+// Optional body field `ref`: another student's referral_code. If it matches,
+// both accounts get a free-trial bonus (see utils/packageAccess.js) — an
+// invalid/unknown code is ignored rather than rejecting the registration.
 router.post('/register', asyncHandler(async (req, res) => {
-  const { name, phone, password } = req.body;
+  const { name, phone, password, ref } = req.body;
   if (!name || !phone || !password) {
     return res.status(400).json({ error: 'নাম, মোবাইল নম্বর ও পাসওয়ার্ড দিন' });
   }
@@ -139,10 +148,31 @@ router.post('/register', asyncHandler(async (req, res) => {
       'INSERT INTO users (name, phone, password_hash, phone_verified) VALUES ($1,$2,$3,true) RETURNING id, name, phone',
       [name, phone, hash]
     );
-    // Assign the profile screen's public student ID (e.g. "EH1024") now that
-    // we have the new row's id to base it on.
+    // Assign the profile screen's public student ID (e.g. "EH1024") and this
+    // account's own shareable referral code (e.g. "EHR1024") now that we
+    // have the new row's id to base both on.
     const studentCode = `${STUDENT_ID_PREFIX}${1000 + rows[0].id}`;
-    await client.query('UPDATE users SET student_code=$1 WHERE id=$2', [studentCode, rows[0].id]);
+    const referralCode = `${STUDENT_ID_PREFIX}R${1000 + rows[0].id}`;
+    await client.query('UPDATE users SET student_code=$1, referral_code=$2 WHERE id=$3', [studentCode, referralCode, rows[0].id]);
+
+    // If they signed up with a friend's referral code, credit both accounts
+    // with bonus free-trial exams. An unrecognized code is silently ignored
+    // — this shouldn't block registration.
+    if (ref) {
+      const refRes = await client.query('SELECT id FROM users WHERE referral_code=$1', [String(ref).trim().toUpperCase()]);
+      if (refRes.rows.length) {
+        const referrerId = refRes.rows[0].id;
+        await client.query(
+          'UPDATE users SET referred_by=$1, trial_bonus_exams = trial_bonus_exams + $2 WHERE id=$3',
+          [referrerId, REFERRAL_BONUS_REFEREE, rows[0].id]
+        );
+        await client.query(
+          'UPDATE users SET trial_bonus_exams = trial_bonus_exams + $1 WHERE id=$2',
+          [REFERRAL_BONUS_REFERRER, referrerId]
+        );
+      }
+    }
+
     await client.query('UPDATE otp_codes SET consumed_at = NOW() WHERE id=$1', [otpRes.rows[0].id]);
     await client.query('COMMIT');
 
@@ -249,9 +279,12 @@ router.post('/google', asyncHandler(async (req, res) => {
         [name || 'শিক্ষার্থী', email, googleId, picture || null]
       );
       user = inserted.rows[0];
-      // Same public student ID as phone registration (see /register above).
+      // Same public student ID + referral code as phone registration (see
+      // /register above). Google sign-up has no referral-code input field
+      // today, so this just makes sure the account has one to share later.
       const studentCode = `${STUDENT_ID_PREFIX}${1000 + user.id}`;
-      await pool.query('UPDATE users SET student_code=$1 WHERE id=$2', [studentCode, user.id]);
+      const referralCode = `${STUDENT_ID_PREFIX}R${1000 + user.id}`;
+      await pool.query('UPDATE users SET student_code=$1, referral_code=$2 WHERE id=$3', [studentCode, referralCode, user.id]);
       user.student_code = studentCode;
     }
   }
@@ -308,7 +341,7 @@ router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT current_streak, longest_streak, email, avatar_url, created_at,
       student_code, study_group, preparing_for, points, google_id, phone_verified,
-      active_package_name, active_package_expires_at
+      active_package_name, active_package_expires_at, referral_code
      FROM users WHERE id=$1`,
     [req.user.id]
   );
@@ -342,6 +375,7 @@ router.get('/me', requireUser, asyncHandler(async (req, res) => {
     active_package: info.active_package_name
       ? { name: info.active_package_name, expires_at: info.active_package_expires_at }
       : null,
+    referral_code: info.referral_code || null,
     stats
   });
 }));
