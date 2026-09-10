@@ -588,6 +588,11 @@ CREATE TABLE IF NOT EXISTS packages (
   name VARCHAR(150) NOT NULL,
   tier VARCHAR(20) NOT NULL DEFAULT 'basic', -- 'basic' | 'pro' — informational grouping only, limits below are what's actually enforced
   price NUMERIC(8,2) NOT NULL,
+  -- Optional "before discount" price, admin-set. NULL/<=price = no discount
+  -- shown. When set higher than price, the frontend shows a strikethrough
+  -- original price + a "X% ছাড়" badge on both the packages screen and the
+  -- home-screen promo card below.
+  original_price NUMERIC(8,2),
   duration_days INTEGER NOT NULL,
   -- NULL = unlimited. Only 'live' exams and REAL model exams (see
   -- utils/packageAccess.js isPremiumExam()) count against these — practice,
@@ -628,6 +633,10 @@ CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 -- packages, or two different students submitting the same TrxID).
 CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_trxid_unique ON payments(trx_id)
   WHERE trx_id IS NOT NULL AND method IN ('bkash','nagad');
+
+-- Safety net for deployments where `packages` already existed before
+-- original_price was added (CREATE TABLE IF NOT EXISTS above is a no-op then).
+ALTER TABLE packages ADD COLUMN IF NOT EXISTS original_price NUMERIC(8,2);
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_id INTEGER REFERENCES packages(id);
 -- Window start for quota counting (COUNT results WHERE created_at >= this).
