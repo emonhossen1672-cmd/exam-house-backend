@@ -1676,7 +1676,7 @@
       <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">❤️</span><span class="ct-ic"><svg class="ic"><use href="#i-heart"/></svg></span><span>সেন্ট্রাল ফেভারিট</span></div>
       <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🔍</span><span class="ct-ic"><svg class="ic"><use href="#i-search"/></svg></span><span>স্মার্ট সার্চ</span></div>
       <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">💡</span><span class="ct-ic"><svg class="ic"><use href="#i-bulb"/></svg></span><span>কুইজ মাস্টার</span></div>
-      <div class="cat-tile" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78; grid-column:1/2;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📝</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>প্রিলি ও লিখিত সমন্বিত প্রস্তুতি</span></div>
+      <div class="cat-tile" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78; grid-column:1/2;" onclick="goScreen('model'); setModelMode('written');"><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📝</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>প্রিলি ও লিখিত সমন্বিত প্রস্তুতি</span></div>
     </div>
 
     <div class="sec-head"><h2>আজকের লাইভ পরীক্ষা</h2><a onclick="goScreen('live')">সবগুলো →</a></div>
@@ -3186,7 +3186,7 @@
         return;
       }
       if(!t.active){
-        wrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">ফ্রি ট্রায়াল শেষ হয়ে গেছে</div><div class="pkg-status-meta">আপনি ' + toBnDigits(t.used) + 'টি ফ্রি লাইভ পরীক্ষা/মডেল টেস্ট দিয়েছেন। চালিয়ে যেতে নিচ থেকে একটি প্যাকেজ কিনুন, অথবা নিচে বন্ধুকে রেফার করে ফ্রি ট্রায়াল বাড়িয়ে নিন।</div></div>';
+        wrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">ফ্রি ট্রায়াল শেষ হয়ে গেছে</div><div class="pkg-status-meta">আপনি ' + toBnDigits(t.used) + 'টি ফ্রি লাইভ/মডেল/রিটেন পরীক্ষা দিয়েছেন। চালিয়ে যেতে নিচ থেকে একটি প্যাকেজ কিনুন, অথবা নিচে বন্ধুকে রেফার করে ফ্রি ট্রায়াল বাড়িয়ে নিন।</div></div>';
         return;
       }
       const low = t.remaining <= 5;
@@ -3196,7 +3196,7 @@
       wrap.innerHTML = `<div class="pkg-status-banner${low ? ' trial-low' : ''}">
         <div class="pkg-status-title">${low ? '⚠️ ' : ''}ফ্রি ট্রায়াল ব্যবহার করছেন</div>
         <div class="pkg-status-meta">
-          ব্যবহৃত: ${toBnDigits(t.used)} / ${toBnDigits(t.limit)}টি ফ্রি লাইভ পরীক্ষা/মডেল টেস্ট${low ? ' — আর মাত্র ' + toBnDigits(t.remaining) + 'টি বাকি!' : ''}<br>
+          ব্যবহৃত: ${toBnDigits(t.used)} / ${toBnDigits(t.limit)}টি ফ্রি লাইভ/মডেল/রিটেন পরীক্ষা${low ? ' — আর মাত্র ' + toBnDigits(t.remaining) + 'টি বাকি!' : ''}<br>
           ${windowNote}
         </div>
       </div>`;
@@ -3208,7 +3208,8 @@
       <div class="pkg-status-meta">
         মেয়াদ শেষ: ${expiry}<br>
         লাইভ পরীক্ষা: ${toBnDigits(a.live_exam_used)} / ${a.live_exam_limit == null ? 'আনলিমিটেড' : toBnDigits(a.live_exam_limit)}<br>
-        মডেল টেস্ট: ${toBnDigits(a.model_test_used)} / ${a.model_test_limit == null ? 'আনলিমিটেড' : toBnDigits(a.model_test_limit)}
+        মডেল টেস্ট: ${toBnDigits(a.model_test_used)} / ${a.model_test_limit == null ? 'আনলিমিটেড' : toBnDigits(a.model_test_limit)}<br>
+        রিটেন পরীক্ষা: ${toBnDigits(a.written_test_used)} / ${a.written_test_limit == null ? 'আনলিমিটেড' : toBnDigits(a.written_test_limit)}
       </div>
     </div>`;
     if(me.payments && me.payments.some(p => p.status === 'pending')){
@@ -3225,7 +3226,7 @@
     const link = location.origin + location.pathname + '?ref=' + encodeURIComponent(referral.code);
     wrap.innerHTML = `<div class="pkg-referral-box">
       <div class="pkg-status-title">🎁 বন্ধুকে রেফার করে ফ্রি ট্রায়াল বাড়ান</div>
-      <div class="pkg-status-meta">আপনার কোড দিয়ে কোনো বন্ধু রেজিস্ট্রেশন করলে সে পাবে ৫টি ও আপনি পাবেন ১০টি এক্সট্রা ফ্রি লাইভ পরীক্ষা/মডেল টেস্ট। এ পর্যন্ত ${toBnDigits(referral.referred_count || 0)} জনকে রেফার করেছেন।</div>
+      <div class="pkg-status-meta">আপনার কোড দিয়ে কোনো বন্ধু রেজিস্ট্রেশন করলে সে পাবে ৫টি ও আপনি পাবেন ১০টি এক্সট্রা ফ্রি লাইভ/মডেল/রিটেন পরীক্ষা। এ পর্যন্ত ${toBnDigits(referral.referred_count || 0)} জনকে রেফার করেছেন।</div>
       <div class="pkg-referral-code-row">
         <div class="pkg-referral-code">${escapeHtml(referral.code)}</div>
         <button class="pkg-referral-copy-btn" onclick="copyReferralLink('${referral.code.replace(/'/g, "\\'")}')">লিংক কপি করুন</button>
@@ -3260,7 +3261,7 @@
     return `<div class="pkg-card${discountPct ? ' pkg-card-discounted' : ''}">
       ${discountPct ? `<div class="pkg-discount-ribbon">${toBnDigits(discountPct)}% ছাড়</div>` : ''}
       <div class="pkg-title">${escapeHtml(p.name)} ${p.tier==='pro' ? '<span style="color:var(--gold); font-size:11px;">Pro</span>' : ''}</div>
-      <div class="pkg-meta">মেয়াদ: ${durationLabel} · ${limitText(p.live_exam_limit,'লাইভ পরীক্ষা')} · ${limitText(p.model_test_limit,'মডেল টেস্ট')}</div>
+      <div class="pkg-meta">মেয়াদ: ${durationLabel} · ${limitText(p.live_exam_limit,'লাইভ পরীক্ষা')} · ${limitText(p.model_test_limit,'মডেল টেস্ট')} · ${limitText(p.written_test_limit,'রিটেন পরীক্ষা')}</div>
       ${p.description ? '<div class="pkg-meta">'+escapeHtml(p.description)+'</div>' : ''}
       <div class="pkg-price-row">
         <span class="pkg-price">৳${toBnDigits(p.price)}</span>
@@ -3481,6 +3482,10 @@
 
   // ---------- Model test drill-down: ministry -> post/grade -> exams ----------
   let MODEL_NAV = {level:'ministries', ministry:null, post:null, grade:null};
+  // Same drill-down shape, reused for written (রিটেন) exams — kept as a
+  // separate state object so browsing model tests and written tests don't
+  // clobber each other's position if a student switches between them.
+  let WRITTEN_NAV = {level:'ministries', ministry:null, post:null, grade:null};
 
   function groupBy(arr, keyFn){
     const map = new Map();
@@ -3522,6 +3527,7 @@
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     else if(mode === 'topic'){ TOPIC_NAV = {level:'subjects'}; }
+    else if(mode === 'written'){ WRITTEN_NAV = {level:'ministries'}; }
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -3531,6 +3537,7 @@
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
     if(MODEL_MODE === 'topic'){ renderTopicScreen(); return; }
     if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
+    if(MODEL_MODE === 'written'){ renderWrittenScreen(); return; }
     // Daily quiz (is_daily) and practice-mode quizzes (is_practice) are auto-generated
     // on the fly and have no real ministry — they belong only on the home "today's
     // quiz" card and inside the Practice Mode tab, not mixed into ministry-wise listing.
@@ -3617,6 +3624,110 @@
     }
   }
 
+  // ---------- রিটেন (written) পরীক্ষা ব্রাউজিং — ঠিক মডেল টেস্টের মতোই
+  // মন্ত্রণালয় -> পদ -> পরীক্ষা ড্রিল-ডাউন, শুধু type='written' ফিল্টার করে এবং
+  // WRITTEN_NAV নিজের আলাদা state ব্যবহার করে (মডেল টেস্ট ব্রাউজ করার সময়
+  // অবস্থান হারিয়ে যায় না)। এই স্ক্রিনও প্রিমিয়াম — লক থাকলে পরীক্ষা খোলার
+  // সময় সার্ভার থেকেই "প্যাকেজ প্রয়োজন" এরর আসবে (startExam-এর ক্যাচ ব্লক
+  // দেখুন), এখানে আলাদা করে লক-আইকন দেখানো হয়নি — মডেল/লাইভ পরীক্ষাতেও হয় না।
+  function renderWrittenScreen(){
+    const written = ALL_EXAMS.filter(e=>e.type==='written');
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+
+    if(!written.length){
+      backBtn.style.display='none';
+      heading.textContent = 'রিটেন পরীক্ষা';
+      subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো রিটেন পরীক্ষা যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    if(WRITTEN_NAV.level === 'ministries'){
+      backBtn.style.display='none';
+      heading.textContent = 'রিটেন পরীক্ষা';
+      subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
+      const groups = groupBy(written, e=>e.ministry_name || 'অন্যান্য');
+      listEl.innerHTML = [...groups.entries()].map(([name, exams])=>{
+        const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
+        const t = tintFor(name);
+        return `
+          <div class="group-card" style="--t-bg:${t.bg}; --t-bd:${t.bd}; --t-fg:${t.fg};" onclick='writtenPickMinistry(${JSON.stringify(name)})'>
+            <div class="gc-left">
+              <div class="gc-ic">🏛️</div>
+              <div>
+                <div class="gc-name">${name}</div>
+                <div class="gc-meta">${toBnDigits(posts.size)}টি পদ · ${toBnDigits(exams.length)}টি টেস্ট</div>
+              </div>
+            </div>
+            <div class="gc-arrow">›</div>
+          </div>`;
+      }).join('');
+      return;
+    }
+
+    if(WRITTEN_NAV.level === 'posts'){
+      backBtn.style.display='flex';
+      heading.textContent = WRITTEN_NAV.ministry;
+      subtext.textContent = 'পদ বেছে নিন';
+      const inMinistry = written.filter(e=>(e.ministry_name||'অন্যান্য')===WRITTEN_NAV.ministry);
+      const groups = groupBy(inMinistry, e=>(e.post_name||'সাধারণ')+'|'+(e.grade||''));
+      const sortedGroups = [...groups.entries()].sort((a,b)=>{
+        const gA = a[0].split('|')[1], gB = b[0].split('|')[1];
+        const nA = gA ? parseInt(gA,10) : null, nB = gB ? parseInt(gB,10) : null;
+        if(nA===null && nB===null) return 0;
+        if(nA===null) return 1;
+        if(nB===null) return -1;
+        return nA - nB;
+      });
+      listEl.innerHTML = sortedGroups.map(([key, exams])=>{
+        const [postName, grade] = key.split('|');
+        return `
+          <div class="group-card" onclick='writtenPickPost(${JSON.stringify(postName)},${JSON.stringify(grade)})'>
+            <div class="gc-left">
+              <div class="gc-ic post">📋</div>
+              <div>
+                <div class="gc-name">${postName}${grade ? ` · গ্রেড ${toBnDigits(grade)}` : ''}</div>
+                <div class="gc-meta">${toBnDigits(exams.length)}টি রিটেন পরীক্ষা</div>
+              </div>
+            </div>
+            <div class="gc-arrow">›</div>
+          </div>`;
+      }).join('');
+      return;
+    }
+
+    if(WRITTEN_NAV.level === 'exams'){
+      backBtn.style.display='flex';
+      heading.textContent = WRITTEN_NAV.post;
+      subtext.textContent = WRITTEN_NAV.ministry + (WRITTEN_NAV.grade ? ' · গ্রেড '+toBnDigits(WRITTEN_NAV.grade) : '');
+      const exams = written.filter(e=>
+        (e.ministry_name||'অন্যান্য')===WRITTEN_NAV.ministry &&
+        (e.post_name||'সাধারণ')===WRITTEN_NAV.post &&
+        String(e.grade||'')===String(WRITTEN_NAV.grade||'')
+      );
+      renderList('model-list', exams, 'এই পদের জন্য কোনো রিটেন পরীক্ষা নেই।');
+      return;
+    }
+  }
+
+  function writtenPickMinistry(name){
+    WRITTEN_NAV = {level:'posts', ministry:name};
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+  function writtenPickPost(postName, grade){
+    WRITTEN_NAV.level = 'exams';
+    WRITTEN_NAV.post = postName;
+    WRITTEN_NAV.grade = grade;
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
   function modelPickMinistry(name){
     MODEL_NAV = {level:'posts', ministry:name};
     history.pushState({drill:true}, '', location.pathname);
@@ -3652,6 +3763,7 @@
     if(MODEL_MODE === 'practice') return READING_NAV.level === 'subjects';
     if(MODEL_MODE === 'topic') return TOPIC_NAV.level === 'subjects';
     if(MODEL_MODE === 'ministry') return MODEL_NAV.level === 'ministries';
+    if(MODEL_MODE === 'written') return WRITTEN_NAV.level === 'ministries';
     return true;
   }
   function drillBackStep(){
@@ -3684,6 +3796,13 @@
       else if(TOPIC_NAV.level === 'subtopics'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
+      renderModelScreen();
+      window.scrollTo(0,0);
+      return;
+    }
+    if(MODEL_MODE === 'written'){
+      if(WRITTEN_NAV.level === 'exams'){ WRITTEN_NAV.level='posts'; WRITTEN_NAV.post=null; WRITTEN_NAV.grade=null; }
+      else if(WRITTEN_NAV.level === 'posts'){ WRITTEN_NAV = {level:'ministries'}; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -4782,7 +4901,12 @@
 
   function examStatus(exam){
     const now = Date.now();
-    if(exam.type === 'model') return {label:'উপলব্ধ', canEnter:true, cta:'শুরু করুন'};
+    // Written (রিটেন) tests behave like model tests when the admin hasn't set
+    // a start_time (the normal case — see e_start_time_wrap in the admin
+    // panel, which is only shown for type='live'): always open, no window.
+    // If an admin DOES set a start_time on a written exam (a scheduled
+    // written test), fall through to the live-style windowing below.
+    if(exam.type === 'model' || (exam.type === 'written' && !exam.start_time)) return {label:'উপলব্ধ', canEnter:true, cta:'শুরু করুন'};
     if(!exam.start_time) return {label:'সময় নির্ধারিত হয়নি', canEnter:false, cta:'শীঘ্রই আসছে'};
     const start = new Date(exam.start_time).getTime();
     const end = start + Math.max((exam.duration_minutes||60)*60000, LIVE_WINDOW_MIN_MS);
