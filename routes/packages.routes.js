@@ -28,7 +28,7 @@ const { getTrialStatus } = require('../utils/packageAccess');
 // for the packages screen.
 router.get('/public/list', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description
+    `SELECT id, name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, written_test_limit, description
      FROM packages WHERE is_active=true ORDER BY display_order ASC, price ASC`
   );
   res.json({ packages: rows });
@@ -83,7 +83,7 @@ router.post('/purchase', submitLimiter, requireUser, asyncHandler(async (req, re
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const userRes = await pool.query(
     `SELECT u.active_package_id, u.active_package_started_at, u.active_package_expires_at,
-            u.referral_code, p.name, p.tier, p.live_exam_limit, p.model_test_limit
+            u.referral_code, p.name, p.tier, p.live_exam_limit, p.model_test_limit, p.written_test_limit
      FROM users u LEFT JOIN packages p ON p.id = u.active_package_id
      WHERE u.id=$1`,
     [req.user.id]
@@ -110,11 +110,21 @@ router.get('/me', requireUser, asyncHandler(async (req, res) => {
          AND e.is_auto_subject=false AND e.is_repeated_bank=false`,
       [req.user.id, info.active_package_started_at]
     );
+    // written exams are answered per-question in written_answers (no `results`
+    // row), so quota usage there is counted by distinct exam_id instead.
+    const writtenUsedRes = await pool.query(
+      `SELECT COUNT(DISTINCT wa.exam_id)::int AS written_used
+       FROM written_answers wa JOIN exams e ON e.id = wa.exam_id
+       WHERE wa.user_id=$1 AND e.type='written'
+         AND ($2::timestamp IS NULL OR wa.submitted_at >= $2)`,
+      [req.user.id, info.active_package_started_at]
+    );
     const used = usedRes.rows[0];
     active = {
       name: info.name, tier: info.tier, expires_at: info.active_package_expires_at,
       live_exam_limit: info.live_exam_limit, live_exam_used: used.live_used,
-      model_test_limit: info.model_test_limit, model_test_used: used.model_used
+      model_test_limit: info.model_test_limit, model_test_used: used.model_used,
+      written_test_limit: info.written_test_limit, written_test_used: writtenUsedRes.rows[0].written_used
     };
   } else {
     trial = await getTrialStatus(req.user.id);
@@ -149,20 +159,20 @@ router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 router.post('/admin', requireAdmin, asyncHandler(async (req, res) => {
-  const { name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description, display_order } = req.body;
+  const { name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, written_test_limit, description, display_order } = req.body;
   if (!name || price == null || !duration_days) {
     return res.status(400).json({ error: 'নাম, মূল্য ও মেয়াদ প্রয়োজন' });
   }
   const { rows } = await pool.query(
-    `INSERT INTO packages (name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description, display_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-    [name, tier || 'basic', price, original_price ?? null, duration_days, live_exam_limit ?? null, model_test_limit ?? null, description || null, display_order || 0]
+    `INSERT INTO packages (name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, written_test_limit, description, display_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [name, tier || 'basic', price, original_price ?? null, duration_days, live_exam_limit ?? null, model_test_limit ?? null, written_test_limit ?? null, description || null, display_order || 0]
   );
   res.status(201).json({ package: rows[0] });
 }));
 
 router.put('/admin/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description, display_order, is_active } = req.body;
+  const { name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, written_test_limit, description, display_order, is_active } = req.body;
   // original_price=null is ambiguous between "clear the discount" and "field
   // not sent" (e.g. the admin panel's plain activate/deactivate toggle) — a
   // dedicated flag lets the create/edit form clear it explicitly while the
@@ -172,11 +182,11 @@ router.put('/admin/:id', requireAdmin, asyncHandler(async (req, res) => {
     `UPDATE packages SET
       name=COALESCE($1,name), tier=COALESCE($2,tier), price=COALESCE($3,price),
       original_price=CASE WHEN $4 THEN NULL ELSE COALESCE($5,original_price) END,
-      duration_days=COALESCE($6,duration_days), live_exam_limit=$7, model_test_limit=$8,
-      description=COALESCE($9,description), display_order=COALESCE($10,display_order),
-      is_active=COALESCE($11,is_active)
-     WHERE id=$12 RETURNING *`,
-    [name, tier, price, clearDiscount, original_price ?? null, duration_days, live_exam_limit ?? null, model_test_limit ?? null,
+      duration_days=COALESCE($6,duration_days), live_exam_limit=$7, model_test_limit=$8, written_test_limit=$9,
+      description=COALESCE($10,description), display_order=COALESCE($11,display_order),
+      is_active=COALESCE($12,is_active)
+     WHERE id=$13 RETURNING *`,
+    [name, tier, price, clearDiscount, original_price ?? null, duration_days, live_exam_limit ?? null, model_test_limit ?? null, written_test_limit ?? null,
       description, display_order, is_active, req.params.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'প্যাকেজ পাওয়া যায়নি' });
