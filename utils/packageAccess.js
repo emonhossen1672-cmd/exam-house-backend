@@ -41,6 +41,51 @@ async function getActivePackage(userId) {
   return row;
 }
 
+// Free trial: every student gets this many premium exams for life (stretched
+// by referral bonuses — see trial_bonus_exams), OR unlimited premium exams
+// during their first TRIAL_WINDOW_DAYS after registering — whichever is more
+// generous. Only consulted when the user has no active package.
+const TRIAL_BASE_LIMIT = 20;
+const TRIAL_WINDOW_DAYS = 7;
+
+// Returns the user's free-trial status, or null if the user doesn't exist.
+// `active` is true if the trial still covers a premium exam right now
+// (either the exam count isn't used up, or they're still inside the
+// new-account window) — checkExamAccess() is the only other place that
+// should read this.
+async function getTrialStatus(userId) {
+  const { rows } = await pool.query(
+    'SELECT created_at, trial_bonus_exams FROM users WHERE id = $1',
+    [userId]
+  );
+  const u = rows[0];
+  if (!u) return null;
+
+  const usedRes = await pool.query(
+    `SELECT COUNT(*)::int AS used
+     FROM results r JOIN exams e ON e.id = r.exam_id
+     WHERE r.user_id = $1 AND e.type IN ('live','model')
+       AND e.is_practice = false AND e.is_duel = false AND e.is_daily = false
+       AND e.is_auto_subject = false AND e.is_repeated_bank = false`,
+    [userId]
+  );
+  const used = usedRes.rows[0].used;
+  const limit = TRIAL_BASE_LIMIT + (u.trial_bonus_exams || 0);
+
+  const daysSinceJoin = (Date.now() - new Date(u.created_at).getTime()) / 86400000;
+  const withinWindow = daysSinceJoin <= TRIAL_WINDOW_DAYS;
+  const withinCount = used < limit;
+
+  return {
+    active: withinWindow || withinCount,
+    used,
+    limit,
+    remaining: Math.max(0, limit - used),
+    within_window: withinWindow,
+    days_left: withinWindow ? Math.max(0, Math.ceil(TRIAL_WINDOW_DAYS - daysSinceJoin)) : 0
+  };
+}
+
 // Checks whether a logged-in user may open/submit a given (already
 // premium-flagged) exam. Returns { allowed: true } or
 // { allowed: false, reason: '<Bangla message>' }.
@@ -51,7 +96,12 @@ async function checkExamAccess(userId, exam) {
   }
   const pkg = await getActivePackage(userId);
   if (!pkg) {
-    return { allowed: false, reason: 'এই লাইভ পরীক্ষা/মডেল টেস্টের জন্য সক্রিয় প্যাকেজ প্রয়োজন। প্রোফাইল থেকে প্যাকেজ কিনুন।' };
+    const trial = await getTrialStatus(userId);
+    if (trial && trial.active) return { allowed: true };
+    return {
+      allowed: false,
+      reason: 'আপনার ফ্রি ট্রায়াল শেষ হয়ে গেছে (২০টি পরীক্ষা / নতুন অ্যাকাউন্টের প্রথম ৭ দিন)। লাইভ পরীক্ষা/মডেল টেস্ট চালিয়ে যেতে প্রোফাইল থেকে একটি প্যাকেজ কিনুন — অথবা বন্ধুকে রেফার করে ফ্রি ট্রায়াল বাড়িয়ে নিন।'
+    };
   }
 
   const limitField = exam.type === 'live' ? 'live_exam_limit' : 'model_test_limit';
@@ -78,4 +128,4 @@ async function checkExamAccess(userId, exam) {
   return { allowed: true };
 }
 
-module.exports = { isPremiumExam, getActivePackage, checkExamAccess };
+module.exports = { isPremiumExam, getActivePackage, getTrialStatus, checkExamAccess, TRIAL_BASE_LIMIT, TRIAL_WINDOW_DAYS };
