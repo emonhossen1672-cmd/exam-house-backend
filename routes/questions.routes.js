@@ -347,6 +347,45 @@ router.post('/public/topic-job-like', requireUser, asyncHandler(async (req, res)
   res.json({ liked: !existing.rows.length, like_count: countRes.rows[0].c });
 }));
 
+// GET /api/questions/public/topic-importance?subject=X&post_name=Y(optional)
+// "প্রশ্নব্যাংক বিশ্লেষণ" — ranks topics by how many *different* exam_years
+// (and post_names) they've appeared in, not just raw question_count, since a
+// single bulk upload can dump many questions under one topic without that
+// topic actually being a recurring/important one. Only rows with an
+// exam_year tagged are counted; untagged rows can't tell us "repeated
+// across years" so they're excluded rather than distorting the ranking.
+router.get('/public/topic-importance', asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  const postName = (req.query.post_name || '').trim();
+  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+
+  const params = [subject];
+  let postClause = '';
+  if (postName) { params.push(postName); postClause = `AND post_name = $${params.length}`; }
+
+  const { rows } = await pool.query(
+    `SELECT TRIM(topic) AS topic,
+            COUNT(*)::int AS question_count,
+            COUNT(DISTINCT exam_year)::int AS years_seen,
+            COUNT(DISTINCT post_name)::int AS posts_seen
+     FROM questions
+     WHERE subject = $1 AND TRIM(COALESCE(topic, '')) <> '' AND exam_year IS NOT NULL ${postClause}
+     GROUP BY 1
+     ORDER BY years_seen DESC, posts_seen DESC, question_count DESC`,
+    params
+  );
+
+  const maxYears = rows.length ? rows[0].years_seen : 0;
+  const cutoffIdx = Math.max(0, Math.ceil(rows.length * 0.2) - 1);
+  const cutoffYears = rows.length ? rows[cutoffIdx].years_seen : 0;
+  const topics = rows.map(r => ({
+    ...r,
+    important: maxYears > 1 && r.years_seen >= Math.max(2, cutoffYears)
+  }));
+
+  res.json({ subject, post_name: postName || null, topics });
+}));
+
 // GET /api/questions/public/topics?subject=X — topics inside one (exact)
 // subject, each with its own question_count and subtopic_count, so the
 // client shows a topic card (level 2) before drilling into subtopics. Only
@@ -365,42 +404,6 @@ router.get('/public/topics', asyncHandler(async (req, res) => {
     [subject, UNTAGGED_SUBTOPIC]
   );
   res.json({ subject, topics: rows });
-}));
-
-// GET /api/questions/public/topic-importance?subject=X&post_name=Y(optional)
-// প্রশ্নব্যাংক বিশ্লেষণ — শুধু question_count দিয়ে না, একটা টপিক কত আলাদা
-// আলাদা বছরে (exam_year) আর পদে (post_name) বারবার এসেছে তা দিয়ে "গুরুত্ব"
-// মাপে। একই bulk upload-এ অনেক প্রশ্ন থাকলেই সেটা গুরুত্বপূর্ণ হয়ে যায় না —
-// years_seen/posts_seen বেশি মানে সত্যিকারের বারবার-আসা টপিক।
-// post_name দিলে শুধু সেই পদের প্রশ্ন থেকে বিশ্লেষণ হবে, না দিলে পুরো subject।
-router.get('/public/topic-importance', asyncHandler(async (req, res) => {
-  const subject = (req.query.subject || '').trim();
-  const postName = (req.query.post_name || '').trim();
-  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
-
-  const params = [subject];
-  let postClause = '';
-  if (postName) { params.push(postName); postClause = `AND post_name = $${params.length}`; }
-
-  const { rows } = await pool.query(
-    `SELECT TRIM(topic) AS topic,
-            COUNT(*)::int AS question_count,
-            COUNT(DISTINCT exam_year)::int AS years_seen,
-            COUNT(DISTINCT post_name)::int AS posts_seen,
-            MAX(exam_year) AS last_seen_year
-     FROM questions
-     WHERE subject = $1 AND TRIM(COALESCE(topic, '')) <> '' ${postClause}
-     GROUP BY 1
-     ORDER BY years_seen DESC, posts_seen DESC, question_count DESC`,
-    params
-  );
-
-  // top ২০% (কমপক্ষে ১টা) টপিককে "গুরুত্বপূর্ণ" ব্যাজ দেওয়া হয়, যাতে ক্লায়েন্ট
-  // সরাসরি দেখাতে পারে — নিজে থ্রেশহোল্ড বসাতে হয় না।
-  const importantCount = Math.max(1, Math.ceil(rows.length * 0.2));
-  const topics = rows.map((r, i) => ({ ...r, is_important: i < importantCount }));
-
-  res.json({ subject, post_name: postName || null, topics });
 }));
 
 // GET /api/questions/public/subtopics?subject=X&topic=Y — subtopics inside
