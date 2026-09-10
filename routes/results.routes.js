@@ -5,6 +5,7 @@ const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth'
 const { submitLimiter } = require('../middleware/rateLimit');
 const asyncHandler = require('../utils/asyncHandler');
 const { normalizeSubject } = require('../utils/subjectMap');
+const { checkExamAccess } = require('../utils/packageAccess');
 
 // POST /api/results — submitted when a participant finishes an exam.
 // Works for guests (participant_name/phone in body) AND logged-in users
@@ -19,12 +20,24 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'নাম ও উত্তর প্রয়োজন' });
   }
 
-  const examRes = await pool.query('SELECT type, status, negative_marks FROM exams WHERE id=$1', [exam_id]);
+  const examRes = await pool.query(
+    `SELECT type, status, negative_marks, is_practice, is_duel, is_daily, is_auto_subject, is_repeated_bank
+     FROM exams WHERE id=$1`,
+    [exam_id]
+  );
   if (!examRes.rows.length) {
     return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   }
   const exam = examRes.rows[0];
   const negativeMarks = Number(exam.negative_marks) || 0;
+
+  // Defense in depth — the frontend already blocks opening a locked exam's
+  // questions (see GET /api/exams/public/:id/questions), but a submission
+  // could in principle be POSTed directly without ever fetching them.
+  const access = await checkExamAccess(userId, exam);
+  if (!access.allowed) {
+    return res.status(402).json({ error: access.reason, code: 'PACKAGE_REQUIRED' });
+  }
 
   // Fix: a logged-in user could previously submit the same LIVE exam
   // unlimited times, each one counted separately toward the per-exam merit
