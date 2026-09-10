@@ -4,6 +4,7 @@ const pool = require('../db');
 const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { TOPIC_JOB_SUBJECTS } = require('../utils/topicJobSubjects');
+const { checkExamAccess } = require('../utils/packageAccess');
 
 function genSerial(type) {
   const prefix = type === 'live' ? 'EH-LV' : 'EH-MT';
@@ -250,7 +251,7 @@ router.get('/public/daily-quiz', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/exams/public/:id/questions — questions WITHOUT correct answers (for taking the exam)
-router.get('/public/:id/questions', asyncHandler(async (req, res) => {
+router.get('/public/:id/questions', optionalUser, asyncHandler(async (req, res) => {
   const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
   if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   const exam = examRes.rows[0];
@@ -264,6 +265,14 @@ router.get('/public/:id/questions', asyncHandler(async (req, res) => {
   }
   if (exam.type === 'live' && exam.start_time && new Date(exam.start_time) > new Date()) {
     return res.status(403).json({ error: 'পরীক্ষা এখনো শুরু হয়নি' });
+  }
+
+  // Monetization gate: live exams and real (non-practice/duel/auto) model
+  // exams require an active package with remaining quota. See
+  // utils/packageAccess.js for exactly what counts as "premium".
+  const access = await checkExamAccess(req.user ? req.user.id : null, exam);
+  if (!access.allowed) {
+    return res.status(402).json({ error: access.reason, code: 'PACKAGE_REQUIRED' });
   }
 
   const { rows } = await pool.query(`
