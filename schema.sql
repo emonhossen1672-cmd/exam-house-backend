@@ -635,3 +635,23 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_id INTEGER REFERENCES 
 -- only the expiry is extended — so a student who renews early doesn't get a
 -- fresh quota mid-cycle for free.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_started_at TIMESTAMP;
+
+-- ===================== Free trial & referrals =====================
+-- Product decision (2026-09): every student — with or without a package —
+-- gets a lifetime free trial of TRIAL_BASE_LIMIT (20, see
+-- utils/packageAccess.js) live/model exams, OR unlimited premium exams during
+-- their first TRIAL_WINDOW_DAYS (7) days after signing up — whichever is more
+-- generous. Referring a friend stretches the 20-exam count (not the 7-day
+-- window) via trial_bonus_exams below. This trial is on top of an active
+-- paid package, not instead of it — checkExamAccess() only consults the
+-- trial when the user has no active package.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_bonus_exams INTEGER NOT NULL DEFAULT 0;
+-- This user's own shareable invite code (e.g. "EHR1024"), assigned at
+-- registration. Unique so it can be looked up directly on signup.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE;
+-- Which user's referral_code this account signed up with, if any (NULL for
+-- organic signups). Kept even after bonuses are credited, as a simple
+-- lifetime referral-count source (COUNT(*) WHERE referred_by = user.id).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
+CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
