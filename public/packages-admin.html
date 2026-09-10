@@ -67,6 +67,12 @@
   </div>
   <div class="row2">
     <div>
+      <label>আগের মূল্য (৳) — ঐচ্ছিক, discount badge দেখাতে</label>
+      <input id="pkgOriginalPrice" type="number" min="0" placeholder="খালি রাখলে কোনো ছাড় দেখাবে না">
+    </div>
+  </div>
+  <div class="row2">
+    <div>
       <label>মেয়াদ (দিন)</label>
       <input id="pkgDuration" type="number" min="1" placeholder="৩০">
     </div>
@@ -162,6 +168,7 @@
       name: document.getElementById('pkgName').value.trim(),
       tier: document.getElementById('pkgTier').value,
       price: Number(document.getElementById('pkgPrice').value),
+      original_price: document.getElementById('pkgOriginalPrice').value === '' ? null : Number(document.getElementById('pkgOriginalPrice').value),
       duration_days: Number(document.getElementById('pkgDuration').value),
       display_order: Number(document.getElementById('pkgOrder').value) || 0,
       live_exam_limit: document.getElementById('pkgLiveLimit').value === '' ? null : Number(document.getElementById('pkgLiveLimit').value),
@@ -174,7 +181,7 @@
     try {
       await apiCall('/api/packages/admin', 'POST', body);
       showResult('createResult', true, 'প্যাকেজ তৈরি হয়েছে ✓');
-      ['pkgName','pkgPrice','pkgDuration','pkgLiveLimit','pkgModelLimit','pkgDesc'].forEach(id => document.getElementById(id).value = '');
+      ['pkgName','pkgPrice','pkgOriginalPrice','pkgDuration','pkgLiveLimit','pkgModelLimit','pkgDesc'].forEach(id => document.getElementById(id).value = '');
       loadPackages();
     } catch (err) {
       showResult('createResult', false, err.message);
@@ -193,17 +200,36 @@
         <div class="item">
           <div class="title">${escapeHtml(p.name)} ${p.is_active ? '' : '<span class="tag rejected">নিষ্ক্রিয়</span>'}</div>
           <div class="meta">
-            টায়ার: ${escapeHtml(p.tier)} · মূল্য: ৳${p.price} · মেয়াদ: ${p.duration_days} দিন<br>
+            টায়ার: ${escapeHtml(p.tier)} · মূল্য: ৳${p.price}${p.original_price && p.original_price > p.price ? ` <s style="opacity:.6;">৳${p.original_price}</s> <span style="color:#7ee787;">(${Math.round((1 - p.price/p.original_price)*100)}% ছাড়)</span>` : ''} · মেয়াদ: ${p.duration_days} দিন<br>
             লাইভ সীমা: ${limitLabel(p.live_exam_limit)} · মডেল টেস্ট সীমা: ${limitLabel(p.model_test_limit)}
           </div>
           <div class="actions">
             <button class="small ${p.is_active ? 'danger' : ''}" onclick="toggleActive(${p.id}, ${p.is_active})">${p.is_active ? 'নিষ্ক্রিয় করুন' : 'সক্রিয় করুন'}</button>
+            <button class="small secondary" onclick="editDiscount(${p.id}, ${p.original_price ?? 'null'})">ছাড় সম্পাদনা</button>
           </div>
         </div>
       `).join('');
     } catch (err) {
       list.innerHTML = '';
       showResult('createResult', false, err.message);
+    }
+  }
+
+  async function editDiscount(id, currentOriginalPrice) {
+    const input = prompt('আগের মূল্য (৳) লিখুন — discount badge দেখাতে। ছাড় তুলে দিতে খালি রেখে OK চাপুন।', currentOriginalPrice == null ? '' : currentOriginalPrice);
+    if (input === null) return; // cancelled
+    const trimmed = input.trim();
+    try {
+      if (trimmed === '') {
+        await apiCall('/api/packages/admin/' + id, 'PUT', { clear_original_price: true });
+      } else {
+        const n = Number(trimmed);
+        if (!Number.isFinite(n) || n < 0) return alert('সঠিক একটি সংখ্যা দিন');
+        await apiCall('/api/packages/admin/' + id, 'PUT', { original_price: n });
+      }
+      loadPackages();
+    } catch (err) {
+      alert(err.message);
     }
   }
 
