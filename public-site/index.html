@@ -1415,6 +1415,11 @@
   .pkg-note{font-size:11px; color:var(--ink-faint); text-align:center; margin-top:14px; line-height:1.6;}
   .pkg-status-banner{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:16px;}
   .pkg-status-banner.active{border-color:var(--seal);}
+  .pkg-status-banner.trial-low{border-color:#C99A2E;}
+  .pkg-referral-box{background:var(--card); border:1px dashed var(--seal); border-radius:14px; padding:14px; margin-bottom:16px;}
+  .pkg-referral-code-row{display:flex; align-items:center; gap:8px; margin-top:8px;}
+  .pkg-referral-code{flex:1; font-weight:700; font-size:15px; letter-spacing:1px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; text-align:center;}
+  .pkg-referral-copy-btn{background:var(--seal); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;}
   .pkg-status-title{font-weight:700; font-size:13.5px; margin-bottom:4px;}
   .pkg-status-meta{font-size:11.5px; color:var(--ink-faint); line-height:1.7;}
   .pkg-form{background:var(--bg); border:1px dashed var(--line); border-radius:12px; padding:12px; margin-top:10px;}
@@ -1775,6 +1780,8 @@
         <input class="auth-input" id="rg-phone" placeholder="01XXXXXXXXX">
         <label class="auth-label">পাসওয়ার্ড</label>
         <input class="auth-input" id="rg-pass" type="password" placeholder="কমপক্ষে ৬ অক্ষর">
+        <label class="auth-label">রেফারেল কোড <span style="color:var(--ink-faint); font-weight:400;">(না থাকলে ফাঁকা রাখুন)</span></label>
+        <input class="auth-input" id="rg-ref" placeholder="যেমনঃ EHR1024" style="text-transform:uppercase;">
 
         <div id="rg-otp-group" style="display:none;">
           <label class="auth-label">মোবাইলে পাঠানো OTP কোড</label>
@@ -1909,7 +1916,7 @@
       </button>
 
       <div class="sm-group" style="margin-top:14px;">
-        <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">➕</span>রেফারেল<span class="sm-soon">শীঘ্রই</span></button>
+        <button class="sm-item" onclick="closeSideMenu(); goScreen('packages');"><span class="sm-ic">➕</span>রেফারেল</button>
         <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">🏪</span>বুক স্টোর<span class="sm-soon">শীঘ্রই</span></button>
         <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">🧑‍🏫</span>আমাদের উপদেষ্টা<span class="sm-soon">শীঘ্রই</span></button>
         <button class="sm-item" onclick="ehToast('শীঘ্রই আসছে')"><span class="sm-ic">❓</span>জিজ্ঞাসা (FAQ)<span class="sm-soon">শীঘ্রই</span></button>
@@ -1948,6 +1955,7 @@
     <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">লাইভ পরীক্ষা ও মডেল টেস্ট দিতে একটি প্যাকেজ প্রয়োজন — প্র্যাকটিস, রিভিশন ও সিলেবাস ট্র্যাকার সবসময় ফ্রি।</p>
 
     <div id="pkg-status-wrap"></div>
+    <div id="pkg-referral-wrap"></div>
     <div id="pkg-cards-wrap"><p style="font-size:12.5px; color:var(--ink-faint);">লোড হচ্ছে...</p></div>
     <div class="pkg-note">অনুমোদনের পর সাথে সাথে প্যাকেজ সক্রিয় হবে না — অ্যাডমিন bKash/Nagad অ্যাপে টাকা যাচাই করে সাধারণত কিছুক্ষণের মধ্যেই অনুমোদন করেন।</div>
   </div>
@@ -2480,7 +2488,8 @@
       const data = await apiPost('/api/auth/register', {
         name: document.getElementById('rg-name').value.trim(),
         phone,
-        password: document.getElementById('rg-pass').value
+        password: document.getElementById('rg-pass').value,
+        ref: document.getElementById('rg-ref').value.trim() || undefined
       });
       USER_TOKEN = data.token; USER_INFO = data.user;
       localStorage.setItem('eh_user_token', USER_TOKEN);
@@ -3075,8 +3084,10 @@
 
   async function loadPackagesScreen(){
     const statusWrap = document.getElementById('pkg-status-wrap');
+    const referralWrap = document.getElementById('pkg-referral-wrap');
     const cardsWrap = document.getElementById('pkg-cards-wrap');
     statusWrap.innerHTML = '';
+    referralWrap.innerHTML = '';
     cardsWrap.innerHTML = '<p style="font-size:12.5px; color:var(--ink-faint);">লোড হচ্ছে...</p>';
 
     try{
@@ -3090,6 +3101,7 @@
         try{
           const me = await apiGetAuth('/api/packages/me');
           renderPackageStatus(me);
+          renderReferralBox(me.referral);
         }catch(err){ /* not fatal — just skip the status banner */ }
       } else {
         statusWrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">লগইন করুন</div><div class="pkg-status-meta">প্যাকেজ কিনতে ও নিজের সক্রিয় প্যাকেজ দেখতে আগে লগইন করুন।</div></div>';
@@ -3113,7 +3125,26 @@
     const wrap = document.getElementById('pkg-status-wrap');
     const a = me.active_package;
     if(!a){
-      wrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">কোনো সক্রিয় প্যাকেজ নেই</div><div class="pkg-status-meta">নিচ থেকে একটি প্যাকেজ কিনুন — লাইভ পরীক্ষা ও মডেল টেস্ট দিতে প্যাকেজ প্রয়োজন।</div></div>';
+      const t = me.trial;
+      if(!t){
+        wrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">কোনো সক্রিয় প্যাকেজ নেই</div><div class="pkg-status-meta">নিচ থেকে একটি প্যাকেজ কিনুন — লাইভ পরীক্ষা ও মডেল টেস্ট দিতে প্যাকেজ প্রয়োজন।</div></div>';
+        return;
+      }
+      if(!t.active){
+        wrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">ফ্রি ট্রায়াল শেষ হয়ে গেছে</div><div class="pkg-status-meta">আপনি ' + toBnDigits(t.used) + 'টি ফ্রি লাইভ পরীক্ষা/মডেল টেস্ট দিয়েছেন। চালিয়ে যেতে নিচ থেকে একটি প্যাকেজ কিনুন, অথবা নিচে বন্ধুকে রেফার করে ফ্রি ট্রায়াল বাড়িয়ে নিন।</div></div>';
+        return;
+      }
+      const low = t.remaining <= 5;
+      const windowNote = t.within_window
+        ? ('নতুন অ্যাকাউন্টের প্রথম ৭ দিন সব লাইভ পরীক্ষা/মডেল টেস্ট ফ্রি — আর ' + toBnDigits(t.days_left) + ' দিন বাকি।')
+        : '';
+      wrap.innerHTML = `<div class="pkg-status-banner${low ? ' trial-low' : ''}">
+        <div class="pkg-status-title">${low ? '⚠️ ' : ''}ফ্রি ট্রায়াল ব্যবহার করছেন</div>
+        <div class="pkg-status-meta">
+          ব্যবহৃত: ${toBnDigits(t.used)} / ${toBnDigits(t.limit)}টি ফ্রি লাইভ পরীক্ষা/মডেল টেস্ট${low ? ' — আর মাত্র ' + toBnDigits(t.remaining) + 'টি বাকি!' : ''}<br>
+          ${windowNote}
+        </div>
+      </div>`;
       return;
     }
     const expiry = a.expires_at ? new Date(a.expires_at).toLocaleDateString('bn-BD', {year:'numeric', month:'short', day:'numeric'}) : '—';
@@ -3127,6 +3158,33 @@
     </div>`;
     if(me.payments && me.payments.some(p => p.status === 'pending')){
       wrap.innerHTML += '<div class="pkg-status-banner"><div class="pkg-status-meta">📨 একটি পেমেন্ট এখনো অনুমোদনের অপেক্ষায় আছে।</div></div>';
+    }
+  }
+
+  // Referral box — shown on the packages screen whenever we're logged in
+  // (regardless of active_package/trial state), since referring a friend is
+  // useful both to stretch a running trial and just to help a friend out.
+  function renderReferralBox(referral){
+    const wrap = document.getElementById('pkg-referral-wrap');
+    if(!referral || !referral.code){ wrap.innerHTML = ''; return; }
+    const link = location.origin + location.pathname + '?ref=' + encodeURIComponent(referral.code);
+    wrap.innerHTML = `<div class="pkg-referral-box">
+      <div class="pkg-status-title">🎁 বন্ধুকে রেফার করে ফ্রি ট্রায়াল বাড়ান</div>
+      <div class="pkg-status-meta">আপনার কোড দিয়ে কোনো বন্ধু রেজিস্ট্রেশন করলে সে পাবে ৫টি ও আপনি পাবেন ১০টি এক্সট্রা ফ্রি লাইভ পরীক্ষা/মডেল টেস্ট। এ পর্যন্ত ${toBnDigits(referral.referred_count || 0)} জনকে রেফার করেছেন।</div>
+      <div class="pkg-referral-code-row">
+        <div class="pkg-referral-code">${escapeHtml(referral.code)}</div>
+        <button class="pkg-referral-copy-btn" onclick="copyReferralLink('${referral.code.replace(/'/g, "\\'")}')">লিংক কপি করুন</button>
+      </div>
+    </div>`;
+  }
+
+  function copyReferralLink(code){
+    const link = location.origin + location.pathname + '?ref=' + encodeURIComponent(code);
+    const text = `আমার রেফারেল কোড দিয়ে Exam House-এ রেজিস্ট্রেশন করুন এবং ৫টি এক্সট্রা ফ্রি পরীক্ষা পান: ${link}`;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=> ehToast('লিংক কপি হয়েছে')).catch(()=> ehToast('কপি করা যায়নি'));
+    } else {
+      ehToast('কপি করা যায়নি');
     }
   }
 
@@ -3214,6 +3272,18 @@
     }
   }
   renderProfile();
+
+  // Invite links (?ref=CODE) — a friend's referral code shared via the
+  // packages screen. If the visitor isn't logged in, pre-fill it into the
+  // registration form and open straight to it so signing up is one less step.
+  (function applyReferralFromUrl(){
+    const ref = new URLSearchParams(location.search).get('ref');
+    if(!ref || USER_TOKEN) return;
+    const input = document.getElementById('rg-ref');
+    if(input) input.value = ref.trim().toUpperCase();
+    showAuthForm('register');
+    goScreen('history');
+  })();
 
   // Every full-screen overlay (bookmark, leaderboard, achievements, name
   // entry, archive, exam intro/review/revision, result) gets one history
