@@ -84,9 +84,22 @@ const STUDENT_ID_PREFIX = process.env.STUDENT_ID_PREFIX || 'EH';
 // as a fallback either way.
 const CRON_SECRET = process.env.CRON_SECRET || '';
 
+// Optional — manual payment instructions shown to the student on the
+// packages screen (routes/packages.routes.js GET /public/payment-info).
+// Left optional so the server still starts without these set; the packages
+// screen just shows "শীঘ্রই" for manual payment until at least one number is
+// configured. Set the *_TYPE to 'personal' or 'merchant' — a merchant bKash
+// number needs the student to dial the Payment flow instead of Send Money,
+// so the frontend shows different instructions depending on which it is.
+const PAYMENT_BKASH_NUMBER = process.env.PAYMENT_BKASH_NUMBER || '';
+const PAYMENT_BKASH_TYPE = process.env.PAYMENT_BKASH_TYPE || 'personal';
+const PAYMENT_NAGAD_NUMBER = process.env.PAYMENT_NAGAD_NUMBER || '';
+const PAYMENT_NAGAD_TYPE = process.env.PAYMENT_NAGAD_TYPE || 'personal';
+
 module.exports = {
   JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID,
   ANTHROPIC_API_KEY, ANTHROPIC_MODEL, GEMINI_API_KEY, GEMINI_MODEL,
   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
-  STUDENT_ID_PREFIX, CRON_SECRET
+  STUDENT_ID_PREFIX, CRON_SECRET,
+  PAYMENT_BKASH_NUMBER, PAYMENT_BKASH_TYPE, PAYMENT_NAGAD_NUMBER, PAYMENT_NAGAD_TYPE
 };
