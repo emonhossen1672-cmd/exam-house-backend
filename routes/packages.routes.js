@@ -28,7 +28,7 @@ const { getTrialStatus } = require('../utils/packageAccess');
 // for the packages screen.
 router.get('/public/list', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, name, tier, price, duration_days, live_exam_limit, model_test_limit, description
+    `SELECT id, name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description
      FROM packages WHERE is_active=true ORDER BY display_order ASC, price ASC`
   );
   res.json({ packages: rows });
@@ -149,28 +149,34 @@ router.get('/admin/list', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 router.post('/admin', requireAdmin, asyncHandler(async (req, res) => {
-  const { name, tier, price, duration_days, live_exam_limit, model_test_limit, description, display_order } = req.body;
+  const { name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description, display_order } = req.body;
   if (!name || price == null || !duration_days) {
     return res.status(400).json({ error: 'নাম, মূল্য ও মেয়াদ প্রয়োজন' });
   }
   const { rows } = await pool.query(
-    `INSERT INTO packages (name, tier, price, duration_days, live_exam_limit, model_test_limit, description, display_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-    [name, tier || 'basic', price, duration_days, live_exam_limit ?? null, model_test_limit ?? null, description || null, display_order || 0]
+    `INSERT INTO packages (name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description, display_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    [name, tier || 'basic', price, original_price ?? null, duration_days, live_exam_limit ?? null, model_test_limit ?? null, description || null, display_order || 0]
   );
   res.status(201).json({ package: rows[0] });
 }));
 
 router.put('/admin/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { name, tier, price, duration_days, live_exam_limit, model_test_limit, description, display_order, is_active } = req.body;
+  const { name, tier, price, original_price, duration_days, live_exam_limit, model_test_limit, description, display_order, is_active } = req.body;
+  // original_price=null is ambiguous between "clear the discount" and "field
+  // not sent" (e.g. the admin panel's plain activate/deactivate toggle) — a
+  // dedicated flag lets the create/edit form clear it explicitly while the
+  // toggle keeps whatever discount was already set.
+  const clearDiscount = req.body.clear_original_price === true;
   const { rows } = await pool.query(
     `UPDATE packages SET
       name=COALESCE($1,name), tier=COALESCE($2,tier), price=COALESCE($3,price),
-      duration_days=COALESCE($4,duration_days), live_exam_limit=$5, model_test_limit=$6,
-      description=COALESCE($7,description), display_order=COALESCE($8,display_order),
-      is_active=COALESCE($9,is_active)
-     WHERE id=$10 RETURNING *`,
-    [name, tier, price, duration_days, live_exam_limit ?? null, model_test_limit ?? null,
+      original_price=CASE WHEN $4 THEN NULL ELSE COALESCE($5,original_price) END,
+      duration_days=COALESCE($6,duration_days), live_exam_limit=$7, model_test_limit=$8,
+      description=COALESCE($9,description), display_order=COALESCE($10,display_order),
+      is_active=COALESCE($11,is_active)
+     WHERE id=$12 RETURNING *`,
+    [name, tier, price, clearDiscount, original_price ?? null, duration_days, live_exam_limit ?? null, model_test_limit ?? null,
       description, display_order, is_active, req.params.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'প্যাকেজ পাওয়া যায়নি' });
