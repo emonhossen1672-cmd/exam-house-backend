@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>প্যাকেজ ও পেমেন্ট অ্যাডমিন টুল</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Noto Sans Bengali", sans-serif; background:#0f1115; color:#e8e8e8; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:16px; margin:0 0 12px; }
+  p.sub { color:#9aa0a6; font-size:14px; margin:0 0 20px; }
+  .card { background:#1a1d24; border:1px solid #2a2e37; border-radius:12px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-size:13px; color:#c0c4cc; margin:10px 0 4px; }
+  input, select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #333844; background:#0f1115; color:#fff; font-size:15px; font-family:inherit; }
+  .row2 { display:flex; gap:10px; }
+  .row2 > div { flex:1; }
+  button { margin-top:14px; padding:12px 16px; border:none; border-radius:8px; background:#4f8cff; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333844; color:#888; }
+  button.secondary { background:#2a2e37; }
+  button.danger { background:#5c1f2a; color:#ff8080; }
+  button.small { padding:6px 12px; font-size:12px; margin-top:0; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
+  .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
+  .hidden { display:none; }
+  .item { background:#0f1115; border:1px solid #2a2e37; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .item .title { font-weight:700; font-size:14px; }
+  .item .meta { font-size:12px; color:#9aa0a6; margin-top:4px; line-height:1.6; }
+  .item .actions { display:flex; gap:8px; margin-top:8px; }
+  .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .tag.pending { background:#3a2f10; color:#ffcf6b; }
+  .tag.approved { background:#123322; color:#7ee787; }
+  .tag.rejected { background:#3a1620; color:#ff8080; }
+  .tabs { display:flex; gap:8px; margin-bottom:12px; }
+  .tabs button { margin-top:0; }
+  .tabs button.off { background:#2a2e37; }
+</style>
+</head>
+<body>
+
+<h1>📦 প্যাকেজ ও পেমেন্ট অ্যাডমিন টুল</h1>
+<p class="sub">প্যাকেজ তৈরি/সম্পাদনা করুন এবং bKash/Nagad ম্যানুয়াল পেমেন্ট অনুমোদন করুন।</p>
+
+<div class="card" id="loginCard">
+  <h2>১. অ্যাডমিন লগইন</h2>
+  <label>ইউজারনেম</label>
+  <input id="username" type="text" autocomplete="username">
+  <label>পাসওয়ার্ড</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">লগইন করুন</button>
+  <div id="loginResult"></div>
+</div>
+
+<div class="card hidden" id="createCard">
+  <h2>২. নতুন প্যাকেজ তৈরি করুন</h2>
+  <label>নাম</label>
+  <input id="pkgName" type="text" placeholder="যেমনঃ Pro — ৩ মাস">
+  <div class="row2">
+    <div>
+      <label>টায়ার</label>
+      <select id="pkgTier"><option value="basic">Basic</option><option value="pro">Pro</option></select>
+    </div>
+    <div>
+      <label>মূল্য (৳)</label>
+      <input id="pkgPrice" type="number" min="0">
+    </div>
+  </div>
+  <div class="row2">
+    <div>
+      <label>মেয়াদ (দিন)</label>
+      <input id="pkgDuration" type="number" min="1" placeholder="৩০">
+    </div>
+    <div>
+      <label>ক্রম (ছোট আগে দেখাবে)</label>
+      <input id="pkgOrder" type="number" value="0">
+    </div>
+  </div>
+  <div class="row2">
+    <div>
+      <label>লাইভ পরীক্ষার সীমা (খালি = আনলিমিটেড)</label>
+      <input id="pkgLiveLimit" type="number" min="0">
+    </div>
+    <div>
+      <label>মডেল টেস্টের সীমা (খালি = আনলিমিটেড)</label>
+      <input id="pkgModelLimit" type="number" min="0">
+    </div>
+  </div>
+  <label>বিবরণ</label>
+  <input id="pkgDesc" type="text" placeholder="যেমনঃ মাসে ১০টি লাইভ পরীক্ষা + আনলিমিটেড মডেল টেস্ট">
+  <button onclick="createPackage()">প্যাকেজ তৈরি করুন</button>
+  <div id="createResult"></div>
+</div>
+
+<div class="card hidden" id="pkgListCard">
+  <h2>৩. বিদ্যমান প্যাকেজসমূহ</h2>
+  <button class="secondary" onclick="loadPackages()">রিফ্রেশ করুন</button>
+  <div id="pkgList" style="margin-top:12px;"></div>
+</div>
+
+<div class="card hidden" id="paymentsCard">
+  <h2>৪. পেমেন্ট অনুমোদন</h2>
+  <div class="tabs">
+    <button onclick="setTab('pending')" id="tab-pending">অপেক্ষমান</button>
+    <button class="off" onclick="setTab('approved')" id="tab-approved">অনুমোদিত</button>
+    <button class="off" onclick="setTab('rejected')" id="tab-rejected">বাতিল</button>
+  </div>
+  <div id="paymentsList"></div>
+</div>
+
+<script>
+  let token = null;
+  let currentTab = 'pending';
+
+  function showResult(elId, ok, text) {
+    const el = document.getElementById(elId);
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) return showResult('loginResult', false, 'ইউজারনেম ও পাসওয়ার্ড দিন');
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/admin/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'লগইন ব্যর্থ');
+      token = data.token;
+      showResult('loginResult', true, 'লগইন সফল ✓');
+      ['createCard', 'pkgListCard', 'paymentsCard'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+      loadPackages();
+      loadPayments();
+    } catch (err) {
+      showResult('loginResult', false, err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function apiCall(path, method, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const r = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+    return data;
+  }
+
+  async function createPackage() {
+    const body = {
+      name: document.getElementById('pkgName').value.trim(),
+      tier: document.getElementById('pkgTier').value,
+      price: Number(document.getElementById('pkgPrice').value),
+      duration_days: Number(document.getElementById('pkgDuration').value),
+      display_order: Number(document.getElementById('pkgOrder').value) || 0,
+      live_exam_limit: document.getElementById('pkgLiveLimit').value === '' ? null : Number(document.getElementById('pkgLiveLimit').value),
+      model_test_limit: document.getElementById('pkgModelLimit').value === '' ? null : Number(document.getElementById('pkgModelLimit').value),
+      description: document.getElementById('pkgDesc').value.trim() || null
+    };
+    if (!body.name || !body.price || !body.duration_days) {
+      return showResult('createResult', false, 'নাম, মূল্য ও মেয়াদ আবশ্যক');
+    }
+    try {
+      await apiCall('/api/packages/admin', 'POST', body);
+      showResult('createResult', true, 'প্যাকেজ তৈরি হয়েছে ✓');
+      ['pkgName','pkgPrice','pkgDuration','pkgLiveLimit','pkgModelLimit','pkgDesc'].forEach(id => document.getElementById(id).value = '');
+      loadPackages();
+    } catch (err) {
+      showResult('createResult', false, err.message);
+    }
+  }
+
+  function limitLabel(n) { return n == null ? 'আনলিমিটেড' : n + 'টি'; }
+
+  async function loadPackages() {
+    const list = document.getElementById('pkgList');
+    list.innerHTML = '<p style="color:#9aa0a6; font-size:13px;">লোড হচ্ছে...</p>';
+    try {
+      const data = await apiCall('/api/packages/admin/list', 'GET');
+      if (!data.packages.length) { list.innerHTML = '<p style="color:#9aa0a6; font-size:13px;">কোনো প্যাকেজ নেই।</p>'; return; }
+      list.innerHTML = data.packages.map(p => `
+        <div class="item">
+          <div class="title">${escapeHtml(p.name)} ${p.is_active ? '' : '<span class="tag rejected">নিষ্ক্রিয়</span>'}</div>
+          <div class="meta">
+            টায়ার: ${escapeHtml(p.tier)} · মূল্য: ৳${p.price} · মেয়াদ: ${p.duration_days} দিন<br>
+            লাইভ সীমা: ${limitLabel(p.live_exam_limit)} · মডেল টেস্ট সীমা: ${limitLabel(p.model_test_limit)}
+          </div>
+          <div class="actions">
+            <button class="small ${p.is_active ? 'danger' : ''}" onclick="toggleActive(${p.id}, ${p.is_active})">${p.is_active ? 'নিষ্ক্রিয় করুন' : 'সক্রিয় করুন'}</button>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      list.innerHTML = '';
+      showResult('createResult', false, err.message);
+    }
+  }
+
+  async function toggleActive(id, isActive) {
+    try {
+      if (isActive) await apiCall('/api/packages/admin/' + id, 'DELETE');
+      else await apiCall('/api/packages/admin/' + id, 'PUT', { is_active: true });
+      loadPackages();
+    } catch (err) {
+      showResult('createResult', false, err.message);
+    }
+  }
+
+  function setTab(tab) {
+    currentTab = tab;
+    ['pending','approved','rejected'].forEach(t => document.getElementById('tab-'+t).className = t === tab ? '' : 'off');
+    loadPayments();
+  }
+
+  async function loadPayments() {
+    const list = document.getElementById('paymentsList');
+    list.innerHTML = '<p style="color:#9aa0a6; font-size:13px;">লোড হচ্ছে...</p>';
+    try {
+      const data = await apiCall('/api/packages/admin/payments?status=' + currentTab, 'GET');
+      if (!data.payments.length) { list.innerHTML = '<p style="color:#9aa0a6; font-size:13px;">কিছু নেই।</p>'; return; }
+      list.innerHTML = data.payments.map(p => `
+        <div class="item">
+          <div class="title">${escapeHtml(p.user_name)} (${escapeHtml(p.user_phone)}) <span class="tag ${p.status}">${p.status}</span></div>
+          <div class="meta">
+            প্যাকেজ: ${escapeHtml(p.package_name)} · মূল্য: ৳${p.amount} · মাধ্যম: ${escapeHtml(p.method)}<br>
+            প্রেরকের নম্বর: ${escapeHtml(p.sender_number || '—')} · TrxID: <b>${escapeHtml(p.trx_id || '—')}</b><br>
+            জমা: ${new Date(p.created_at).toLocaleString('bn-BD')}
+            ${p.admin_note ? '<br>নোট: ' + escapeHtml(p.admin_note) : ''}
+          </div>
+          ${p.status === 'pending' ? `
+          <div class="actions">
+            <button class="small" onclick="approvePayment(${p.id})">✓ অনুমোদন</button>
+            <button class="small danger" onclick="rejectPayment(${p.id})">✕ বাতিল</button>
+          </div>` : ''}
+        </div>
+      `).join('');
+    } catch (err) {
+      list.innerHTML = '';
+      showResult('createResult', false, err.message);
+    }
+  }
+
+  async function approvePayment(id) {
+    if (!confirm('এই পেমেন্ট অনুমোদন করতে চান? bKash/Nagad অ্যাপে TrxID মিলিয়ে দেখেছেন তো?')) return;
+    try {
+      await apiCall('/api/packages/admin/' + id + '/approve', 'POST');
+      loadPayments();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function rejectPayment(id) {
+    const note = prompt('বাতিলের কারণ (ঐচ্ছিক):') || '';
+    try {
+      await apiCall('/api/packages/admin/' + id + '/reject', 'POST', { note });
+      loadPayments();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+</script>
+
+</body>
+</html>
