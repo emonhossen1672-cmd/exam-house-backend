@@ -3530,7 +3530,19 @@
       return;
     }
     if(MODEL_MODE === 'topic'){
-      if(TOPIC_NAV.level === 'questions'){ TOPIC_NAV = {level:'subtopics', subject:TOPIC_NAV.subject, topic:TOPIC_NAV.topic}; }
+      if(TOPIC_NAV.level === 'questions'){
+        // If this topic only has one subtopic, renderSubtopicListScreen()
+        // auto-skips the subtopic-list screen entirely (see its length===1
+        // branch), so there's no real "subtopics" screen to step back to —
+        // going there would just immediately re-skip forward to 'questions'
+        // again, making back-press look like a no-op. Skip straight to
+        // 'topics' in that case instead.
+        if(TOPIC_SUBTOPICS_CACHE && TOPIC_SUBTOPICS_CACHE.length === 1){
+          TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject};
+        } else {
+          TOPIC_NAV = {level:'subtopics', subject:TOPIC_NAV.subject, topic:TOPIC_NAV.topic};
+        }
+      }
       else if(TOPIC_NAV.level === 'subtopics'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
