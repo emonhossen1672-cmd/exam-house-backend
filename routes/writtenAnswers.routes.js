@@ -9,6 +9,7 @@ const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth'
 const { submitLimiter } = require('../middleware/rateLimit');
 const asyncHandler = require('../utils/asyncHandler');
 const { gradeWrittenAnswer } = require('../services/aiGrading');
+const { checkExamAccess } = require('../utils/packageAccess');
 
 // ---------- STUDENT ----------
 
@@ -33,6 +34,14 @@ router.post('/submit', submitLimiter, optionalUser, asyncHandler(async (req, res
   if (exam.status === 'closed') return res.status(403).json({ error: 'পরীক্ষাটি বন্ধ করে দেওয়া হয়েছে' });
   if (exam.start_time && new Date(exam.start_time) > new Date()) {
     return res.status(403).json({ error: 'পরীক্ষা এখনো শুরু হয়নি' });
+  }
+
+  // Defense in depth — the frontend already blocks opening a locked written
+  // exam's questions (GET /api/exams/public/:id/written-questions), but a
+  // submission could in principle be POSTed directly without ever fetching them.
+  const access = await checkExamAccess(userId, exam);
+  if (!access.allowed) {
+    return res.status(402).json({ error: access.reason, code: 'PACKAGE_REQUIRED' });
   }
 
   const wqRes = await pool.query(
