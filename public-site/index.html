@@ -4965,15 +4965,13 @@
 
     // Subject/topic breakdown + routine-progress note, only present on
     // routine-auto-generated exams (routineExamScheduler.js fills these in).
-    const detailsId = `ticket-details-${exam.id}`;
+    // Shown directly on the card now (no expand/collapse toggle).
     const detailsHtml = (exam.subject || exam.topics_summary || exam.routine_note) ? `
-      <div class="ticket-details" id="${detailsId}" style="display:none; padding:10px 0; font-size:13px; line-height:1.6;">
+      <div class="ticket-details" style="padding:10px 0; font-size:13px; line-height:1.6;">
         ${exam.subject ? `<div><b>বিষয়:</b> ${escapeHtml(exam.subject)}</div>` : ''}
         ${exam.topics_summary ? `<div style="margin-top:6px;"><b>টপিক:</b><br>${escapeHtml(exam.topics_summary).replace(/\n/g,'<br>')}</div>` : ''}
         ${exam.routine_note ? `<div style="margin-top:8px; color:var(--ink-faint,#888);">[নির্দেশিকা: ${escapeHtml(exam.routine_note)}]</div>` : ''}
       </div>
-      <button type="button" class="ticket-details-toggle" style="background:none; border:none; color:var(--brand,#5B4FE8); font-size:12.5px; font-weight:700; padding:2px 0; cursor:pointer;"
-        onclick="const d=document.getElementById('${detailsId}'); const open=d.style.display!=='none'; d.style.display=open?'none':'block'; this.textContent=open?'বিস্তারিত দেখুন ▾':'কম দেখুন ▴';">বিস্তারিত দেখুন ▾</button>
     ` : '';
 
     // Model tests (incl. practice-mode-generated ones) get two entry buttons:
