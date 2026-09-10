@@ -1413,6 +1413,21 @@
   .pkg-save{font-size:11px; color:var(--success); font-weight:700; margin-bottom:10px;}
   .pkg-buy-btn{width:100%; background:var(--seal); color:#fff; border:none; border-radius:10px; padding:11px; font-size:13.5px; font-weight:700; cursor:pointer;}
   .pkg-note{font-size:11px; color:var(--ink-faint); text-align:center; margin-top:14px; line-height:1.6;}
+  .pkg-status-banner{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:16px;}
+  .pkg-status-banner.active{border-color:var(--seal);}
+  .pkg-status-title{font-weight:700; font-size:13.5px; margin-bottom:4px;}
+  .pkg-status-meta{font-size:11.5px; color:var(--ink-faint); line-height:1.7;}
+  .pkg-form{background:var(--bg); border:1px dashed var(--line); border-radius:12px; padding:12px; margin-top:10px;}
+  .pkg-form label{display:block; font-size:11.5px; color:var(--ink-faint); margin:8px 0 4px;}
+  .pkg-form select, .pkg-form input{width:100%; box-sizing:border-box; padding:9px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:13.5px; font-family:inherit;}
+  .pkg-form .pay-instruction{font-size:11.5px; background:var(--card); border-radius:8px; padding:8px 10px; margin-top:8px; line-height:1.6;}
+  .pkg-form-submit{width:100%; background:var(--seal); color:#fff; border:none; border-radius:10px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; margin-top:10px;}
+  .pkg-form-cancel{width:100%; background:transparent; color:var(--ink-faint); border:none; padding:6px; font-size:12px; cursor:pointer;}
+  .pkg-payment-row{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:11.5px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;}
+  .pkg-payment-status{font-size:10.5px; padding:2px 8px; border-radius:999px; font-weight:700;}
+  .pkg-payment-status.pending{background:#3a2f10; color:#ffcf6b;}
+  .pkg-payment-status.approved{background:#123322; color:#7ee787;}
+  .pkg-payment-status.rejected{background:#3a1620; color:#ff8080;}
 
   /* ---------- Simple toast ---------- */
   .eh-toast{
@@ -1930,37 +1945,11 @@
   <div class="screen" id="screen-packages">
     <button class="model-back" onclick="goScreen('home')">← পেছনে</button>
     <div class="sec-head" style="margin-top:4px;"><h2>প্রিমিয়াম প্যাকেজ</h2></div>
-    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">সকল লাইভ + আর্কাইভ পরীক্ষা, ক্লাস ও প্রিমিয়াম সার্ভিস</p>
+    <p style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">লাইভ পরীক্ষা ও মডেল টেস্ট দিতে একটি প্যাকেজ প্রয়োজন — প্র্যাকটিস, রিভিশন ও সিলেবাস ট্র্যাকার সবসময় ফ্রি।</p>
 
-    <div class="pkg-card">
-      <div class="pkg-title">৪ বছর মেয়াদী স্বাধীন প্যাকেজ</div>
-      <div class="pkg-meta">মেয়াদ: ৪ বছর</div>
-      <div class="pkg-price-row"><span class="pkg-price">৳২৯৯৯</span><span class="pkg-old-price">৳৫৯৯৬</span></div>
-      <div class="pkg-save">৪৯.৯৮% সাশ্রয়</div>
-      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
-    </div>
-    <div class="pkg-card">
-      <div class="pkg-title">৩ বছর মেয়াদী স্বাধীন প্যাকেজ</div>
-      <div class="pkg-meta">মেয়াদ: ৩ বছর</div>
-      <div class="pkg-price-row"><span class="pkg-price">৳২৫৯৯</span><span class="pkg-old-price">৳৪৪৯৭</span></div>
-      <div class="pkg-save">৪২.২১% সাশ্রয়</div>
-      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
-    </div>
-    <div class="pkg-card">
-      <div class="pkg-title">২ বছর মেয়াদী স্বাধীন প্যাকেজ <span style="color:var(--gold); font-size:11px;">জনপ্রিয়</span></div>
-      <div class="pkg-meta">মেয়াদ: ২ বছর</div>
-      <div class="pkg-price-row"><span class="pkg-price">৳১৯৯৯</span><span class="pkg-old-price">৳২৯৯৮</span></div>
-      <div class="pkg-save">৩৩.৩২% সাশ্রয়</div>
-      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
-    </div>
-    <div class="pkg-card">
-      <div class="pkg-title">বার্ষিক প্যাকেজ <span style="color:var(--gold); font-size:11px;">জনপ্রিয়</span></div>
-      <div class="pkg-meta">মেয়াদ: ১ বছর</div>
-      <div class="pkg-price-row"><span class="pkg-price">৳১৪৯৯</span><span class="pkg-old-price">৳২৩৮৮</span></div>
-      <div class="pkg-save">৩৭.২৭% সাশ্রয়</div>
-      <button class="pkg-buy-btn" onclick="ehToast('পেমেন্ট সিস্টেম শীঘ্রই যুক্ত হবে')">প্যাকেজ কিনুন</button>
-    </div>
-    <div class="pkg-note">প্যাকেজ মূল্য নমুনা হিসেবে দেখানো হয়েছে। সরাসরি পেমেন্ট (bKash/Nagad) যুক্ত হলে এখান থেকেই কেনা যাবে।</div>
+    <div id="pkg-status-wrap"></div>
+    <div id="pkg-cards-wrap"><p style="font-size:12.5px; color:var(--ink-faint);">লোড হচ্ছে...</p></div>
+    <div class="pkg-note">অনুমোদনের পর সাথে সাথে প্যাকেজ সক্রিয় হবে না — অ্যাডমিন bKash/Nagad অ্যাপে টাকা যাচাই করে সাধারণত কিছুক্ষণের মধ্যেই অনুমোদন করেন।</div>
   </div>
 
   <!-- ============ BOTTOM NAV ============ -->
@@ -3081,6 +3070,129 @@
     EH_TOAST_TIMER = setTimeout(()=> el.classList.remove('show'), 1800);
   }
 
+  // ---------- Packages / monetization ----------
+  let PKG_PAYMENT_METHODS = null; // cached bKash/Nagad numbers from the server
+
+  async function loadPackagesScreen(){
+    const statusWrap = document.getElementById('pkg-status-wrap');
+    const cardsWrap = document.getElementById('pkg-cards-wrap');
+    statusWrap.innerHTML = '';
+    cardsWrap.innerHTML = '<p style="font-size:12.5px; color:var(--ink-faint);">লোড হচ্ছে...</p>';
+
+    try{
+      const [{packages}, methodsData] = await Promise.all([
+        apiGet('/api/packages/public/list'),
+        apiGet('/api/packages/public/payment-info')
+      ]);
+      PKG_PAYMENT_METHODS = methodsData.methods || [];
+
+      if(USER_TOKEN){
+        try{
+          const me = await apiGetAuth('/api/packages/me');
+          renderPackageStatus(me);
+        }catch(err){ /* not fatal — just skip the status banner */ }
+      } else {
+        statusWrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">লগইন করুন</div><div class="pkg-status-meta">প্যাকেজ কিনতে ও নিজের সক্রিয় প্যাকেজ দেখতে আগে লগইন করুন।</div></div>';
+      }
+
+      if(!packages.length){
+        cardsWrap.innerHTML = '<p style="font-size:12.5px; color:var(--ink-faint);">এখনো কোনো প্যাকেজ চালু করা হয়নি।</p>';
+        return;
+      }
+      cardsWrap.innerHTML = packages.map(p => renderPackageCard(p)).join('');
+    }catch(err){
+      cardsWrap.innerHTML = '<p style="font-size:12.5px; color:var(--ink-faint);">প্যাকেজ লোড করা যায়নি — আবার চেষ্টা করুন।</p>';
+    }
+  }
+
+  function limitText(n, label){
+    return n == null ? ('আনলিমিটেড ' + label) : (toBnDigits(n) + 'টি ' + label);
+  }
+
+  function renderPackageStatus(me){
+    const wrap = document.getElementById('pkg-status-wrap');
+    const a = me.active_package;
+    if(!a){
+      wrap.innerHTML = '<div class="pkg-status-banner"><div class="pkg-status-title">কোনো সক্রিয় প্যাকেজ নেই</div><div class="pkg-status-meta">নিচ থেকে একটি প্যাকেজ কিনুন — লাইভ পরীক্ষা ও মডেল টেস্ট দিতে প্যাকেজ প্রয়োজন।</div></div>';
+      return;
+    }
+    const expiry = a.expires_at ? new Date(a.expires_at).toLocaleDateString('bn-BD', {year:'numeric', month:'short', day:'numeric'}) : '—';
+    wrap.innerHTML = `<div class="pkg-status-banner active">
+      <div class="pkg-status-title">সক্রিয় প্যাকেজ: ${escapeHtml(a.name)}</div>
+      <div class="pkg-status-meta">
+        মেয়াদ শেষ: ${expiry}<br>
+        লাইভ পরীক্ষা: ${toBnDigits(a.live_exam_used)} / ${a.live_exam_limit == null ? 'আনলিমিটেড' : toBnDigits(a.live_exam_limit)}<br>
+        মডেল টেস্ট: ${toBnDigits(a.model_test_used)} / ${a.model_test_limit == null ? 'আনলিমিটেড' : toBnDigits(a.model_test_limit)}
+      </div>
+    </div>`;
+    if(me.payments && me.payments.some(p => p.status === 'pending')){
+      wrap.innerHTML += '<div class="pkg-status-banner"><div class="pkg-status-meta">📨 একটি পেমেন্ট এখনো অনুমোদনের অপেক্ষায় আছে।</div></div>';
+    }
+  }
+
+  function renderPackageCard(p){
+    const durationLabel = p.duration_days % 365 === 0 ? (p.duration_days/365)+' বছর'
+      : p.duration_days % 30 === 0 ? (p.duration_days/30)+' মাস'
+      : p.duration_days + ' দিন';
+    return `<div class="pkg-card">
+      <div class="pkg-title">${escapeHtml(p.name)} ${p.tier==='pro' ? '<span style="color:var(--gold); font-size:11px;">Pro</span>' : ''}</div>
+      <div class="pkg-meta">মেয়াদ: ${durationLabel} · ${limitText(p.live_exam_limit,'লাইভ পরীক্ষা')} · ${limitText(p.model_test_limit,'মডেল টেস্ট')}</div>
+      ${p.description ? '<div class="pkg-meta">'+escapeHtml(p.description)+'</div>' : ''}
+      <div class="pkg-price-row"><span class="pkg-price">৳${toBnDigits(p.price)}</span></div>
+      <button class="pkg-buy-btn" onclick="openPackagePurchaseForm(${p.id}, this)">প্যাকেজ কিনুন</button>
+      <div class="pkg-form-slot"></div>
+    </div>`;
+  }
+
+  function openPackagePurchaseForm(packageId, btn){
+    if(!USER_TOKEN){ ehToast('আগে লগইন করুন'); goScreen('home'); showAuthForm('login'); return; }
+    const slot = btn.nextElementSibling;
+    if(slot.innerHTML){ slot.innerHTML = ''; return; } // toggle closed if already open
+
+    if(!PKG_PAYMENT_METHODS || !PKG_PAYMENT_METHODS.length){
+      slot.innerHTML = '<div class="pkg-form"><div class="pay-instruction">এখনো ম্যানুয়াল পেমেন্ট চালু করা হয়নি — শীঘ্রই আসছে।</div></div>';
+      return;
+    }
+    const methodOptions = PKG_PAYMENT_METHODS.map(m =>
+      `<option value="${m.method}">${m.method === 'bkash' ? 'bKash' : 'Nagad'}</option>`).join('');
+    slot.innerHTML = `<div class="pkg-form">
+      <label>পেমেন্ট মাধ্যম</label>
+      <select id="pf-method-${packageId}" onchange="updatePayInstruction(${packageId})">${methodOptions}</select>
+      <div class="pay-instruction" id="pf-instruction-${packageId}"></div>
+      <label>আপনার bKash/Nagad নম্বর</label>
+      <input id="pf-sender-${packageId}" type="tel" placeholder="01XXXXXXXXX">
+      <label>Transaction ID (TrxID)</label>
+      <input id="pf-trxid-${packageId}" type="text" placeholder="যেমনঃ 8N7A5B2C1D">
+      <button class="pkg-form-submit" onclick="submitPackagePurchase(${packageId})">পেমেন্ট জমা দিন</button>
+      <button class="pkg-form-cancel" onclick="this.parentElement.innerHTML=''">বাতিল</button>
+    </div>`;
+    updatePayInstruction(packageId);
+  }
+
+  function updatePayInstruction(packageId){
+    const sel = document.getElementById('pf-method-'+packageId);
+    const box = document.getElementById('pf-instruction-'+packageId);
+    if(!sel || !box) return;
+    const m = PKG_PAYMENT_METHODS.find(x => x.method === sel.value);
+    if(!m){ box.textContent = ''; return; }
+    const modeLabel = m.type === 'merchant' ? 'Payment অপশন থেকে' : 'Send Money অপশন থেকে';
+    box.textContent = `${m.number} নম্বরে ${modeLabel} টাকা পাঠান, তারপর নিচে আপনার নম্বর ও TrxID দিন।`;
+  }
+
+  async function submitPackagePurchase(packageId){
+    const method = document.getElementById('pf-method-'+packageId).value;
+    const sender_number = document.getElementById('pf-sender-'+packageId).value.trim();
+    const trx_id = document.getElementById('pf-trxid-'+packageId).value.trim();
+    if(!trx_id){ ehToast('Transaction ID দিন'); return; }
+    try{
+      await apiPost('/api/packages/purchase', { package_id: packageId, method, sender_number, trx_id }, true);
+      ehToast('পেমেন্ট জমা হয়েছে — অ্যাডমিন অনুমোদনের অপেক্ষায়');
+      loadPackagesScreen();
+    }catch(err){
+      ehToast(err.message || 'পেমেন্ট জমা দেওয়া যায়নি');
+    }
+  }
+
   // ---------- Navigation ----------
   let SUPPRESS_HISTORY_PUSH = false;
 
@@ -3095,6 +3207,7 @@
     if(name === 'history') renderProfile();
     if(name === 'perf-stats') renderProfile();
     if(name === 'model'){ MODEL_NAV = {level:'ministries'}; renderModelScreen(); }
+    if(name === 'packages') loadPackagesScreen();
     window.scrollTo(0,0);
     if(!SUPPRESS_HISTORY_PUSH){
       history.pushState({screen:name}, '', location.pathname);
@@ -5472,7 +5585,10 @@
 
   async function startExam(examId, name, phone){
     try{
-      const data = await apiGet('/api/exams/public/'+examId+'/questions');
+      // apiGetAuth (not apiGet) — sends the login token if present, so the
+      // server can check package access for live/model exams. Guests still
+      // get a normal response for free exam types.
+      const data = await apiGetAuth('/api/exams/public/'+examId+'/questions');
       CURRENT_EXAM = data.exam;
       participant = {name, phone};
       answers = {};
@@ -5523,6 +5639,13 @@
       timerHandle = setInterval(tick, 1000);
     }catch(err){
       alert(err.message || 'পরীক্ষা শুরু করা যায়নি');
+      // Package-required errors always mention "প্যাকেজ" in the Bangla
+      // message returned by the server — send the student straight to the
+      // packages screen instead of leaving them stuck on the exam list.
+      if(String(err.message||'').includes('প্যাকেজ')){
+        closeAllOverlays();
+        goScreen('packages');
+      }
     }
   }
 
