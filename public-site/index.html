@@ -1402,9 +1402,60 @@
     background:rgba(255,255,255,0.12) !important;
   }
 
+  /* ---------- Home package promo card ----------
+     A single teaser card injected right before the "প্রিমিয়াম বিভাগ" grid,
+     pointing at the real purchase flow on the Packages screen (goScreen
+     ('packages')). Three states: guest/no-discount (plain CTA), a package
+     on discount (ribbon + strikethrough price), and an already-active
+     package (quiet "renew/extend" framing instead of a hard sell). */
+  .home-pkg-promo{
+    position:relative; overflow:hidden; border-radius:18px; margin:22px 0 4px;
+    padding:16px 18px; cursor:pointer;
+    background:linear-gradient(135deg, var(--seal) 0%, var(--seal-deep) 65%, var(--navy-deep) 100%);
+    box-shadow:0 8px 20px -10px rgba(18,52,100,0.55);
+    transition:transform .12s ease;
+  }
+  .home-pkg-promo:active{transform:scale(0.985);}
+  .home-pkg-promo::before{
+    content:''; position:absolute; top:-38px; right:-26px; width:120px; height:120px;
+    border-radius:50%; background:rgba(255,255,255,0.07);
+  }
+  .home-pkg-promo::after{
+    content:''; position:absolute; bottom:-46px; right:34px; width:90px; height:90px;
+    border-radius:50%; background:rgba(255,255,255,0.05);
+  }
+  .hpp-row{display:flex; align-items:center; gap:14px; position:relative; z-index:1;}
+  .hpp-icon{
+    width:42px; height:42px; border-radius:12px; flex-shrink:0;
+    background:rgba(255,255,255,0.14); display:flex; align-items:center; justify-content:center;
+    font-size:20px;
+  }
+  .hpp-body{flex:1; min-width:0;}
+  .hpp-eyebrow{font-size:10.5px; font-weight:700; letter-spacing:.4px; color:var(--gold-soft); margin-bottom:2px;}
+  .hpp-title{font-family:'Baloo Da 2','Noto Serif Bengali',serif; font-size:14.5px; font-weight:700; color:#fff; line-height:1.35;}
+  .hpp-sub{font-size:11.5px; color:rgba(255,255,255,0.75); margin-top:3px; line-height:1.4;}
+  .hpp-price-row{display:flex; align-items:baseline; gap:7px; margin-top:6px;}
+  .hpp-price{font-family:'Space Mono',monospace; font-size:16px; font-weight:800; color:#fff;}
+  .hpp-old-price{font-family:'Space Mono',monospace; font-size:11.5px; color:rgba(255,255,255,0.55); text-decoration:line-through;}
+  .hpp-arrow{font-size:18px; color:#fff; flex-shrink:0; opacity:.85;}
+  .hpp-badge{
+    position:absolute; top:10px; right:10px; z-index:1;
+    background:var(--gold); color:#4A360A; font-size:10px; font-weight:800;
+    padding:4px 9px; border-radius:20px; box-shadow:0 2px 6px rgba(0,0,0,0.18);
+  }
+  html[data-theme="dark"] .home-pkg-promo{
+    box-shadow:0 8px 20px -10px rgba(0,0,0,0.6);
+  }
 
   /* ---------- Packages screen ---------- */
-  .pkg-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px;}
+  .pkg-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; position:relative; overflow:hidden;}
+  .pkg-card-discounted{border-color:var(--gold);}
+  .pkg-discount-ribbon{
+    position:absolute; top:12px; right:-30px; width:130px; text-align:center;
+    transform:rotate(40deg); background:var(--gold); color:#4A360A;
+    font-size:10.5px; font-weight:800; padding:3px 0; letter-spacing:.3px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  }
   .pkg-title{font-weight:700; font-size:14.5px; margin-bottom:4px;}
   .pkg-meta{font-size:11.5px; color:var(--ink-faint); margin-bottom:8px;}
   .pkg-price-row{display:flex; align-items:baseline; gap:8px; margin-bottom:4px;}
@@ -1616,6 +1667,8 @@
       <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
       <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
     </div>
+
+    <div id="home-pkg-promo-wrap"></div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>প্রিমিয়াম বিভাগ</h2></div>
     <div class="cat-grid">
@@ -2512,6 +2565,7 @@
     document.getElementById('home-streak-pill').style.display = 'none';
     document.getElementById('revision-trigger-btn').style.display = 'none';
     showAuthForm('login');
+    renderHomePackagePromo(); // drop the "সক্রিয় প্যাকেজ" framing back to the guest/discount card
   }
 
   // ---------- Trend chart: last N scores as a small SVG line chart ----------
@@ -2581,6 +2635,7 @@
       refreshRevisionTrigger();
       refreshBookmarkTrigger();
       refreshAchievementsBadge();
+      renderHomePackagePromo(); // reflect login / a just-approved package on the home card
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
@@ -3188,17 +3243,100 @@
     }
   }
 
+  // A package "has a discount" only when original_price is a real number
+  // strictly greater than price — anything else (null, equal, or an admin
+  // typo where original < price) is treated as no discount.
+  function packageDiscountPercent(p){
+    const op = Number(p.original_price);
+    if(!op || !(op > p.price)) return 0;
+    return Math.round((1 - p.price/op) * 100);
+  }
+
   function renderPackageCard(p){
     const durationLabel = p.duration_days % 365 === 0 ? (p.duration_days/365)+' বছর'
       : p.duration_days % 30 === 0 ? (p.duration_days/30)+' মাস'
       : p.duration_days + ' দিন';
-    return `<div class="pkg-card">
+    const discountPct = packageDiscountPercent(p);
+    return `<div class="pkg-card${discountPct ? ' pkg-card-discounted' : ''}">
+      ${discountPct ? `<div class="pkg-discount-ribbon">${toBnDigits(discountPct)}% ছাড়</div>` : ''}
       <div class="pkg-title">${escapeHtml(p.name)} ${p.tier==='pro' ? '<span style="color:var(--gold); font-size:11px;">Pro</span>' : ''}</div>
       <div class="pkg-meta">মেয়াদ: ${durationLabel} · ${limitText(p.live_exam_limit,'লাইভ পরীক্ষা')} · ${limitText(p.model_test_limit,'মডেল টেস্ট')}</div>
       ${p.description ? '<div class="pkg-meta">'+escapeHtml(p.description)+'</div>' : ''}
-      <div class="pkg-price-row"><span class="pkg-price">৳${toBnDigits(p.price)}</span></div>
+      <div class="pkg-price-row">
+        <span class="pkg-price">৳${toBnDigits(p.price)}</span>
+        ${discountPct ? `<span class="pkg-old-price">৳${toBnDigits(p.original_price)}</span>` : ''}
+      </div>
+      ${discountPct ? `<div class="pkg-save">৳${toBnDigits(Math.round(p.original_price - p.price))} সাশ্রয় হচ্ছে</div>` : ''}
       <button class="pkg-buy-btn" onclick="openPackagePurchaseForm(${p.id}, this)">প্যাকেজ কিনুন</button>
       <div class="pkg-form-slot"></div>
+    </div>`;
+  }
+
+  // ---------- Home-screen package promo card ----------
+  // A small teaser injected right before the "প্রিমিয়াম বিভাগ" grid on the
+  // Home screen, pointing at the real purchase flow on the Packages screen.
+  // Cached separately from the Packages screen's own load so opening the
+  // Packages screen doesn't need to re-fetch, and vice versa.
+  let HOME_PKG_PROMO_CACHE = null;
+
+  async function loadHomePackagePromo(){
+    if(!document.getElementById('home-pkg-promo-wrap')) return;
+    try{
+      const {packages} = await apiGet('/api/packages/public/list');
+      HOME_PKG_PROMO_CACHE = packages;
+      renderHomePackagePromo();
+    }catch(err){
+      // Fail quietly — this is a promo card, not core home-screen content.
+    }
+  }
+
+  function renderHomePackagePromo(){
+    const wrap = document.getElementById('home-pkg-promo-wrap');
+    if(!wrap) return;
+    const packages = HOME_PKG_PROMO_CACHE;
+    if(!packages || !packages.length){ wrap.innerHTML = ''; return; }
+
+    // Logged in with an already-active package — quieter renew/extend
+    // framing instead of a discount hard-sell.
+    if(USER_TOKEN && USER_INFO && USER_INFO.active_package){
+      const expiry = USER_INFO.active_package.expires_at
+        ? new Date(USER_INFO.active_package.expires_at).toLocaleDateString('bn-BD', {year:'numeric', month:'short', day:'numeric'})
+        : null;
+      wrap.innerHTML = `<div class="home-pkg-promo" onclick="goScreen('packages')">
+        <div class="hpp-row">
+          <div class="hpp-icon">📦</div>
+          <div class="hpp-body">
+            <div class="hpp-eyebrow">সক্রিয় প্যাকেজ</div>
+            <div class="hpp-title">${escapeHtml(USER_INFO.active_package.name)}</div>
+            <div class="hpp-sub">${expiry ? 'মেয়াদ শেষ: ' + expiry + ' · সব প্যাকেজ দেখুন' : 'সব প্যাকেজ দেখুন ও রিনিউ করুন'}</div>
+          </div>
+          <div class="hpp-arrow">→</div>
+        </div>
+      </div>`;
+      return;
+    }
+
+    // Guest or no active package — lead with the best-discounted package;
+    // fall back to the cheapest package as a generic CTA if none is on discount.
+    const withDiscount = packages.filter(p => packageDiscountPercent(p) > 0)
+      .sort((a, b) => packageDiscountPercent(b) - packageDiscountPercent(a));
+    const featured = withDiscount[0] || packages.slice().sort((a, b) => a.price - b.price)[0];
+    const discountPct = packageDiscountPercent(featured);
+
+    wrap.innerHTML = `<div class="home-pkg-promo" onclick="goScreen('packages')">
+      ${discountPct ? `<div class="hpp-badge">${toBnDigits(discountPct)}% ছাড়</div>` : ''}
+      <div class="hpp-row">
+        <div class="hpp-icon">🚀</div>
+        <div class="hpp-body">
+          <div class="hpp-eyebrow">প্রিমিয়াম প্যাকেজ</div>
+          <div class="hpp-title">${escapeHtml(featured.name)} দিয়ে লাইভ পরীক্ষা ও মডেল টেস্টে সর্বোচ্চ প্রস্তুতি নিন</div>
+          <div class="hpp-price-row">
+            <span class="hpp-price">৳${toBnDigits(featured.price)}</span>
+            ${discountPct ? `<span class="hpp-old-price">৳${toBnDigits(featured.original_price)}</span>` : ''}
+          </div>
+        </div>
+        <div class="hpp-arrow">→</div>
+      </div>
     </div>`;
   }
 
@@ -5284,6 +5422,7 @@
       renderModelScreen();
       startHomeLiveTicker(live);
       refreshHomeLiveDots();
+      loadHomePackagePromo();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
