@@ -91,6 +91,12 @@
       <input id="pkgModelLimit" type="number" min="0">
     </div>
   </div>
+  <div class="row2">
+    <div>
+      <label>রিটেন পরীক্ষার সীমা (খালি = আনলিমিটেড)</label>
+      <input id="pkgWrittenLimit" type="number" min="0">
+    </div>
+  </div>
   <label>বিবরণ</label>
   <input id="pkgDesc" type="text" placeholder="যেমনঃ মাসে ১০টি লাইভ পরীক্ষা + আনলিমিটেড মডেল টেস্ট">
   <button onclick="createPackage()">প্যাকেজ তৈরি করুন</button>
@@ -173,6 +179,7 @@
       display_order: Number(document.getElementById('pkgOrder').value) || 0,
       live_exam_limit: document.getElementById('pkgLiveLimit').value === '' ? null : Number(document.getElementById('pkgLiveLimit').value),
       model_test_limit: document.getElementById('pkgModelLimit').value === '' ? null : Number(document.getElementById('pkgModelLimit').value),
+      written_test_limit: document.getElementById('pkgWrittenLimit').value === '' ? null : Number(document.getElementById('pkgWrittenLimit').value),
       description: document.getElementById('pkgDesc').value.trim() || null
     };
     if (!body.name || !body.price || !body.duration_days) {
@@ -181,7 +188,7 @@
     try {
       await apiCall('/api/packages/admin', 'POST', body);
       showResult('createResult', true, 'প্যাকেজ তৈরি হয়েছে ✓');
-      ['pkgName','pkgPrice','pkgOriginalPrice','pkgDuration','pkgLiveLimit','pkgModelLimit','pkgDesc'].forEach(id => document.getElementById(id).value = '');
+      ['pkgName','pkgPrice','pkgOriginalPrice','pkgDuration','pkgLiveLimit','pkgModelLimit','pkgWrittenLimit','pkgDesc'].forEach(id => document.getElementById(id).value = '');
       loadPackages();
     } catch (err) {
       showResult('createResult', false, err.message);
@@ -201,7 +208,7 @@
           <div class="title">${escapeHtml(p.name)} ${p.is_active ? '' : '<span class="tag rejected">নিষ্ক্রিয়</span>'}</div>
           <div class="meta">
             টায়ার: ${escapeHtml(p.tier)} · মূল্য: ৳${p.price}${p.original_price && p.original_price > p.price ? ` <s style="opacity:.6;">৳${p.original_price}</s> <span style="color:#7ee787;">(${Math.round((1 - p.price/p.original_price)*100)}% ছাড়)</span>` : ''} · মেয়াদ: ${p.duration_days} দিন<br>
-            লাইভ সীমা: ${limitLabel(p.live_exam_limit)} · মডেল টেস্ট সীমা: ${limitLabel(p.model_test_limit)}
+            লাইভ সীমা: ${limitLabel(p.live_exam_limit)} · মডেল টেস্ট সীমা: ${limitLabel(p.model_test_limit)} · রিটেন সীমা: ${limitLabel(p.written_test_limit)}
           </div>
           <div class="actions">
             <button class="small ${p.is_active ? 'danger' : ''}" onclick="toggleActive(${p.id}, ${p.is_active})">${p.is_active ? 'নিষ্ক্রিয় করুন' : 'সক্রিয় করুন'}</button>
