@@ -664,3 +664,11 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER REFERENCES users(id);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
 CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
+
+-- ===================== Written (রিটেন) exams go premium =====================
+-- Product decision (2026-09): written exams move from free-for-everyone to
+-- the same package-gated model as live/model exams (see
+-- utils/packageAccess.js isPremiumExam()). Kept as its own column rather
+-- than reusing model_test_limit so an admin can set a different quota for
+-- written vs MCQ model tests on the same package. NULL = unlimited.
+ALTER TABLE packages ADD COLUMN IF NOT EXISTS written_test_limit INTEGER;
