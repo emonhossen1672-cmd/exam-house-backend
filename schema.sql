@@ -574,3 +574,64 @@ CREATE TABLE IF NOT EXISTS notices (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_notices_pinned_created ON notices(is_pinned DESC, created_at DESC);
+
+-- ===================== Monetization: packages & payments =====================
+-- Real replacement for the old placeholder (users.active_package_name /
+-- active_package_expires_at, added earlier). Those two columns stay as a
+-- denormalized display cache (kept in sync by routes/packages.routes.js
+-- whenever a payment is approved / a package expires) — the profile screen
+-- already reads them via GET /api/auth/me, so no frontend contract changes
+-- there. active_package_id/started_at are new and are the actual source of
+-- truth used for quota checks.
+CREATE TABLE IF NOT EXISTS packages (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  tier VARCHAR(20) NOT NULL DEFAULT 'basic', -- 'basic' | 'pro' — informational grouping only, limits below are what's actually enforced
+  price NUMERIC(8,2) NOT NULL,
+  duration_days INTEGER NOT NULL,
+  -- NULL = unlimited. Only 'live' exams and REAL model exams (see
+  -- utils/packageAccess.js isPremiumExam()) count against these — practice,
+  -- daily quiz, duel, বিষয়ভিত্তিক auto-subject, revision and syllabus stay
+  -- free for everyone regardless of package, per current product decision.
+  live_exam_limit INTEGER,
+  model_test_limit INTEGER,
+  description TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- One row per purchase attempt — doubles as the payment audit trail and the
+-- approval queue. `method` is deliberately just a free string (not a fixed
+-- enum) so an automated gateway can be added later (e.g. 'sslcommerz',
+-- 'bkash_gateway') without a schema change: those rows would simply be
+-- inserted already status='approved' by the gateway's webhook handler
+-- instead of going through the manual admin-approval path below.
+CREATE TABLE IF NOT EXISTS payments (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  package_id INTEGER NOT NULL REFERENCES packages(id),
+  amount NUMERIC(8,2) NOT NULL,
+  method VARCHAR(20) NOT NULL, -- 'bkash' | 'nagad' today; future gateways add new values
+  sender_number VARCHAR(30),   -- student's own bKash/Nagad number they sent payment from
+  trx_id VARCHAR(50),          -- Transaction ID student typed in (manual flow only)
+  status VARCHAR(15) NOT NULL DEFAULT 'pending', -- pending | approved | rejected
+  admin_note TEXT,
+  reviewed_by INTEGER REFERENCES admin_users(id),
+  reviewed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_payments_status_created ON payments(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
+-- Fraud guard: the same TrxID can't be submitted twice for a manual payment
+-- (a student re-using one real bKash/Nagad transaction to claim two
+-- packages, or two different students submitting the same TrxID).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_trxid_unique ON payments(trx_id)
+  WHERE trx_id IS NOT NULL AND method IN ('bkash','nagad');
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_id INTEGER REFERENCES packages(id);
+-- Window start for quota counting (COUNT results WHERE created_at >= this).
+-- On a renewal made before the previous package expired, this is NOT reset —
+-- only the expiry is extended — so a student who renews early doesn't get a
+-- fresh quota mid-cycle for free.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active_package_started_at TIMESTAMP;
