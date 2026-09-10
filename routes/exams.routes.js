@@ -166,7 +166,10 @@ router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
       e.is_daily, e.is_practice, e.is_duel, e.is_auto_subject, e.is_repeated_bank, e.ministry_id, e.routine_category,
       e.topics_summary, e.routine_note,
       m.name AS ministry_name,
-      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
+      CASE WHEN e.type = 'written'
+        THEN (SELECT COUNT(*) FROM exam_written_questions ewq WHERE ewq.exam_id = e.id)
+        ELSE (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id)
+      END AS question_count,
       EXISTS(
         SELECT 1 FROM exam_reminders er WHERE er.exam_id = e.id AND er.user_id = $${userParamIdx}
       ) AS reminder_set
@@ -287,7 +290,7 @@ router.get('/public/:id/questions', optionalUser, asyncHandler(async (req, res) 
 // GET /api/exams/public/:id/written-questions — question_text + marks only,
 // model_answer withheld while the exam is being taken (mirrors
 // /public/:id/questions above, for type='written' exams).
-router.get('/public/:id/written-questions', asyncHandler(async (req, res) => {
+router.get('/public/:id/written-questions', optionalUser, asyncHandler(async (req, res) => {
   const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
   if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   const exam = examRes.rows[0];
@@ -298,6 +301,13 @@ router.get('/public/:id/written-questions', asyncHandler(async (req, res) => {
   }
   if (exam.start_time && new Date(exam.start_time) > new Date()) {
     return res.status(403).json({ error: 'পরীক্ষা এখনো শুরু হয়নি' });
+  }
+
+  // Monetization gate: written exams are premium now, same as live/model —
+  // see utils/packageAccess.js.
+  const access = await checkExamAccess(req.user ? req.user.id : null, exam);
+  if (!access.allowed) {
+    return res.status(402).json({ error: access.reason, code: 'PACKAGE_REQUIRED' });
   }
 
   const { rows } = await pool.query(`
