@@ -17,8 +17,10 @@ const { requireAdmin, requireUser } = require('../middleware/auth');
 const { submitLimiter } = require('../middleware/rateLimit');
 const asyncHandler = require('../utils/asyncHandler');
 const {
-  PAYMENT_BKASH_NUMBER, PAYMENT_BKASH_TYPE, PAYMENT_NAGAD_NUMBER, PAYMENT_NAGAD_TYPE
+  PAYMENT_BKASH_NUMBER, PAYMENT_BKASH_TYPE, PAYMENT_NAGAD_NUMBER, PAYMENT_NAGAD_TYPE,
+  STUDENT_ID_PREFIX
 } = require('../config');
+const { getTrialStatus } = require('../utils/packageAccess');
 
 // ---------- Student-facing ----------
 
@@ -74,18 +76,29 @@ router.post('/purchase', submitLimiter, requireUser, asyncHandler(async (req, re
 }));
 
 // GET /api/packages/me — student's own payment history + current package
-// status, including remaining quota for the two limited resources.
+// status, including remaining quota for the two limited resources. When
+// there's no active package, `trial` carries their free-trial standing
+// instead (see utils/packageAccess.js) so the packages screen can show
+// "৫/২০ ব্যবহৃত" rather than a bare "no package" message.
 router.get('/me', requireUser, asyncHandler(async (req, res) => {
   const userRes = await pool.query(
     `SELECT u.active_package_id, u.active_package_started_at, u.active_package_expires_at,
-            p.name, p.tier, p.live_exam_limit, p.model_test_limit
+            u.referral_code, p.name, p.tier, p.live_exam_limit, p.model_test_limit
      FROM users u LEFT JOIN packages p ON p.id = u.active_package_id
      WHERE u.id=$1`,
     [req.user.id]
   );
   const info = userRes.rows[0] || {};
+  // Backfill for accounts created before the referral system existed (this
+  // migration adds the column as NULL for everyone already registered) —
+  // generate one lazily the first time they load this screen.
+  if (!info.referral_code) {
+    info.referral_code = `${STUDENT_ID_PREFIX}R${1000 + req.user.id}`;
+    await pool.query('UPDATE users SET referral_code=$1 WHERE id=$2 AND referral_code IS NULL', [info.referral_code, req.user.id]);
+  }
   const isExpired = info.active_package_expires_at && new Date(info.active_package_expires_at) < new Date();
   let active = null;
+  let trial = null;
   if (info.active_package_id && !isExpired) {
     const usedRes = await pool.query(
       `SELECT
@@ -103,6 +116,8 @@ router.get('/me', requireUser, asyncHandler(async (req, res) => {
       live_exam_limit: info.live_exam_limit, live_exam_used: used.live_used,
       model_test_limit: info.model_test_limit, model_test_used: used.model_used
     };
+  } else {
+    trial = await getTrialStatus(req.user.id);
   }
 
   const paymentsRes = await pool.query(
@@ -112,7 +127,17 @@ router.get('/me', requireUser, asyncHandler(async (req, res) => {
     [req.user.id]
   );
 
-  res.json({ active_package: active, payments: paymentsRes.rows });
+  const referralRes = await pool.query(
+    'SELECT COUNT(*)::int AS count FROM users WHERE referred_by = $1',
+    [req.user.id]
+  );
+
+  res.json({
+    active_package: active,
+    trial,
+    referral: { code: info.referral_code || null, referred_count: referralRes.rows[0].count },
+    payments: paymentsRes.rows
+  });
 }));
 
 // ---------- Admin ----------
