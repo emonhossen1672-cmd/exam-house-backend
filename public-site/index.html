@@ -946,6 +946,7 @@
   .rev-opt.is-wrong{ background:var(--wrong-bg); border-color:var(--wrong); color:var(--wrong); font-weight:700; }
   .rev-explain{ margin-top:12px; }
   .rev-explain-badge{ display:inline-block; font-family:'Noto Sans Bengali'; font-weight:700; background:var(--gold-soft); color:#7A5E12; font-size:12.5px; padding:5px 13px; border-radius:20px; margin-bottom:8px; }
+  .tj2-important-badge{ display:inline-block; font-family:'Noto Sans Bengali'; font-weight:700; background:var(--gold-soft); color:#7A5E12; font-size:11px; padding:2px 9px; border-radius:14px; margin-left:6px; vertical-align:middle; }
   .rev-explain-text{ background:var(--paper); border-radius:12px; padding:13px 14px; font-size:15px; font-weight:600; color:var(--ink); line-height:1.75; }
   .rev-explain-wrap{ margin-top:10px; }
   .rev-explain-btn{ background:none; border:1px solid var(--gold); color:var(--ink-soft); font-size:13px; padding:8px 13px; border-radius:14px; cursor:pointer; font-family:'Noto Sans Bengali'; }
@@ -3795,6 +3796,7 @@
       }
       else if(TOPIC_NAV.level === 'subtopics'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
+      else if(TOPIC_NAV.level === 'importance'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       renderModelScreen();
       window.scrollTo(0,0);
@@ -4259,6 +4261,7 @@
 
   async function renderTopicScreen(){
     if(TOPIC_NAV.level === 'topics'){ renderTopicListScreen(); return; }
+    if(TOPIC_NAV.level === 'importance'){ renderTopicImportanceScreen(); return; }
     if(TOPIC_NAV.level === 'subtopics'){ renderSubtopicListScreen(); return; }
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
     if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
@@ -4499,7 +4502,19 @@
       return;
     }
 
-    listEl.innerHTML = TOPIC_TOPICS_CACHE.map(t=>{
+    const analysisBtn = `
+      <div class="group-card tj2-topic-card" style="background:var(--tj2-teal, #E1F5EE);" onclick='openTopicImportance()'>
+        <div class="gc-left">
+          <div class="gc-ic post">📊</div>
+          <div>
+            <div class="gc-name">প্রশ্নব্যাংক বিশ্লেষণ</div>
+            <div class="gc-meta">গুরুত্বপূর্ণ টপিকে আগে ফোকাস করুন</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`;
+
+    listEl.innerHTML = analysisBtn + TOPIC_TOPICS_CACHE.map(t=>{
       return `
         <div class="group-card tj2-topic-card" onclick='openTopicTopic(${JSON.stringify(t.topic)})'>
           <div class="gc-left">
@@ -4520,6 +4535,58 @@
     history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
+  }
+
+  // ---------- প্রশ্নব্যাংক বিশ্লেষণ (topic-importance ranking) ----------
+  let TOPIC_IMPORTANCE_CACHE = null;
+
+  function openTopicImportance(){
+    TOPIC_NAV = {level:'importance', subject:TOPIC_NAV.subject};
+    TOPIC_IMPORTANCE_CACHE = null;
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderTopicImportanceScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = 'প্রশ্নব্যাংক বিশ্লেষণ';
+    subtext.textContent = TOPIC_NAV.subject + ' · গুরুত্বপূর্ণ টপিকে আগে ফোকাস করুন';
+
+    if(!TOPIC_IMPORTANCE_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        const data = await apiGet('/api/questions/public/topic-importance?subject=' + encodeURIComponent(TOPIC_NAV.subject));
+        TOPIC_IMPORTANCE_CACHE = data.topics;
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!TOPIC_IMPORTANCE_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">বিশ্লেষণের জন্য যথেষ্ট সাল-ট্যাগড প্রশ্ন নেই।</div>';
+      return;
+    }
+
+    listEl.innerHTML = TOPIC_IMPORTANCE_CACHE.map(t=>{
+      const badge = t.important ? '<span class="tj2-important-badge">⭐ গুরুত্বপূর্ণ</span>' : '';
+      return `
+        <div class="group-card tj2-topic-card" onclick='openTopicTopic(${JSON.stringify(t.topic)})'>
+          <div class="gc-left">
+            <div class="gc-ic post">📌</div>
+            <div>
+              <div class="gc-name">${escapeHtml(t.topic)} ${badge}</div>
+              <div class="gc-meta">গত ${toBnDigits(t.years_seen)} বছরে এসেছে · ${toBnDigits(t.question_count)}টি প্রশ্ন</div>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>`;
+    }).join('');
   }
 
   async function renderSubtopicListScreen(){
