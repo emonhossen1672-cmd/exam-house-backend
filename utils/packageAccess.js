@@ -17,7 +17,7 @@ function isPremiumExam(exam) {
     return !exam.is_practice && !exam.is_duel && !exam.is_daily &&
       !exam.is_auto_subject && !exam.is_repeated_bank;
   }
-  if (exam.type === 'written') return true;
+  // written (রিটেন) exams are free now — was premium until 2026-09.
   return false;
 }
 
