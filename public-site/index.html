@@ -685,6 +685,29 @@
   .smart-practice-card .sp-title{font-size:14px; font-weight:700;}
   .smart-practice-card .sp-sub{font-size:11px; color:#F5C4B3; margin-top:3px; line-height:1.5;}
 
+  /* ---------- Weak-topic practice card (topic-level version of smart practice) ---------- */
+  .weak-topic-card{
+    background:var(--tj2-card, #fff); color:var(--tj2-ink, #35281a); border:1.6px solid var(--seal);
+    border-radius:16px; padding:16px; margin-bottom:14px; display:flex; align-items:center; gap:12px; cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .weak-topic-card:active{transform:scale(0.98);}
+  .weak-topic-card .sp-ic{font-size:26px; flex-shrink:0;}
+  .weak-topic-card .sp-title{font-size:14px; font-weight:700; color:var(--seal);}
+  .weak-topic-card .sp-sub{font-size:11px; color:var(--tj2-ink-soft, #8a7a68); margin-top:3px; line-height:1.5;}
+
+  .wt-row{display:flex; justify-content:space-between; align-items:center; padding:11px 4px; border-bottom:1px solid rgba(0,0,0,0.06); font-size:13px;}
+  .wt-row:last-child{border-bottom:none;}
+  .wt-row-main{flex:1; padding-right:10px;}
+  .wt-row-subject{font-weight:700; color:var(--tj2-ink, #35281a);}
+  .wt-row-topic{font-size:12px; color:var(--tj2-ink-soft, #8a7a68); margin-top:2px;}
+  .wt-row-acc{font-weight:700; font-size:13px; flex-shrink:0;}
+  .wt-row-acc.low{color:var(--wrong, #d9534f);}
+  .wt-row-acc.mid{color:#c98a1c;}
+  .wt-empty-note{font-size:13px; color:var(--tj2-ink-soft, #8a7a68); text-align:center; padding:20px 0;}
+  .wt-start-btn{width:100%; background:var(--seal); color:#fff; border:none; border-radius:12px; padding:13px; font-size:14px; font-weight:700; margin-top:14px; cursor:pointer; font-family:'Noto Sans Bengali';}
+  .wt-start-btn:active{transform:scale(0.98);}
+
   /* ---------- Reading list (subject-wise question reading) ---------- */
   .rl-q-card{background:var(--q-tan-bg); border:none; border-radius:18px; padding:16px; margin-bottom:14px; box-shadow:var(--q-tan-shadow);}
   .rl-q-top{display:flex; gap:10px; align-items:flex-start; margin-bottom:2px;}
@@ -2263,6 +2286,18 @@
         <button class="tj2-modal-close" onclick="closeTopicExplainModal()">✕</button>
       </div>
       <div class="tj2-modal-body" id="tj2-explain-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ দুর্বল টপিক প্র্যাকটিস — ইনসাইট মোডাল ============ -->
+  <div class="tj2-modal-overlay" id="weak-topics-modal" onclick="if(event.target===this) closeWeakTopicsModal()">
+    <div class="tj2-modal-sheet">
+      <div class="tj2-modal-head">
+        <h3>দুর্বল টপিক</h3>
+        <button class="tj2-modal-close" onclick="closeWeakTopicsModal()">✕</button>
+      </div>
+      <div class="tj2-modal-body" id="weak-topics-body"></div>
+      <button class="wt-start-btn" onclick="startWeakTopicPractice()">অনুশীলন শুরু করো (১৫টি প্রশ্ন)</button>
     </div>
   </div>
 
@@ -4145,6 +4180,13 @@
           <div class="sp-title">স্মার্ট প্র্যাকটিস</div>
           <div class="sp-sub">আপনার দুর্বল বিষয়গুলো থেকে ১৫টি প্রশ্ন — স্বয়ংক্রিয়ভাবে বাছাই করা</div>
         </div>
+      </div>
+      <div class="weak-topic-card" onclick="openWeakTopicsModal()">
+        <div class="sp-ic">🎯</div>
+        <div>
+          <div class="sp-title">দুর্বল টপিক প্র্যাকটিস</div>
+          <div class="sp-sub">বিষয়ের ভেতরে ঠিক কোন টপিকে দুর্বল, সেটা দেখে নিয়ে অনুশীলন করুন</div>
+        </div>
       </div>` : '';
 
     listEl.innerHTML = smartCardHtml + PRACTICE_SUBJECTS_CACHE.map(s=>{
@@ -4181,6 +4223,69 @@
       openNameSheet(exam.id);
     }catch(err){
       listEl.innerHTML = prevHtml;
+      alert(err.message || 'অনুশীলন শুরু করা যায়নি');
+    }
+  }
+
+  // ---------- Weak-topic practice (topic-level version of smart practice) ----------
+  async function openWeakTopicsModal(){
+    const overlay = document.getElementById('weak-topics-modal');
+    const body = document.getElementById('weak-topics-body');
+    body.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    overlay.classList.add('show');
+    try{
+      const data = await apiGetAuth('/api/exams/public/weak-topics');
+      const weak = data.weak_topics || [];
+      const unexplored = data.unexplored_topics || [];
+      if(!weak.length && !unexplored.length){
+        body.innerHTML = '<div class="wt-empty-note">এখনো যথেষ্ট প্রশ্ন সমাধান করেননি — কিছু টপিকভিত্তিক প্রশ্ন সমাধান করুন, তারপর এখানে দুর্বল জায়গা দেখতে পাবেন।</div>';
+        return;
+      }
+      let html = '';
+      if(weak.length){
+        html += '<div style="font-size:12px; font-weight:700; color:var(--tj2-ink-soft,#8a7a68); margin:4px 0 6px;">সবচেয়ে দুর্বল</div>';
+        html += weak.map(w=>{
+          const accClass = w.accuracy < 40 ? 'low' : (w.accuracy < 60 ? 'mid' : '');
+          return `<div class="wt-row">
+            <div class="wt-row-main">
+              <div class="wt-row-subject">${escapeHtml(w.subject)}</div>
+              <div class="wt-row-topic">${escapeHtml(w.topic)} · ${toBnDigits(w.attempts)}টি অ্যাটেম্পট</div>
+            </div>
+            <div class="wt-row-acc ${accClass}">${toBnDigits(w.accuracy)}%</div>
+          </div>`;
+        }).join('');
+      }
+      if(unexplored.length){
+        html += '<div style="font-size:12px; font-weight:700; color:var(--tj2-ink-soft,#8a7a68); margin:16px 0 6px;">এখনো চেষ্টা করা হয়নি</div>';
+        html += unexplored.map(w=>`<div class="wt-row">
+            <div class="wt-row-main">
+              <div class="wt-row-subject">${escapeHtml(w.subject)}</div>
+              <div class="wt-row-topic">${escapeHtml(w.topic)} · ${toBnDigits(w.bank_count)}টি প্রশ্ন আছে</div>
+            </div>
+          </div>`).join('');
+      }
+      body.innerHTML = html;
+    }catch(err){
+      body.innerHTML = `<div class="wt-empty-note">${escapeHtml(err.message || 'লোড করা যায়নি')}</div>`;
+    }
+  }
+
+  function closeWeakTopicsModal(){
+    document.getElementById('weak-topics-modal').classList.remove('show');
+  }
+
+  async function startWeakTopicPractice(){
+    const body = document.getElementById('weak-topics-body');
+    const prevHtml = body.innerHTML;
+    body.innerHTML = '<div class="loading-note">অনুশীলন তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiGetAuth('/api/exams/public/weak-topic-practice?count=15');
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      closeWeakTopicsModal();
+      openNameSheet(exam.id);
+    }catch(err){
+      body.innerHTML = prevHtml;
       alert(err.message || 'অনুশীলন শুরু করা যায়নি');
     }
   }
