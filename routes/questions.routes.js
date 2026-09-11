@@ -8,6 +8,9 @@ const { requireAdmin, requireUser, optionalUser } = require('../middleware/auth'
 const asyncHandler = require('../utils/asyncHandler');
 const { TOPIC_JOB_SUBJECTS, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC, snapToFixedSubject, normalizeText } = require('../utils/topicJobSubjects');
 const { checkAnswer } = require('../services/aiAnswerCheck');
+const { updateStreak } = require('../utils/streak');
+const { masteryLevel } = require('../utils/masteryLevel');
+const { schedule } = require('../utils/spacedRepetition');
 
 const subjectFixUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -583,6 +586,147 @@ router.delete('/public/mark-read/:questionId', requireUser, asyncHandler(async (
     [req.user.id, req.params.questionId]
   );
   res.json({ ok: true });
+}));
+
+// ===================== জব সলুশন বিশ্লেষণ সিস্টেম =====================
+
+// POST /api/questions/public/attempt  body: { question_id, selected_option } —
+// টপিকভিত্তিক জব সলুশন-কে "পড়া হয়েছে" চেকবক্স থেকে "ট্যাপ করে চেক করো" মোডে
+// বদলে দেয়। প্রতিটা উত্তর question_attempts-এ লগ হয় (এটাই বিশ্লেষণ সিস্টেমের
+// মূল ডেটা সোর্স), সাথে সাথে read হিসেবেও গণ্য হয় (আলাদা mark-read কল লাগে
+// না), আর ভুল হলে বিদ্যমান spaced-repetition ডেক (revision_cards)-এ যোগ হয় —
+// revision.routes.js যেভাবে exam-এর ভুল প্রশ্ন যোগ করে ঠিক সেভাবেই।
+router.post('/public/attempt', requireUser, asyncHandler(async (req, res) => {
+  const questionId = parseInt(req.body.question_id, 10);
+  const selected = String(req.body.selected_option || '').toUpperCase();
+  if (!Number.isFinite(questionId) || !['A', 'B', 'C', 'D'].includes(selected)) {
+    return res.status(400).json({ error: 'question_id ও selected_option প্রয়োজন' });
+  }
+
+  const { rows } = await pool.query('SELECT correct_option FROM questions WHERE id=$1', [questionId]);
+  if (!rows[0]) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
+  const isCorrect = rows[0].correct_option === selected;
+  const userId = req.user.id;
+
+  await pool.query(
+    `INSERT INTO question_attempts (user_id, question_id, selected_option, is_correct)
+     VALUES ($1,$2,$3,$4)`,
+    [userId, questionId, selected, isCorrect]
+  );
+  await pool.query(
+    'INSERT INTO question_reads (user_id, question_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+    [userId, questionId]
+  );
+
+  if (!isCorrect) {
+    const cardRes = await pool.query(
+      'SELECT repetitions, ease_factor, interval_days FROM revision_cards WHERE user_id=$1 AND question_id=$2',
+      [userId, questionId]
+    );
+    const card = cardRes.rows[0] || { repetitions: 0, ease_factor: 2.5, interval_days: 0 };
+    const next = schedule(card, 'wrong');
+    await pool.query(
+      `INSERT INTO revision_cards (user_id, question_id, repetitions, ease_factor, interval_days, due_date, last_result, source)
+       VALUES ($1,$2,$3,$4,$5,$6,'wrong','topic-job')
+       ON CONFLICT (user_id, question_id) DO UPDATE SET
+         repetitions=$3, ease_factor=$4, interval_days=$5, due_date=$6, last_result='wrong'`,
+      [userId, questionId, next.repetitions, next.ease_factor, next.interval_days, next.due_date]
+    );
+  }
+
+  const streak = await updateStreak(userId);
+  res.json({ is_correct: isCorrect, correct_option: rows[0].correct_option, streak });
+}));
+
+// GET /api/questions/public/topic-job-analysis?subject= — লগ-ইন করা ছাত্রের
+// জন্য subject/topic/subtopic-ভিত্তিক মাস্টারি বিশ্লেষণ। দুটো সোর্স মেলানো
+// হয়: question_attempts (টপিকভিত্তিক জব সলুশন প্র্যাকটিস) + results (জব-সলুশন
+// রুটিন-অটো-জেনারেটেড এক্সাম, exam_questions জয়েন করে)। raw percentage-এর
+// বদলে masteryLevel() থেকে পাওয়া লেভেল প্রাইমারি সংখ্যা হিসেবে ফেরত যায় —
+// কম attempt-এ % বিভ্রান্তিকর, দেখুন utils/masteryLevel.js।
+router.get('/public/topic-job-analysis', requireUser, asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  const userId = req.user.id;
+
+  const combinedSql = `
+    WITH combined AS (
+      SELECT q.subject, q.topic, q.subtopic, qa.is_correct, qa.attempted_at::date AS d
+      FROM question_attempts qa JOIN questions q ON q.id = qa.question_id
+      WHERE qa.user_id = $1
+      UNION ALL
+      SELECT q.subject, q.topic, q.subtopic,
+             (UPPER(r.answers->>(q.id::text)) = q.correct_option) AS is_correct,
+             r.submitted_at::date AS d
+      FROM results r
+      JOIN exam_questions eq ON eq.exam_id = r.exam_id
+      JOIN questions q ON q.id = eq.question_id
+      WHERE r.user_id = $1 AND r.answers ? (q.id::text)
+    )
+    SELECT subject, topic, subtopic,
+           COUNT(*)::int AS attempted, COUNT(*) FILTER (WHERE is_correct)::int AS correct
+    FROM combined
+    WHERE subject = ANY($2::text[]) ${subject ? 'AND subject = $3' : ''}
+    GROUP BY subject, topic, subtopic`;
+  const params = subject ? [userId, TOPIC_JOB_SUBJECTS, subject] : [userId, TOPIC_JOB_SUBJECTS];
+  const { rows } = await pool.query(combinedSql, params);
+
+  // সাবজেক্ট-লেভেলে রোলআপ (টপিক না মিলিয়ে) — ড্যাশবোর্ডের র‍্যাংকড লিস্টের জন্য।
+  const bySubject = {};
+  rows.forEach(r => {
+    if (!bySubject[r.subject]) bySubject[r.subject] = { correct: 0, attempted: 0, topics: [] };
+    bySubject[r.subject].correct += r.correct;
+    bySubject[r.subject].attempted += r.attempted;
+    bySubject[r.subject].topics.push({
+      topic: r.topic || null, subtopic: r.subtopic || null,
+      ...masteryLevel(r.correct, r.attempted)
+    });
+  });
+  const subjects = Object.entries(bySubject)
+    .map(([s, v]) => ({ subject: s, ...masteryLevel(v.correct, v.attempted), topics: v.topics }))
+    .sort((a, b) => (a.accuracy ?? 999) - (b.accuracy ?? 999)); // দুর্বল আগে
+
+  // পিয়ার তুলনা: সব ইউজারের overall accuracy-তে এই ইউজারের percentile।
+  const percRes = await pool.query(`
+    WITH per_user AS (
+      SELECT user_id, COUNT(*) FILTER (WHERE is_correct)::float / NULLIF(COUNT(*),0) AS acc
+      FROM question_attempts GROUP BY user_id HAVING COUNT(*) >= 10
+    )
+    SELECT PERCENT_RANK() OVER (ORDER BY acc) AS pr, user_id
+    FROM per_user`);
+  const mine = percRes.rows.find(r => r.user_id === userId);
+  const percentile = mine ? Math.round(mine.pr * 100) : null;
+
+  // গত ৭ দিনের দৈনিক accuracy ট্রেন্ড।
+  const trendRes = await pool.query(`
+    SELECT attempted_at::date AS d,
+           COUNT(*) FILTER (WHERE is_correct)::float / NULLIF(COUNT(*),0) * 100 AS acc
+    FROM question_attempts
+    WHERE user_id=$1 AND attempted_at >= CURRENT_DATE - INTERVAL '6 days'
+    GROUP BY d ORDER BY d`, [userId]);
+
+  res.json({
+    subjects,
+    percentile,
+    trend: trendRes.rows.map(r => ({ date: r.d, accuracy: r.acc !== null ? Math.round(r.acc) : null }))
+  });
+}));
+
+// GET /api/questions/public/action-plan?limit=10 — "আজকের অ্যাকশন প্ল্যান"।
+// নতুন কিছু বানানো হয়নি — বিদ্যমান revision_cards ডিউ-কিউই টেনে আনা হচ্ছে,
+// শুধু জব-সলুশন সাবজেক্টে ফিল্টার করে আর দুর্বল সাবজেক্ট আগে রেখে সাজানো,
+// যাতে ছাত্র সবচেয়ে জরুরি জায়গা থেকেই শুরু করে।
+router.get('/public/action-plan', requireUser, asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 10, 30);
+  const { rows } = await pool.query(`
+    SELECT rc.question_id, rc.due_date, rc.last_result, q.subject, q.topic, q.subtopic,
+           q.question_text
+    FROM revision_cards rc JOIN questions q ON q.id = rc.question_id
+    WHERE rc.user_id=$1 AND rc.due_date <= CURRENT_DATE AND q.subject = ANY($2::text[])
+    ORDER BY rc.due_date ASC
+    LIMIT $3`,
+    [req.user.id, TOPIC_JOB_SUBJECTS, limit]
+  );
+  res.json({ due_count: rows.length, items: rows });
 }));
 
 // GET /api/questions/public/:id/explanation — "কেন ভুল হলো?" button target.
