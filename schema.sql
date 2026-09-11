@@ -699,3 +699,29 @@ CREATE TABLE IF NOT EXISTS question_attempts (
 CREATE INDEX IF NOT EXISTS idx_question_attempts_user_time ON question_attempts(user_id, attempted_at);
 -- answer-stats-এর মতো প্রশ্ন-ভিত্তিক agregation (কতজন ভুল করলো) দরকার হলে কাজে লাগবে।
 CREATE INDEX IF NOT EXISTS idx_question_attempts_question ON question_attempts(question_id);
+
+-- ===== Feature: Zone Analysis (দুর্বল জোন খুঁজে বের করা) =====
+-- Onboarding flow: student answers a short 10-question diagnostic ("জোন
+-- তৈরি করি"), then sees a Heat Map / List of their weak-confused-strong
+-- zones (utils/jobZones.js groups the existing 12 টপিকভিত্তিক জব সলুশন
+-- subjects into job-specific zones, e.g. প্রাইমারি শিক্ষক's 5 zones).
+-- No new attempt-tracking table needed — this reuses question_attempts +
+-- results/exam_questions exactly like /api/questions/public/topic-job-analysis
+-- does. Two additions only:
+--   1) `source` on question_attempts, so Zone Analysis's "প্রশ্নব্যাংক /
+--      ফ্ল্যাশকার্ড" filter tabs can tell where a single-question attempt
+--      came from (routes/questions.routes.js tags 'qbank',
+--      routes/revision.routes.js tags 'flashcard'). Exam-based attempts
+--      (model test / zone quiz) are read from `results` + `exams` flags
+--      instead, same as topic-job-analysis already does, so they don't
+--      need a column here.
+--   2) `is_zone_quiz` on exams, so a zone-quiz submission can be told apart
+--      from a normal practice/model-test exam when bucketing by source.
+ALTER TABLE question_attempts ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'qbank'; -- 'qbank' | 'flashcard'
+CREATE INDEX IF NOT EXISTS idx_question_attempts_source ON question_attempts(user_id, source);
+-- Flashcard reviews (routes/revision.routes.js) know correct/wrong but not
+-- which option the student would have picked, so this column has to allow
+-- NULL for source='flashcard' rows.
+ALTER TABLE question_attempts ALTER COLUMN selected_option DROP NOT NULL;
+
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_zone_quiz BOOLEAN NOT NULL DEFAULT false;
