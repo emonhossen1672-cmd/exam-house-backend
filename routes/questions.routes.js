@@ -729,6 +729,129 @@ router.get('/public/action-plan', requireUser, asyncHandler(async (req, res) => 
   res.json({ due_count: rows.length, items: rows });
 }));
 
+// GET /api/questions/public/progress-overview — হোমপেজের নতুন "তোমার অগ্রগতি"
+// সেকশনের ৪টা উইজেটের জন্য একটাই কল: (১) মাস্টারি জার্নি ম্যাপ — ১২টা
+// টপিক-জব সাবজেক্ট ক্যানোনিকাল অর্ডারে, প্রতিটা mastered(সবুজ)/current(কমলা,
+// একটাই)/locked(ধূসর) — mastered মানে masteryLevel().is_new===false (>=৫টা
+// চেষ্টা হয়ে গেছে), অর্ডারে প্রথম is_new সাবজেক্টটাই current, তার পরেরগুলো
+// locked; (২) এক্সাম-রেডিনেস রিং — সব সাবজেক্ট মিলিয়ে overall accuracy,
+// current_streak (users টেবিল), percentile, আর গত ৭ বনাম তার আগের ৭ দিনের
+// accuracy তুলনায় উন্নতি; (৩) পিয়ার র‍্যাংক + ৭-দিনের ট্রেন্ড — topic-job-analysis
+// এ যা আছে তাই পুনর্ব্যবহার; (৪) প্র্যাকটিস হিটম্যাপ + সাপ্তাহিক গোল — গত
+// ৭০ দিনের দৈনিক attempt-count আর users.weekly_question_goal এর বিপরীতে
+// এই সপ্তাহের কাউন্ট। কোনো নতুন heavy কোয়েরি না বানিয়ে যতটা সম্ভব
+// topic-job-analysis-এর মতো query প্যাটার্নই পুনর্ব্যবহার করা হয়েছে।
+router.get('/public/progress-overview', requireUser, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const combinedSql = `
+    SELECT q.subject, qa.is_correct, qa.attempted_at::date AS d
+    FROM question_attempts qa JOIN questions q ON q.id = qa.question_id
+    WHERE qa.user_id = $1 AND q.subject = ANY($2::text[])
+    UNION ALL
+    SELECT q.subject,
+           (UPPER(r.answers->>(q.id::text)) = q.correct_option) AS is_correct,
+           r.submitted_at::date AS d
+    FROM results r
+    JOIN exam_questions eq ON eq.exam_id = r.exam_id
+    JOIN questions q ON q.id = eq.question_id
+    WHERE r.user_id = $1 AND r.answers ? (q.id::text) AND q.subject = ANY($2::text[])`;
+  const { rows } = await pool.query(combinedSql, [userId, TOPIC_JOB_SUBJECTS]);
+
+  // সাবজেক্ট-ভিত্তিক রোলআপ (journey map + readiness ring দুটোতেই লাগবে)।
+  const bySubject = {};
+  TOPIC_JOB_SUBJECTS.forEach(s => { bySubject[s] = { correct: 0, attempted: 0 }; });
+  let totalCorrect = 0, totalAttempted = 0;
+  rows.forEach(r => {
+    bySubject[r.subject].attempted += 1;
+    totalAttempted += 1;
+    if (r.is_correct) { bySubject[r.subject].correct += 1; totalCorrect += 1; }
+  });
+
+  // ১) জার্নি ম্যাপ — ক্যানোনিকাল অর্ডারে, প্রথম "নতুন" সাবজেক্টই current।
+  let currentAssigned = false;
+  const journey = TOPIC_JOB_SUBJECTS.map(subject => {
+    const v = bySubject[subject];
+    const m = masteryLevel(v.correct, v.attempted);
+    let status;
+    if (!m.is_new) status = 'mastered';
+    else if (!currentAssigned) { status = 'current'; currentAssigned = true; }
+    else status = 'locked';
+    return { subject, status, ...m };
+  });
+
+  // ২) রেডিনেস রিং — সামগ্রিক accuracy, streak, ৭-বনাম-আগের-৭-দিনের উন্নতি।
+  const streakRes = await pool.query('SELECT current_streak FROM users WHERE id=$1', [userId]);
+  const currentStreak = streakRes.rows[0]?.current_streak || 0;
+
+  const weekCmpRes = await pool.query(`
+    SELECT
+      COUNT(*) FILTER (WHERE attempted_at >= CURRENT_DATE - INTERVAL '6 days') AS recent_n,
+      COUNT(*) FILTER (WHERE attempted_at >= CURRENT_DATE - INTERVAL '6 days' AND is_correct) AS recent_c,
+      COUNT(*) FILTER (WHERE attempted_at < CURRENT_DATE - INTERVAL '6 days' AND attempted_at >= CURRENT_DATE - INTERVAL '13 days') AS prev_n,
+      COUNT(*) FILTER (WHERE attempted_at < CURRENT_DATE - INTERVAL '6 days' AND attempted_at >= CURRENT_DATE - INTERVAL '13 days' AND is_correct) AS prev_c
+    FROM question_attempts WHERE user_id=$1`, [userId]);
+  const wk = weekCmpRes.rows[0];
+  const recentAcc = wk.recent_n > 0 ? (wk.recent_c / wk.recent_n) * 100 : null;
+  const prevAcc = wk.prev_n > 0 ? (wk.prev_c / wk.prev_n) * 100 : null;
+  const improvement = (recentAcc !== null && prevAcc !== null) ? Math.round(recentAcc - prevAcc) : null;
+
+  const readiness = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : null;
+
+  // ৩) পিয়ার র‍্যাংক + ৭-দিনের ট্রেন্ড (topic-job-analysis-এর মতোই)।
+  const percRes = await pool.query(`
+    WITH per_user AS (
+      SELECT user_id, COUNT(*) FILTER (WHERE is_correct)::float / NULLIF(COUNT(*),0) AS acc
+      FROM question_attempts GROUP BY user_id HAVING COUNT(*) >= 10
+    )
+    SELECT PERCENT_RANK() OVER (ORDER BY acc) AS pr, user_id
+    FROM per_user`);
+  const mine = percRes.rows.find(r => r.user_id === userId);
+  const percentile = mine ? Math.round(mine.pr * 100) : null;
+
+  const trendRes = await pool.query(`
+    SELECT attempted_at::date AS d,
+           COUNT(*) FILTER (WHERE is_correct)::float / NULLIF(COUNT(*),0) * 100 AS acc
+    FROM question_attempts
+    WHERE user_id=$1 AND attempted_at >= CURRENT_DATE - INTERVAL '6 days'
+    GROUP BY d ORDER BY d`, [userId]);
+
+  // ৪) প্র্যাকটিস হিটম্যাপ (গত ৭০ দিন) + সাপ্তাহিক গোল।
+  const heatmapRes = await pool.query(`
+    SELECT attempted_at::date AS d, COUNT(*)::int AS c
+    FROM question_attempts
+    WHERE user_id=$1 AND attempted_at >= CURRENT_DATE - INTERVAL '69 days'
+    GROUP BY d`, [userId]);
+  const heatmapMap = {};
+  heatmapRes.rows.forEach(r => { heatmapMap[r.d.toISOString().slice(0, 10)] = r.c; });
+  const heatmap = [];
+  for (let i = 69; i >= 0; i--) {
+    const dt = new Date(); dt.setDate(dt.getDate() - i);
+    const key = dt.toISOString().slice(0, 10);
+    heatmap.push({ date: key, count: heatmapMap[key] || 0 });
+  }
+  const goalRes = await pool.query('SELECT weekly_question_goal FROM users WHERE id=$1', [userId]);
+  const weeklyGoal = goalRes.rows[0]?.weekly_question_goal || 200;
+  const thisWeekCount = heatmap.slice(-7).reduce((sum, h) => sum + h.count, 0);
+
+  res.json({
+    journey,
+    readiness: { percent: readiness, streak: currentStreak, improvement },
+    peer: { percentile, trend: trendRes.rows.map(r => ({ date: r.d, accuracy: r.acc !== null ? Math.round(r.acc) : null })) },
+    heatmap: { days: heatmap, weekly_goal: weeklyGoal, this_week_count: thisWeekCount }
+  });
+}));
+
+// PATCH /api/questions/public/weekly-goal — সাপ্তাহিক গোল কাস্টমাইজ করার জন্য।
+router.patch('/public/weekly-goal', requireUser, asyncHandler(async (req, res) => {
+  const goal = parseInt(req.body.goal, 10);
+  if (!Number.isFinite(goal) || goal < 1 || goal > 5000) {
+    return res.status(400).json({ error: 'সঠিক লক্ষ্য সংখ্যা দিন (১-৫০০০)' });
+  }
+  await pool.query('UPDATE users SET weekly_question_goal=$1 WHERE id=$2', [goal, req.user.id]);
+  res.json({ weekly_goal: goal });
+}));
+
 // GET /api/questions/public/:id/explanation — "কেন ভুল হলো?" button target.
 // If an admin already wrote an explanation, return it straight from the DB
 // (free, instant). Otherwise generate one via AI on first request and cache
