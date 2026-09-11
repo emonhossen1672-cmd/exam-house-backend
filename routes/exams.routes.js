@@ -303,8 +303,8 @@ router.get('/public/:id/written-questions', optionalUser, asyncHandler(async (re
     return res.status(403).json({ error: 'পরীক্ষা এখনো শুরু হয়নি' });
   }
 
-  // Monetization gate: written exams are premium now, same as live/model —
-  // see utils/packageAccess.js.
+  // Monetization gate: written exams are free now (isPremiumExam returns
+  // false for type='written') — see utils/packageAccess.js.
   const access = await checkExamAccess(req.user ? req.user.id : null, exam);
   if (!access.allowed) {
     return res.status(402).json({ error: access.reason, code: 'PACKAGE_REQUIRED' });
@@ -665,6 +665,150 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
       `INSERT INTO exams (title, type, duration_minutes, status, serial, is_practice)
        VALUES ($1,'model',$2,'active',$3,true) RETURNING *`,
       ['স্মার্ট প্র্যাকটিস — আপনার দুর্বল জায়গা অনুযায়ী', durationMinutes, serial]
+    );
+    const exam = examResult.rows[0];
+    for (let i = 0; i < questionIds.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, questionIds[i], i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ...exam, question_count: questionIds.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
+
+// GET /api/exams/public/weak-topics — টপিক/সাবটপিক-লেভেলে ইউজারের দুর্বলতা।
+// smart-practice শুধু subject-লেভেলে accuracy দেখে; এখানে question_attempts
+// আর questions.topic/subtopic জয়েন করে আরও সূক্ষ্ম (subject → topic) লেভেলে
+// accuracy বের করা হয়, যাতে ইউজার ঠিক কোন টপিকে দুর্বল সেটা দেখতে পায়।
+// শুধু topic সেট করা প্রশ্নগুলোই ধরা হয় (পুরনো topic-বিহীন প্রশ্ন বাদ)।
+router.get('/public/weak-topics', requireUser, asyncHandler(async (req, res) => {
+  const MIN_ATTEMPTS = 3; // এর কম অ্যাটেম্পটে accuracy অনির্ভরযোগ্য, তাই "explore" এ রাখি
+
+  const statsRes = await pool.query(`
+    SELECT q.subject, q.topic,
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE qa.is_correct)::int AS correct,
+      MAX(qa.attempted_at) AS last_attempt
+    FROM question_attempts qa
+    JOIN questions q ON q.id = qa.question_id
+    WHERE qa.user_id = $1 AND q.topic IS NOT NULL AND q.topic <> ''
+    GROUP BY q.subject, q.topic
+  `, [req.user.id]);
+
+  const bankRes = await pool.query(`
+    SELECT subject, topic, COUNT(*)::int AS bank_count
+    FROM questions
+    WHERE topic IS NOT NULL AND topic <> ''
+    GROUP BY subject, topic
+  `);
+
+  const statsByKey = new Map(statsRes.rows.map(r => [`${r.subject}::${r.topic}`, r]));
+
+  const weak = [];
+  const unexplored = [];
+  for (const b of bankRes.rows) {
+    const key = `${b.subject}::${b.topic}`;
+    const s = statsByKey.get(key);
+    if (!s || s.total < MIN_ATTEMPTS) {
+      unexplored.push({ subject: b.subject, topic: b.topic, bank_count: b.bank_count, attempts: s ? s.total : 0 });
+    } else {
+      weak.push({
+        subject: b.subject, topic: b.topic, bank_count: b.bank_count,
+        attempts: s.total, accuracy: Math.round((s.correct / s.total) * 100),
+        last_attempt: s.last_attempt,
+      });
+    }
+  }
+  weak.sort((a, b) => a.accuracy - b.accuracy);
+
+  res.json({
+    weak_topics: weak.slice(0, 10),
+    unexplored_topics: unexplored.slice(0, 10),
+  });
+}));
+
+// GET /api/exams/public/weak-topic-practice — weak-topics এর accuracy দিয়ে
+// ওয়েটেড র‍্যান্ডম প্র্যাকটিস এক্সাম বানায় (দুর্বল টপিক থেকে বেশি প্রশ্ন)।
+// একদম নতুন/কম-অ্যাটেম্পটেড টপিককেও মাঝারি ওয়েট দেওয়া হয় (explore), যাতে
+// শুধু পুরনো ভুলেই আটকে না থেকে নতুন টপিকও কভার হয়।
+router.get('/public/weak-topic-practice', requireUser, asyncHandler(async (req, res) => {
+  let count = parseInt(req.query.count, 10);
+  if (!Number.isFinite(count) || count < 5) count = 15;
+  if (count > 30) count = 30;
+
+  const client = await pool.connect();
+  try {
+    const statsRes = await client.query(`
+      SELECT q.subject, q.topic,
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE qa.is_correct)::int AS correct
+      FROM question_attempts qa
+      JOIN questions q ON q.id = qa.question_id
+      WHERE qa.user_id = $1 AND q.topic IS NOT NULL AND q.topic <> ''
+      GROUP BY q.subject, q.topic
+    `, [req.user.id]);
+
+    const bankRes = await client.query(`
+      SELECT subject, topic, COUNT(*)::int AS bank_count
+      FROM questions
+      WHERE topic IS NOT NULL AND topic <> ''
+      GROUP BY subject, topic
+    `);
+    if (!bankRes.rows.length) {
+      return res.status(404).json({ error: 'এখনো কোনো টপিক-ট্যাগড প্রশ্ন যোগ করা হয়নি' });
+    }
+
+    const statsByKey = new Map(statsRes.rows.map(r => [`${r.subject}::${r.topic}`, r]));
+    const EXPLORE_WEIGHT = 0.6; // অ্যাটেম্পট না থাকা টপিকের জন্য ডিফল্ট ওয়েট
+    const weighted = bankRes.rows.map(b => {
+      const s = statsByKey.get(`${b.subject}::${b.topic}`);
+      const weight = (!s || s.total < 3) ? EXPLORE_WEIGHT : Math.max(0.1, 1 - s.correct / s.total);
+      return { subject: b.subject, topic: b.topic, bankCount: b.bank_count, weight };
+    });
+    const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
+
+    let remaining = count;
+    const allocation = weighted.map((w, i) => {
+      const isLast = i === weighted.length - 1;
+      const share = isLast ? remaining : Math.min(remaining, Math.max(0, Math.round((w.weight / totalWeight) * count)));
+      remaining -= share;
+      return { subject: w.subject, topic: w.topic, take: Math.min(share, w.bankCount) };
+    }).filter(a => a.take > 0);
+
+    let questionIds = [];
+    for (const a of allocation) {
+      const qRes = await client.query(
+        `SELECT id FROM questions WHERE subject=$1 AND topic=$2 ORDER BY RANDOM() LIMIT $3`,
+        [a.subject, a.topic, a.take]
+      );
+      questionIds.push(...qRes.rows.map(r => r.id));
+    }
+    if (questionIds.length < count) {
+      const topUp = await client.query(
+        `SELECT id FROM questions WHERE topic IS NOT NULL AND topic <> '' AND id != ALL($1::int[]) ORDER BY RANDOM() LIMIT $2`,
+        [questionIds.length ? questionIds : [0], count - questionIds.length]
+      );
+      questionIds.push(...topUp.rows.map(r => r.id));
+    }
+    for (let i = questionIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [questionIds[i], questionIds[j]] = [questionIds[j], questionIds[i]];
+    }
+
+    await client.query('BEGIN');
+    const serial = 'EH-WT-' + Math.floor(1000 + Math.random() * 9000);
+    const durationMinutes = Math.max(5, questionIds.length);
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, duration_minutes, status, serial, is_practice)
+       VALUES ($1,'model',$2,'active',$3,true) RETURNING *`,
+      ['দুর্বল টপিক প্র্যাকটিস', durationMinutes, serial]
     );
     const exam = examResult.rows[0];
     for (let i = 0; i < questionIds.length; i++) {
