@@ -672,3 +672,27 @@ CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
 -- than reusing model_test_limit so an admin can set a different quota for
 -- written vs MCQ model tests on the same package. NULL = unlimited.
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS written_test_limit INTEGER;
+
+-- ===================== জব সলুশন বিশ্লেষণ সিস্টেম =====================
+-- Product decision (2026-09): টপিকভিত্তিক জব সলুশন এতদিন শুধু "পড়া হয়েছে"
+-- (question_reads) ট্র্যাক করত — কে সঠিক/ভুল করলো তার কোনো রেকর্ড ছিল না,
+-- তাই সাবজেক্ট/টপিক-ভিত্তিক accuracy, দুর্বল টপিক শনাক্তকরণ, বা percentile
+-- র‍্যাংকিং কোনোটাই বের করার উপায় ছিল না। এই টেবিলটা সেই ফাঁক পূরণ করে:
+-- routes/questions.routes.js-এর নতুন POST /public/attempt এন্ডপয়েন্ট প্রতিটা
+-- ট্যাপ-করা উত্তর এখানে লগ করবে (রিডিং মোডকে "ট্যাপ করে চেক করো" মোডে
+-- বদলে দিয়ে)। একই প্রশ্নে বারবার attempt রাখা ইচ্ছাকৃত (UNIQUE constraint
+-- নেই) — একজন ছাত্র একই প্রশ্ন দ্বিতীয়বার ঠিক করলে সেটাই ৭-দিনের
+-- ট্রেন্ড/উন্নতি গ্রাফে ধরা পড়বে।
+CREATE TABLE IF NOT EXISTS question_attempts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  selected_option CHAR(1) NOT NULL CHECK (selected_option IN ('A','B','C','D')),
+  is_correct BOOLEAN NOT NULL,
+  attempted_at TIMESTAMP DEFAULT NOW()
+);
+-- (user_id, attempted_at): ড্যাশবোর্ডের ৭-দিনের ট্রেন্ড আর per-user analysis
+-- কোয়েরি দুটোই এই অর্ডারেই স্ক্যান করবে।
+CREATE INDEX IF NOT EXISTS idx_question_attempts_user_time ON question_attempts(user_id, attempted_at);
+-- answer-stats-এর মতো প্রশ্ন-ভিত্তিক agregation (কতজন ভুল করলো) দরকার হলে কাজে লাগবে।
+CREATE INDEX IF NOT EXISTS idx_question_attempts_question ON question_attempts(question_id);
