@@ -3798,6 +3798,7 @@
       else if(TOPIC_NAV.level === 'all'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       else if(TOPIC_NAV.level === 'importance'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
+      else if(TOPIC_NAV.level === 'analysis'){ TOPIC_NAV = {level:'subjects'}; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -4265,6 +4266,7 @@
     if(TOPIC_NAV.level === 'subtopics'){ renderSubtopicListScreen(); return; }
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
     if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
+    if(TOPIC_NAV.level === 'analysis'){ renderJobAnalysisScreen(); return; }
 
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -4298,7 +4300,8 @@
       <div class="tj-banner">
         <div class="tj-banner-stat" style="background:${TJ_PALETTE[0].fill}"><div class="tj-banner-num">${toBnDigits(totalQuestions)}</div><div class="tj-banner-label">মোট প্রশ্ন</div></div>
         <div class="tj-banner-stat" style="background:${TJ_PALETTE[1].fill}"><div class="tj-banner-num">${toBnDigits(overallPct)}%</div><div class="tj-banner-label">মোট অগ্রগতি</div></div>
-      </div>`;
+      </div>
+      <button class="tj2-pill primary" style="width:100%; margin:10px 0 4px;" onclick="openJobAnalysis()">📊 আমার বিশ্লেষণ দেখুন</button>`;
 
     listEl.innerHTML = bannerHtml + TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
   }
@@ -4368,6 +4371,76 @@
 
   // Turns a subject name into a safe DOM-id fragment (subjects are Bengali
   // text, not identifier-safe on their own).
+  function openJobAnalysis(){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    TOPIC_NAV = {level:'analysis'};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  // জব সলুশন বিশ্লেষণ স্ক্রিন — GET /api/questions/public/topic-job-analysis
+  // থেকে সাবজেক্ট-ভিত্তিক মাস্টারি লেভেল (raw % না — দেখুন utils/masteryLevel.js),
+  // percentile, আর গত ৭ দিনের ট্রেন্ড দেখায়। সাথে action-plan থেকে আজকের
+  // ডিউ-কার্ড কাউন্ট। বিদ্যমান tj2- ক্লাস/প্যালেট পুনর্ব্যবহার করা হয়েছে যাতে
+  // বাকি টপিকভিত্তিক জব সলুশনের সাথে ভিজ্যুয়ালি মিশে যায়।
+  async function renderJobAnalysisScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = '';
+    heading.textContent = 'আমার বিশ্লেষণ';
+    subtext.textContent = 'সাবজেক্ট-ভিত্তিক মাস্টারি ও দুর্বল টপিক';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data, plan;
+    try{
+      [data, plan] = await Promise.all([
+        apiGetAuth('/api/questions/public/topic-job-analysis'),
+        apiGetAuth('/api/questions/public/action-plan?limit=5')
+      ]);
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+      return;
+    }
+
+    if(!data.subjects.length){
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো প্রশ্নের উত্তর দাওনি — কিছু প্রশ্ন প্র্যাকটিস করলে এখানে বিশ্লেষণ দেখা যাবে।</div>';
+      return;
+    }
+
+    const statsHtml = `
+      <div class="tj-banner">
+        <div class="tj-banner-stat" style="background:${TJ_PALETTE[3].fill}"><div class="tj-banner-num">${data.percentile !== null ? 'টপ '+toBnDigits(100-data.percentile)+'%' : '—'}</div><div class="tj-banner-label">পিয়ার র‍্যাংক</div></div>
+        <div class="tj-banner-stat" style="background:${TJ_PALETTE[0].fill}"><div class="tj-banner-num">${toBnDigits(plan.due_count)}</div><div class="tj-banner-label">আজ রিভিশন ডিউ</div></div>
+      </div>`;
+
+    const subjectsHtml = data.subjects.map(s=>{
+      const st = tjStyleFor(s.subject);
+      const weakTopic = s.topics.filter(t=>t.topic).sort((a,b)=>(a.accuracy??999)-(b.accuracy??999))[0];
+      return `
+      <div class="tj2-card">
+        <div class="tj2-card-top">
+          <div class="tj2-card-name">${escapeHtml(s.subject)}</div>
+          <div style="background:${st.bg}; color:${st.text}; font-size:12px; padding:4px 10px; border-radius:20px; font-weight:500;">${escapeHtml(s.label)}</div>
+        </div>
+        <div class="tj2-meta">${s.accuracy !== null ? toBnDigits(s.correct)+'টির মধ্যে '+toBnDigits(s.attempted)+'টি চেষ্টায় '+toBnDigits(s.correct)+'টি সঠিক' : ''}</div>
+        ${weakTopic && weakTopic.attempted >= 3 ? `<div class="tj2-meta" style="margin-top:6px;">দুর্বলতম: <b>${escapeHtml(weakTopic.topic)}</b> (${escapeHtml(weakTopic.label)})</div>` : ''}
+        <div class="tj2-btn-row">
+          <button class="tj2-pill primary" onclick='openTopicSubject(${JSON.stringify(s.subject)})'>প্র্যাকটিস করো</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const planHtml = plan.items.length ? `
+      <div class="tj2-card">
+        <div class="tj2-card-top"><div class="tj2-card-name">আজকের অ্যাকশন প্ল্যান</div></div>
+        ${plan.items.map(it=>`<div class="tj2-meta" style="margin-top:4px;">• ${escapeHtml(it.topic || it.subject)}</div>`).join('')}
+      </div>` : '';
+
+    listEl.innerHTML = statsHtml + planHtml + subjectsHtml;
+  }
+
   function cssId(str){
     return String(str).split('').map(c=>c.charCodeAt(0)).join('');
   }
@@ -4733,7 +4806,18 @@
     });
     const chk = document.getElementById('tq-chk-'+qid);
     if(chk && !chk.checked) chk.checked = true;
-    markTopicQuestionRead(qid);
+    submitTopicAttempt(qid, key);
+  }
+
+  // জব সলুশন বিশ্লেষণ সিস্টেম — প্রতিটা ট্যাপ-করা উত্তর এখন এখানে লগ হয়
+  // (আগে শুধু mark-read কল হতো, correct/wrong কোথাও সেভ হতো না)। সার্ভার
+  // read-mark নিজেই করে দেয় (POST /public/attempt), তাই আলাদা mark-read কল
+  // আর লাগছে না। ভুল হলে ব্যাকএন্ড নিজে থেকেই রিভিশন ডেকে যোগ করে দেয়।
+  function submitTopicAttempt(qid, selected){
+    if(!USER_TOKEN) return;
+    apiAuth('/api/questions/public/attempt', 'POST', { question_id: qid, selected_option: selected })
+      .then(()=>{ TOPIC_SUBJECTS_CACHE = null; })
+      .catch(()=>{});
   }
 
   // Best-effort progress tracking for the subject card's ring — fires once
