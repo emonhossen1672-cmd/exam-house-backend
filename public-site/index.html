@@ -1648,16 +1648,16 @@
     </div>
 
     <div id="home-normal-content">
-    <div class="hero-ticket">
-      <div class="hero-fold">গ্রেড ১১–২০ আর্কাইভ</div>
+    <div class="hero-ticket" id="home-hero-banner">
+      <div class="hero-fold">🎯 জোন এনালাইসিস</div>
       <div class="home-streak-pill" id="home-streak-pill" style="display:none;"><span id="home-streak-num">০</span><span class="streak-label">দিন স্ট্রিক</span></div>
-      <div class="hero-eyebrow">কঠিন প্রস্তুতি · সহজ জয়</div>
-      <div class="hero-title">যে প্রশ্ন একবার এসেছে,<br>সে বারবার ফিরে আসে</div>
-      <div class="hero-sub">বিভিন্ন মন্ত্রণালয় ও অধিদপ্তরে ইতিপূর্বে আসা গ্রেড ১১–২০ নিয়োগ পরীক্ষার প্রশ্নের ভিত্তিতে লাইভ পরীক্ষা ও মডেল টেস্ট দিন।</div>
+      <div class="hero-eyebrow">তোমার দুর্বল জায়গা, AI বলে দেবে</div>
+      <div class="hero-title" id="hero-banner-title">কোথায় দুর্বল, কোথায় স্ট্রং — নিজেই জেনে নাও</div>
+      <div class="hero-sub" id="hero-banner-sub">মাত্র ১০টা প্রশ্নের একটা কুইজ দাও, সাথে সাথে জেনে যাও তোমার কোন কোন জোনে বেশি সময় দেওয়া দরকার।</div>
       <div class="hero-stub">
-        <div class="hero-stat"><b id="stat-total">—</b><span>মোট পরীক্ষা</span></div>
-        <div class="hero-stat"><b id="stat-live">—</b><span>লাইভ পরীক্ষা</span></div>
-        <button class="hero-cta" onclick="goScreen('live')">লাইভ পরীক্ষা দেখুন</button>
+        <div class="hero-stat"><b id="hero-banner-stat1">—</b><span id="hero-banner-stat1-label">প্রস্তুতি</span></div>
+        <div class="hero-stat"><b id="hero-banner-stat2">—</b><span id="hero-banner-stat2-label">চিহ্নিত জোন</span></div>
+        <button class="hero-cta" id="hero-banner-cta" onclick="openZoneFromHome()">শুরু করো</button>
       </div>
       <div class="hero-barcode" aria-hidden="true">
         <i style="width:3px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:1px"></i><i style="width:1px"></i><i style="width:4px"></i><i style="width:3px"></i><i style="width:2px"></i><i style="width:4px"></i><i style="width:2px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:4px"></i><i style="width:2px"></i><i style="width:3px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:3px"></i><i style="width:1px"></i>
@@ -1684,7 +1684,6 @@
       </div>
     </div>
 
-    <div id="home-progress-wrap"></div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
@@ -2608,8 +2607,7 @@
     document.getElementById('revision-trigger-btn').style.display = 'none';
     showAuthForm('login');
     renderHomePackagePromo(); // drop the "সক্রিয় প্যাকেজ" framing back to the guest/discount card
-    const progWrap = document.getElementById('home-progress-wrap');
-    if(progWrap) progWrap.innerHTML = ''; // guest has no progress to show
+    loadHeroZoneBanner(); // reset হিরো ব্যানারকে guest কপিতে ফিরিয়ে দেয়
   }
 
   // ---------- Trend chart: last N scores as a small SVG line chart ----------
@@ -2680,7 +2678,7 @@
       refreshBookmarkTrigger();
       refreshAchievementsBadge();
       renderHomePackagePromo(); // reflect login / a just-approved package on the home card
-      loadProgressOverview();
+      loadHeroZoneBanner();
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
@@ -4650,6 +4648,23 @@
     window.scrollTo(0,0);
   }
 
+  // হোমপেজের হিরো ব্যানার থেকে সরাসরি জোন এনালাইসিসে যাওয়ার শর্টকাট — এখান
+  // থেকে screen-model তখনো active না, তাই openZoneAnalysis()-এর মতো শুধু
+  // renderModelScreen() কল করলে কিছু দেখা যাবে না; আগে screen-model-এ
+  // switch করে "টপিকভিত্তিক জব সলুশন" মোডে বসিয়ে তারপর zone level রেন্ডার করা হয়।
+  function openZoneFromHome(){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    goScreen('model');
+    MODEL_MODE = 'topic';
+    document.getElementById('mode-btn-ministry').classList.remove('active');
+    document.getElementById('mode-btn-practice').classList.remove('active');
+    document.getElementById('mode-btn-topic').classList.add('active');
+    document.getElementById('mode-btn-duel').classList.remove('active');
+    TOPIC_NAV = {level:'zone'};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
   // জোন এনালাইসিস স্ট্যাটাস অনুযায়ী রঙ — TJ_PALETTE-এর বিদ্যমান রঙ পুনর্ব্যবহার
   // করা হয়েছে, যাতে বাকি স্ক্রিনের সাথে ভিজ্যুয়ালি মেলে।
   const ZONE_STATUS_COLOR = {
@@ -4739,6 +4754,53 @@
 
   function setZoneSourceFilter(key){ ZONE_FILTER.source = key; renderZoneScreen(); }
   function setZoneStatusFilter(key){ ZONE_FILTER.status = key; renderZoneScreen(); }
+
+  // হোমপেজের টপ ব্যানার — আগে যেখানে স্ট্যাটিক "গ্রেড ১১-২০ আর্কাইভ" মার্কেটিং
+  // কপি ছিল, এখন সেখানে প্রতিটা ছাত্রের নিজের জোন-এনালাইসিস অবস্থা দেখানো হয়:
+  // - লগইন না থাকলে জেনেরিক CTA (openZoneAnalysis() নিজেই লগইন ফর্মে পাঠাবে)
+  // - কুইজ এখনো না দেওয়া থাকলে "শুরু করো" CTA
+  // - কুইজ দেওয়া থাকলে আসল প্রস্তুতি% + সবচেয়ে দুর্বল জোনের নাম, যাতে ব্যানারটা
+  //   প্রতিদিন একই মার্কেটিং কপি না দেখিয়ে ছাত্রের বাস্তব অবস্থা দেখায়।
+  async function loadHeroZoneBanner(){
+    const titleEl = document.getElementById('hero-banner-title');
+    const subEl = document.getElementById('hero-banner-sub');
+    const stat1 = document.getElementById('hero-banner-stat1');
+    const stat1Label = document.getElementById('hero-banner-stat1-label');
+    const stat2 = document.getElementById('hero-banner-stat2');
+    const stat2Label = document.getElementById('hero-banner-stat2-label');
+    const cta = document.getElementById('hero-banner-cta');
+    if(!titleEl) return;
+
+    if(!USER_TOKEN){
+      titleEl.textContent = 'কোথায় দুর্বল, কোথায় স্ট্রং — নিজেই জেনে নাও';
+      subEl.textContent = 'লগইন করে মাত্র ১০টা প্রশ্নের কুইজ দাও, সাথে সাথে জেনে যাও তোমার কোন জোনে বেশি সময় দেওয়া দরকার।';
+      stat1.textContent = '—'; stat1Label.textContent = 'প্রস্তুতি';
+      stat2.textContent = '—'; stat2Label.textContent = 'চিহ্নিত জোন';
+      cta.textContent = 'লগইন করো';
+      return;
+    }
+
+    try{
+      const data = await apiGetAuth('/api/zone/analysis');
+      stat2Label.textContent = 'চিহ্নিত জোন';
+      if(!data.total_questions_practiced){
+        titleEl.textContent = 'তোমার দুর্বল জোন এখনো অজানা';
+        subEl.textContent = 'মাত্র ১০টা প্রশ্নের একটা কুইজ দাও, সাথে সাথে জেনে যাও তোমার কোন কোন জোনে বেশি সময় দেওয়া দরকার।';
+        stat1.textContent = '—'; stat1Label.textContent = 'প্রস্তুতি';
+        stat2.textContent = '—';
+        cta.textContent = 'শুরু করো';
+      } else {
+        const weakest = data.zones.slice().sort((a,b)=>a.accuracy-b.accuracy)[0];
+        titleEl.textContent = `তোমার প্রস্তুতি ${toBnDigits(data.readiness_percent)}% — এখন ফোকাস করো ${weakest.zone}-এ`;
+        subEl.textContent = `${toBnDigits(data.marked_zone_count)}টা জোন চিহ্নিত করা হয়েছে যেখানে আরও প্র্যাকটিস দরকার — বিস্তারিত দেখে নাও।`;
+        stat1.textContent = toBnDigits(data.readiness_percent)+'%'; stat1Label.textContent = 'প্রস্তুতি';
+        stat2.textContent = toBnDigits(data.marked_zone_count);
+        cta.textContent = 'বিশ্লেষণ দেখো';
+      }
+    }catch(err){
+      // চুপচাপ আগের/ডিফল্ট কপি রেখে দেওয়া হয় — হোমপেজ লোড আটকানো ঠিক না।
+    }
+  }
 
   // ১০ প্রশ্নের জোন-কুইজ শুরু — POST /api/zone/start থেকে exam_id পেয়ে
   // বিদ্যমান exam-taking overlay-ই ব্যবহার করা হয় (নতুন কোনো UI বানাতে হয়নি)।
@@ -5997,8 +6059,6 @@
       // same underlying questions the admin already uploaded, so counting
       // them here would double-count the same content.
       const uploadedExams = all.filter(e=>!e.is_daily && !e.is_practice && !e.is_duel && !e.is_auto_subject && !e.is_repeated_bank);
-      document.getElementById('stat-total').textContent = toBnDigits(uploadedExams.length);
-      document.getElementById('stat-live').textContent = toBnDigits(live.length);
       // হোমপেজ স্ট্রিপ শুধু এই মুহূর্তে সত্যিকারের লাইভ থাকা এক্সাম দেখাবে —
       // শুরু না হওয়া বা শেষ হয়ে যাওয়া live-type এক্সাম বাদ, খালি থাকলে খালি থাকবে।
       const currentlyLive = live.filter(e => examStatus(e).live);
@@ -6010,7 +6070,7 @@
       startHomeLiveTicker(live);
       refreshHomeLiveDots();
       loadHomePackagePromo();
-      loadProgressOverview();
+      loadHeroZoneBanner();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
