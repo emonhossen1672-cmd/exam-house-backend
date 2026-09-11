@@ -609,8 +609,8 @@ router.post('/public/attempt', requireUser, asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   await pool.query(
-    `INSERT INTO question_attempts (user_id, question_id, selected_option, is_correct)
-     VALUES ($1,$2,$3,$4)`,
+    `INSERT INTO question_attempts (user_id, question_id, selected_option, is_correct, source)
+     VALUES ($1,$2,$3,$4,'qbank')`,
     [userId, questionId, selected, isCorrect]
   );
   await pool.query(
