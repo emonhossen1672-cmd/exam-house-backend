@@ -321,6 +321,9 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(use
 -- this one is a single always-on daily nudge.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS push_daily_quiz_opt_in BOOLEAN NOT NULL DEFAULT false;
 
+-- হোমপেজ "তোমার অগ্রগতি" সেকশনের প্র্যাকটিস-হিটম্যাপ উইজেটের সাপ্তাহিক লক্ষ্য।
+ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_question_goal INTEGER NOT NULL DEFAULT 200;
+
 -- Guards against sending the daily quiz push more than once on the same day
 -- (services/dailyQuizPush.js checks/inserts this before blasting). One row
 -- per calendar date it was actually sent on.
