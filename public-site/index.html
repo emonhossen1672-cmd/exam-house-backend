@@ -947,6 +947,45 @@
   .rev-explain{ margin-top:12px; }
   .rev-explain-badge{ display:inline-block; font-family:'Noto Sans Bengali'; font-weight:700; background:var(--gold-soft); color:#7A5E12; font-size:12.5px; padding:5px 13px; border-radius:20px; margin-bottom:8px; }
   .tj2-important-badge{ display:inline-block; font-family:'Noto Sans Bengali'; font-weight:700; background:var(--gold-soft); color:#7A5E12; font-size:11px; padding:2px 9px; border-radius:14px; margin-left:6px; vertical-align:middle; }
+
+  /* --- হোমপেজ "তোমার অগ্রগতি" সেকশন (journey map / readiness ring /
+     peer-rank+trend / practice heatmap) --- */
+  .prog-section{ margin:18px 0 22px; }
+  .prog-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .prog-card{ background:var(--tj2-card,var(--card)); border-radius:18px; padding:14px; box-shadow:var(--tj2-shadow,none); }
+  .prog-card-title{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:10px; }
+  .prog-card.wide{ grid-column:1/3; }
+
+  /* journey map */
+  .prog-journey-row{ display:flex; align-items:center; overflow-x:auto; gap:0; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+  .prog-journey-row::-webkit-scrollbar{ display:none; }
+  .prog-jstop{ display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:64px; }
+  .prog-jstop .pj-dot{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; border:2px solid transparent; }
+  .prog-jstop.mastered .pj-dot{ background:#E1F5EE; border-color:#1D9E75; color:#1D9E75; }
+  .prog-jstop.current .pj-dot{ background:#FFF1DD; border-color:#E0952A; color:#E0952A; cursor:pointer; }
+  .prog-jstop.locked .pj-dot{ background:var(--paper,#eee); border-color:var(--line,#ddd); color:var(--ink-faint,#999); }
+  .prog-jstop .pj-label{ font-size:9.5px; text-align:center; margin-top:4px; color:var(--ink-soft); line-height:1.25; max-width:64px; overflow-wrap:break-word; }
+  .prog-jstop .pj-line{ height:2px; width:20px; background:var(--line,#ddd); flex:0 0 auto; margin-top:-16px; }
+
+  /* readiness ring */
+  .prog-ring-wrap{ display:flex; align-items:center; gap:12px; }
+  .prog-ring-stats{ display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--ink-soft); }
+  .prog-ring-stats b{ color:var(--ink); font-weight:700; }
+  .prog-ring-num{ font-family:'Space Mono',monospace; font-size:19px; font-weight:700; fill:var(--ink); }
+
+  /* peer rank + trend */
+  .prog-peer-row{ display:flex; align-items:center; justify-content:space-between; }
+  .prog-peer-rank{ font-family:'Space Mono',monospace; font-size:20px; font-weight:700; color:#1D9E75; }
+  .prog-peer-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+
+  /* practice heatmap */
+  .prog-heat-grid{ display:grid; grid-template-columns:repeat(10, 1fr); grid-auto-flow:column; grid-template-rows:repeat(7, 1fr); gap:3px; }
+  .prog-heat-cell{ width:100%; aspect-ratio:1; border-radius:3px; background:var(--line,#e3e3e3); }
+  .prog-heat-goal{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12px; color:var(--ink-soft); }
+  .prog-heat-goal-bar{ flex:1; height:8px; border-radius:5px; background:var(--paper,#eee); overflow:hidden; }
+  .prog-heat-goal-fill{ height:100%; background:#378ADD; border-radius:5px; }
+
+  .prog-empty-card{ text-align:center; padding:18px; font-size:13px; color:var(--ink-soft); }
   .rev-explain-text{ background:var(--paper); border-radius:12px; padding:13px 14px; font-size:15px; font-weight:600; color:var(--ink); line-height:1.75; }
   .rev-explain-wrap{ margin-top:10px; }
   .rev-explain-btn{ background:none; border:1px solid var(--gold); color:var(--ink-soft); font-size:13px; padding:8px 13px; border-radius:14px; cursor:pointer; font-family:'Noto Sans Bengali'; }
@@ -1644,6 +1683,8 @@
         <div class="ls-arrow">→</div>
       </div>
     </div>
+
+    <div id="home-progress-wrap"></div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
@@ -2567,6 +2608,8 @@
     document.getElementById('revision-trigger-btn').style.display = 'none';
     showAuthForm('login');
     renderHomePackagePromo(); // drop the "সক্রিয় প্যাকেজ" framing back to the guest/discount card
+    const progWrap = document.getElementById('home-progress-wrap');
+    if(progWrap) progWrap.innerHTML = ''; // guest has no progress to show
   }
 
   // ---------- Trend chart: last N scores as a small SVG line chart ----------
@@ -2637,6 +2680,7 @@
       refreshBookmarkTrigger();
       refreshAchievementsBadge();
       renderHomePackagePromo(); // reflect login / a just-approved package on the home card
+      loadProgressOverview();
     }catch(e){
       // token expired/invalid — log out silently
       doUserLogout();
@@ -3340,6 +3384,161 @@
         <div class="hpp-arrow">→</div>
       </div>
     </div>`;
+  }
+
+  // --- হোমপেজ "তোমার অগ্রগতি" সেকশন — GET /api/questions/public/progress-overview
+  // থেকে একটাই কলে ৪টা উইজেটের ডেটা এনে দেখানো হয়: মাস্টারি জার্নি ম্যাপ,
+  // এক্সাম-রেডিনেস রিং, পিয়ার র‍্যাংক+ট্রেন্ড, প্র্যাকটিস হিটম্যাপ+সাপ্তাহিক গোল।
+  // লগইন না থাকলে সেকশনটাই দেখানো হয় না (guest-এর জন্য কোনো প্রগ্রেস নেই)।
+  async function loadProgressOverview(){
+    const wrap = document.getElementById('home-progress-wrap');
+    if(!wrap) return;
+    if(!USER_TOKEN){ wrap.innerHTML = ''; return; }
+    try{
+      const data = await apiGetAuth('/api/questions/public/progress-overview');
+      renderProgressOverview(data);
+    }catch(err){
+      wrap.innerHTML = '';
+    }
+  }
+
+  // journey map-এর "current" স্টপে ট্যাপ করলে — home screen থেকে সরাসরি
+  // startTopicSubjectQuiz() ডাকা যায় না কারণ #model-list তখনো ভিজিবল থাকে
+  // না; goHomeTopicSolution()-এর মতো আগে model screen-এ নিয়ে গিয়ে topic
+  // মোডে সেট করে তারপর ইনস্ট্যান্ট কুইজ শুরু করা হয়।
+  function homeStartSubjectQuiz(subject){
+    goScreen('model');
+    setModelMode('topic');
+    startTopicSubjectQuiz(subject);
+  }
+
+  function progressJourneyHtml(journey){
+    const stops = journey.map((j, i) => {
+      const icon = j.status === 'mastered' ? '⭐' : (j.status === 'current' ? '▶' : '🔒');
+      const tap = j.status === 'current' ? `onclick='homeStartSubjectQuiz(${JSON.stringify(j.subject)})'` : '';
+      const line = i < journey.length - 1 ? '<div class="pj-line"></div>' : '';
+      return `<div class="prog-jstop ${j.status}">
+        <div class="pj-dot" ${tap}>${icon}</div>
+        <div class="pj-label">${escapeHtml(j.subject)}</div>
+        ${line}
+      </div>`;
+    }).join('');
+    return `<div class="prog-journey-row">${stops}</div>`;
+  }
+
+  function progressRingSvg(percent){
+    const p = percent === null ? 0 : percent;
+    const r = 30, c = 2 * Math.PI * r;
+    const offset = c - (p / 100) * c;
+    const color = p >= 70 ? '#1D9E75' : (p >= 40 ? '#E0952A' : '#D85A30');
+    return `<svg width="76" height="76" viewBox="0 0 76 76">
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--paper,#eee)" stroke-width="8"/>
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="${color}" stroke-width="8"
+        stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"
+        transform="rotate(-90 38 38)"/>
+      <text x="38" y="43" text-anchor="middle" class="prog-ring-num">${percent === null ? '—' : toBnDigits(percent) + '%'}</text>
+    </svg>`;
+  }
+
+  function progressSparklineSvg(trend){
+    const vals = trend.map(t => t.accuracy).filter(v => v !== null);
+    if(vals.length < 2) return '';
+    const w = 90, h = 30;
+    const max = Math.max(...vals, 100), min = Math.min(...vals, 0);
+    const range = (max - min) || 1;
+    const step = w / (trend.length - 1);
+    const pts = trend.map((t, i) => {
+      const v = t.accuracy === null ? min : t.accuracy;
+      const y = h - ((v - min) / range) * h;
+      return `${(i * step).toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const lastPt = pts.split(' ').pop().split(',');
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <polyline points="${pts}" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="#1D9E75"/>
+    </svg>`;
+  }
+
+  function progressHeatmapHtml(heatmap){
+    const days = heatmap.days;
+    const maxCount = Math.max(1, ...days.map(d => d.count));
+    const cells = days.map(d => {
+      let bg = 'var(--line,#e3e3e3)';
+      if(d.count > 0){
+        const ratio = d.count / maxCount;
+        bg = ratio > 0.66 ? '#1D9E75' : (ratio > 0.33 ? '#5CBF9A' : '#B7E0CF');
+      }
+      return `<div class="prog-heat-cell" style="background:${bg};" title="${d.date}: ${d.count}"></div>`;
+    }).join('');
+    const goalPct = Math.min(100, Math.round((heatmap.this_week_count / (heatmap.weekly_goal || 1)) * 100));
+    return `
+      <div class="prog-heat-grid">${cells}</div>
+      <div class="prog-heat-goal">
+        <span>এই সপ্তাহের গোল</span>
+        <div class="prog-heat-goal-bar"><div class="prog-heat-goal-fill" style="width:${goalPct}%;"></div></div>
+        <span>${toBnDigits(heatmap.this_week_count)}/${toBnDigits(heatmap.weekly_goal)}</span>
+      </div>`;
+  }
+
+  function renderProgressOverview(data){
+    const wrap = document.getElementById('home-progress-wrap');
+    if(!wrap) return;
+
+    const anyData = data.journey.some(j => j.status === 'mastered') || data.readiness.percent !== null;
+    if(!anyData){
+      wrap.innerHTML = `
+        <div class="prog-section">
+          <div class="cat-section-bar"><span class="cat-bar"></span><h2>তোমার অগ্রগতি</h2></div>
+          <div class="prog-card prog-empty-card">এখনো কোনো টপিকভিত্তিক জব সলুশন প্রশ্নের উত্তর দাওনি — কিছু প্র্যাকটিস করলে এখানে জার্নি ম্যাপ, রেডিনেস, র‍্যাংক ও হিটম্যাপ দেখা যাবে।</div>
+        </div>`;
+      return;
+    }
+
+    const r = data.readiness;
+    const trendDelta = r.improvement === null ? '' :
+      (r.improvement >= 0 ? `<span style="color:#1D9E75;">▲ ${toBnDigits(Math.abs(r.improvement))}%</span>` : `<span style="color:#D85A30;">▼ ${toBnDigits(Math.abs(r.improvement))}%</span>`);
+
+    const peer = data.peer;
+    const spark = progressSparklineSvg(peer.trend);
+
+    wrap.innerHTML = `
+      <div class="prog-section">
+        <div class="cat-section-bar"><span class="cat-bar"></span><h2>তোমার অগ্রগতি</h2></div>
+
+        <div class="prog-card wide" style="margin-bottom:10px;">
+          <div class="prog-card-title">মাস্টারি জার্নি ম্যাপ</div>
+          ${progressJourneyHtml(data.journey)}
+        </div>
+
+        <div class="prog-grid">
+          <div class="prog-card">
+            <div class="prog-card-title">এক্সাম-রেডিনেস</div>
+            <div class="prog-ring-wrap">
+              ${progressRingSvg(r.percent)}
+              <div class="prog-ring-stats">
+                <span>🔥 <b>${toBnDigits(r.streak)}</b> দিন স্ট্রিক</span>
+                ${trendDelta ? `<span>এই সপ্তাহে ${trendDelta}</span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="prog-card">
+            <div class="prog-card-title">পিয়ার র‍্যাংক</div>
+            <div class="prog-peer-row">
+              <div>
+                <div class="prog-peer-rank">${peer.percentile !== null ? 'টপ '+toBnDigits(100-peer.percentile)+'%' : '—'}</div>
+                <div class="prog-peer-sub">গত ৭ দিনের ট্রেন্ড</div>
+              </div>
+              ${spark}
+            </div>
+          </div>
+
+          <div class="prog-card wide">
+            <div class="prog-card-title">প্র্যাকটিস হিটম্যাপ (গত ৭০ দিন)</div>
+            ${progressHeatmapHtml(data.heatmap)}
+          </div>
+        </div>
+      </div>`;
   }
 
   function openPackagePurchaseForm(packageId, btn){
@@ -5696,6 +5895,7 @@
       startHomeLiveTicker(live);
       refreshHomeLiveDots();
       loadHomePackagePromo();
+      loadProgressOverview();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
