@@ -3998,6 +3998,7 @@
       else if(TOPIC_NAV.level === 'importance'){ TOPIC_NAV = {level:'topics', subject:TOPIC_NAV.subject}; }
       else if(TOPIC_NAV.level === 'topics'){ TOPIC_NAV = {level:'subjects'}; TOPIC_SUBJECTS_CACHE = null; }
       else if(TOPIC_NAV.level === 'analysis'){ TOPIC_NAV = {level:'subjects'}; }
+      else if(TOPIC_NAV.level === 'zone'){ TOPIC_NAV = {level:'subjects'}; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -4466,6 +4467,7 @@
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
     if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
     if(TOPIC_NAV.level === 'analysis'){ renderJobAnalysisScreen(); return; }
+    if(TOPIC_NAV.level === 'zone'){ renderZoneScreen(); return; }
 
     const backBtn = document.getElementById('model-back-btn');
     const heading = document.getElementById('model-heading');
@@ -4500,7 +4502,8 @@
         <div class="tj-banner-stat" style="background:${TJ_PALETTE[0].fill}"><div class="tj-banner-num">${toBnDigits(totalQuestions)}</div><div class="tj-banner-label">মোট প্রশ্ন</div></div>
         <div class="tj-banner-stat" style="background:${TJ_PALETTE[1].fill}"><div class="tj-banner-num">${toBnDigits(overallPct)}%</div><div class="tj-banner-label">মোট অগ্রগতি</div></div>
       </div>
-      <button class="tj2-pill primary" style="width:100%; margin:10px 0 4px;" onclick="openJobAnalysis()">📊 আমার বিশ্লেষণ দেখুন</button>`;
+      <button class="tj2-pill primary" style="width:100%; margin:10px 0 4px;" onclick="openJobAnalysis()">📊 আমার বিশ্লেষণ দেখুন</button>
+      <button class="tj2-pill" style="width:100%; margin:0 0 4px; background:#FAEEDA; color:#854F0B;" onclick="openZoneAnalysis()">🎯 জোন এনালাইসিস — দুর্বল জোন খুঁজে বের করো</button>`;
 
     listEl.innerHTML = bannerHtml + TOPIC_SUBJECTS_CACHE.map(s=>renderTjCard(s)).join('');
   }
@@ -4638,6 +4641,118 @@
       </div>` : '';
 
     listEl.innerHTML = statsHtml + planHtml + subjectsHtml;
+  }
+
+  function openZoneAnalysis(){
+    if(!USER_TOKEN){ goScreen('history'); showAuthForm('login'); return; }
+    TOPIC_NAV = {level:'zone'};
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  // জোন এনালাইসিস স্ট্যাটাস অনুযায়ী রঙ — TJ_PALETTE-এর বিদ্যমান রঙ পুনর্ব্যবহার
+  // করা হয়েছে, যাতে বাকি স্ক্রিনের সাথে ভিজ্যুয়ালি মেলে।
+  const ZONE_STATUS_COLOR = {
+    weak: TJ_PALETTE[0],     // coral/red
+    confused: TJ_PALETTE[5], // amber
+    strong: TJ_PALETTE[6],   // green
+  };
+  let ZONE_FILTER = {source:'all', status:'all'};
+
+  // GET /api/zone/analysis: প্রথমবার কোনো ডেটা না থাকলে "জোন তৈরি করি"
+  // অনবোর্ডিং কার্ড দেখায় (১০ প্রশ্নের কুইজ শুরু করার বাটনসহ); ডেটা থাকলে
+  // Heat Map + তালিকা (সোর্স/স্ট্যাটাস ফিল্টারসহ) দেখায়।
+  async function renderZoneScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = '';
+    heading.textContent = 'জোন এনালাইসিস';
+    subtext.textContent = 'কোথায় দুর্বল, অ্যাপ নিজেই বলে দেবে';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data;
+    try{
+      const qs = new URLSearchParams({source: ZONE_FILTER.source, status: ZONE_FILTER.status});
+      data = await apiGetAuth('/api/zone/analysis?' + qs.toString());
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+      return;
+    }
+
+    if(!data.total_questions_practiced){
+      listEl.innerHTML = `
+        <div class="tj2-card" style="background:linear-gradient(135deg,#4A3FCB,#7A6FE0); color:#fff;">
+          <div style="font-weight:700; font-size:17px; margin-bottom:4px;">তোমার দুর্বল জোন খুঁজে বের করি</div>
+          <div style="opacity:.9; font-size:13px; margin-bottom:14px;">মাত্র ১০টা প্রশ্ন · ১০ মিনিট</div>
+          <button class="tj2-pill" style="background:#fff; color:#4A3FCB; width:100%;" onclick="startZoneQuiz()">শুরু করো →</button>
+        </div>
+        <div class="empty-note" style="margin-top:12px;">তুমি যেখানেই প্র্যাকটিস করো — প্রশ্নব্যাংক, ফ্ল্যাশকার্ড বা মডেল টেস্ট — সব result এখানে জোন এনালাইসিসে এসে যোগ হবে।</div>`;
+      return;
+    }
+
+    const SOURCE_TABS = [['all','সব'],['qbank','প্রশ্নব্যাংক'],['flashcard','ফ্ল্যাশকার্ড'],['model_test','মডেল টেস্ট']];
+    const STATUS_TABS = [['all','সব'],['weak','দুর্বল'],['confused','কনফিউজড'],['strong','স্ট্রং']];
+    const tabsHtml = (tabs, current, setter) => tabs.map(([key,label])=>`
+      <button class="tj2-pill${key===current?' primary':''}" style="margin:0 6px 6px 0;" onclick="${setter}('${key}')">${label}</button>`).join('');
+
+    const statsHtml = `
+      <div class="tj-banner">
+        <div class="tj-banner-stat" style="background:${TJ_PALETTE[2].fill}"><div class="tj-banner-num">${toBnDigits(data.readiness_percent)}%</div><div class="tj-banner-label">প্রস্তুতি</div></div>
+        <div class="tj-banner-stat" style="background:${TJ_PALETTE[0].fill}"><div class="tj-banner-num">${toBnDigits(data.marked_zone_count)}</div><div class="tj-banner-label">চিহ্নিত জোন</div></div>
+      </div>
+      <button class="tj2-pill" style="width:100%; margin:8px 0;" onclick="startZoneQuiz()">🔄 আবার জোন কুইজ দাও</button>
+      <div style="margin:10px 0 2px;">${tabsHtml(SOURCE_TABS, ZONE_FILTER.source, 'setZoneSourceFilter')}</div>
+      <div style="margin:0 0 10px;">${tabsHtml(STATUS_TABS, ZONE_FILTER.status, 'setZoneStatusFilter')}</div>`;
+
+    if(!data.zones.length){
+      listEl.innerHTML = statsHtml + '<div class="empty-note">এই ফিল্টারে কোনো জোন নেই।</div>';
+      return;
+    }
+
+    const heatmapHtml = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+        ${data.zones.map(z=>{
+          const c = ZONE_STATUS_COLOR[z.status_key] || TJ_PALETTE[0];
+          return `<div style="background:${c.fill}; color:#fff; border-radius:12px; padding:14px;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:8px;">${escapeHtml(z.zone)}</div>
+            <div style="font-size:22px; font-weight:700;">${toBnDigits(z.score)}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    const listHtml = data.zones.map(z=>{
+      const c = ZONE_STATUS_COLOR[z.status_key] || TJ_PALETTE[0];
+      return `
+      <div class="tj2-card">
+        <div class="tj2-card-top">
+          <div class="tj2-card-name">${escapeHtml(z.zone)}</div>
+          <div style="background:${c.bg}; color:${c.text}; font-size:12px; padding:4px 10px; border-radius:20px; font-weight:500;">${escapeHtml(z.status)}</div>
+        </div>
+        <div class="tj2-meta">${z.attempted ? toBnDigits(z.attempted)+'টি প্রশ্নের মধ্যে '+toBnDigits(z.correct)+'টি সঠিক ('+toBnDigits(z.accuracy)+'%)' : 'এখনো প্র্যাকটিস করা হয়নি'}</div>
+      </div>`;
+    }).join('');
+
+    listEl.innerHTML = statsHtml + heatmapHtml + listHtml;
+  }
+
+  function setZoneSourceFilter(key){ ZONE_FILTER.source = key; renderZoneScreen(); }
+  function setZoneStatusFilter(key){ ZONE_FILTER.status = key; renderZoneScreen(); }
+
+  // ১০ প্রশ্নের জোন-কুইজ শুরু — POST /api/zone/start থেকে exam_id পেয়ে
+  // বিদ্যমান exam-taking overlay-ই ব্যবহার করা হয় (নতুন কোনো UI বানাতে হয়নি)।
+  async function startZoneQuiz(){
+    const listEl = document.getElementById('model-list');
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">কুইজ তৈরি হচ্ছে...</div>';
+    try{
+      const data = await apiAuth('/api/zone/start', 'POST', {});
+      startExam(data.exam_id, USER_INFO.name, USER_INFO.phone);
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      alert(err.message || 'কুইজ শুরু করা যায়নি');
+    }
   }
 
   function cssId(str){
