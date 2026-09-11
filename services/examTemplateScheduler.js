@@ -42,7 +42,7 @@ async function generateFromTemplate(template, { force = false } = {}) {
   const isWritten = template.exam_type === 'written';
   const bankTable = isWritten ? 'written_questions' : 'questions';
   const { rows: qRows } = await pool.query(
-    `SELECT id FROM ${bankTable}
+    `SELECT id, topic FROM ${bankTable}
      WHERE ($1::int IS NULL OR ministry_id = $1)
        AND ($2::text IS NULL OR post_name = $2)
        AND ($3::text IS NULL OR subject = $3)
@@ -59,6 +59,16 @@ async function generateFromTemplate(template, { force = false } = {}) {
     throw new Error('রিটেন টেমপ্লেটের জন্য মূল্যায়ন পদ্ধতি (grading_mode) নির্ধারিত নেই');
   }
 
+  // Distinct, non-empty topics actually picked (template.topic pins a single
+  // one, but when it's left blank RANDOM() can span the whole subject) — same
+  // "টপিক:" list shown on routine-generated exam cards, see
+  // services/routineExamScheduler.js.
+  const uniqueTopics = [...new Set(qRows.map(q => q.topic).filter(Boolean))];
+  const bnDigit = n => String(n).replace(/[0-9]/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+  const topicsSummary = uniqueTopics.length
+    ? uniqueTopics.map((t, i) => `${bnDigit(i + 1)}. ${t}`).join('\n')
+    : null;
+
   const today = todayDateStr();
   const startTime = `${today}T${template.run_time}`;
 
@@ -68,11 +78,11 @@ async function generateFromTemplate(template, { force = false } = {}) {
     const examResult = await client.query(
       `INSERT INTO exams
          (title, type, ministry_id, post_name, subject, grade, duration_minutes, start_time,
-          serial, status, negative_marks, routine_category, exam_template_id, grading_mode)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'scheduled',$10,$11,$12,$13) RETURNING *`,
+          serial, status, negative_marks, routine_category, exam_template_id, grading_mode, topics_summary)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'scheduled',$10,$11,$12,$13,$14) RETURNING *`,
       [template.title_pattern, isWritten ? 'written' : 'live', template.ministry_id, template.post_name, template.subject,
        template.grade, template.duration_minutes, startTime, genSerial(template.exam_type),
-       template.negative_marks || 0, template.routine_category, template.id, isWritten ? template.grading_mode : null]
+       template.negative_marks || 0, template.routine_category, template.id, isWritten ? template.grading_mode : null, topicsSummary]
     );
     const exam = examResult.rows[0];
     const joinTable = isWritten ? 'exam_written_questions' : 'exam_questions';
