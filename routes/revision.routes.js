@@ -83,6 +83,14 @@ router.post('/:questionId/review', requireUser, asyncHandler(async (req, res) =>
     RETURNING question_id AS id, repetitions, ease_factor, interval_days, due_date, last_result
   `, [req.user.id, questionId, next.repetitions, next.ease_factor, next.interval_days, next.due_date, result]);
 
+  // Zone Analysis-এর "ফ্ল্যাশকার্ড" ফিল্টার ট্যাব এই সোর্স-ট্যাগ করা রো থেকেই
+  // ফ্ল্যাশকার্ড-থেকে-আসা attempt গুনে বের করে (দেখুন routes/zone.routes.js)।
+  await pool.query(
+    `INSERT INTO question_attempts (user_id, question_id, is_correct, source)
+     VALUES ($1,$2,$3,'flashcard')`,
+    [req.user.id, questionId, result === 'correct']
+  );
+
   res.json(rows[0]);
 }));
 
