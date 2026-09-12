@@ -409,6 +409,27 @@ router.get('/public/topics', asyncHandler(async (req, res) => {
   res.json({ subject, topics: rows });
 }));
 
+// GET /api/questions/public/topic-job-all-topics — every distinct
+// subject+topic combination currently tagged across all 12 টপিকভিত্তিক জব
+// সলুশন subjects, newest-added topic first (by that topic's earliest
+// question id). This is a live query, not a fixed list — so the homepage
+// টপিক প্র্যাকটিস carousel automatically shows every topic added so far,
+// and any topic added later shows up on its own with no code change.
+router.get('/public/topic-job-all-topics', asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT subject, TRIM(topic) AS topic,
+            COUNT(*)::int AS question_count,
+            COUNT(DISTINCT COALESCE(NULLIF(TRIM(subtopic), ''), $2))::int AS subtopic_count,
+            MIN(id)::int AS first_id
+     FROM questions
+     WHERE subject = ANY($1) AND TRIM(COALESCE(topic, '')) <> ''
+     GROUP BY subject, TRIM(topic)
+     ORDER BY first_id DESC`,
+    [TOPIC_JOB_SUBJECTS, UNTAGGED_SUBTOPIC]
+  );
+  res.json({ topics: rows.map(({ first_id, ...r }) => r) });
+}));
+
 // GET /api/questions/public/subtopics?subject=X&topic=Y — subtopics inside
 // one topic, each with question_count (level 3, leaf list before questions).
 router.get('/public/subtopics', asyncHandler(async (req, res) => {
