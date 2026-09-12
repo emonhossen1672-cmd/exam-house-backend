@@ -6669,6 +6669,34 @@
     openNameSheet(examId, examType);
   }
 
+  // Deep-link support: a shared/crawled link like /exam/123 or /notice/45
+  // (see routes/seo.routes.js, which also serves these paths with real
+  // per-page meta tags for search engines and link previews) opens straight
+  // to that exam or the notice board once the page's own data has loaded.
+  // Unlike the ?duel= handler below, the URL is deliberately NOT stripped
+  // afterwards — refreshing an /exam/123 link should keep reopening exam
+  // 123, since that's the whole point of it being a shareable link.
+  (function handleExamOrNoticeDeepLink(){
+    const m = location.pathname.match(/^\/exam\/(\d+)/);
+    const noticeMatch = location.pathname.match(/^\/notice\/(\d+)/);
+    if(!m && !noticeMatch) return;
+    let attempts = 0;
+    const iv = setInterval(()=>{
+      attempts++;
+      if(m && ALL_EXAMS.length){
+        clearInterval(iv);
+        const examId = parseInt(m[1], 10);
+        const exam = ALL_EXAMS.find(e => e.id === examId);
+        if(exam) openNameSheet(examId, exam.type);
+      } else if(noticeMatch && NOTICE_CACHE.length){
+        clearInterval(iv);
+        openNoticeBoard();
+      } else if(attempts > 40){ // ~10s — give up quietly, app still usable normally
+        clearInterval(iv);
+      }
+    }, 250);
+  })();
+
   // Deep-link support: a shared duel link like /?duel=a1b2c3d4 opens straight
   // to the Duel tab with the code pre-filled in the join box. Placed at the
   // end of the script (after every function/state it touches is defined) so
