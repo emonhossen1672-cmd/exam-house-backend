@@ -69,6 +69,7 @@ app.use('/api/written-answers', require('./routes/writtenAnswers.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/notices', require('./routes/notices.routes'));
 app.use('/api/packages', require('./routes/packages.routes'));
+app.use('/api/analytics', require('./routes/analytics.routes'));
 // hit by an external cron so reminders/pushes/templates fire on time even
 // if this Render free instance has spun down from inactivity — see
 // routes/internal.routes.js for setup instructions. A 5-minute cron
