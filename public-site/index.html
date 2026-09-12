@@ -4732,7 +4732,7 @@
       </div>` : '';
 
     const cards = pageQuestions.map((q, i)=>{
-      const metaParts = [q.post_name, q.exam_year ? `${toBnDigits(q.exam_year)} সাল` : null].filter(Boolean);
+      const metaParts = [q.ministry_name, q.post_name, q.exam_year ? `${toBnDigits(q.exam_year)} সাল` : null].filter(Boolean);
       const shown = WRITTEN_LIB_SHOW_ALL;
       return `
         <div class="wl-card" id="wl-q-${q.id}">
