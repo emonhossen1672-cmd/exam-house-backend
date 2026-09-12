@@ -90,6 +90,20 @@
     --tj2-rose:#B5533F;
     --tj2-shadow:6px 6px 14px rgba(150,120,70,0.25), -6px -6px 14px rgba(255,255,255,0.85);
     --tj2-shadow-inset:inset 4px 4px 8px rgba(150,120,70,0.22), inset -4px -4px 8px rgba(255,255,255,0.7);
+    /* রিটেন জব সলুশন (পড়ার লিস্ট) — সাদা, চোখের আরাম হয় এমন থিম (চ্যাটে ঠিক
+       করা, ২০২৬-০৯-১২)। .wl-* ক্লাসগুলোতে ব্যবহৃত, শুধু এই স্ক্রিনে — বাকি
+       রিডিং স্ক্রিনগুলো (rl-q-card / tj2) আগের মতোই থাকবে। খাঁটি সাদার বদলে
+       সামান্য অফ-হোয়াইট + নরম ছায়া, যাতে দীর্ঘক্ষণ পড়তে চোখে চাপ না লাগে। */
+    --wl-bg:#FFFFFF;
+    --wl-page:#F7F9FB;
+    --wl-line:#E6EBF1;
+    --wl-ink:#1E2A3D;
+    --wl-ink-soft:#5B6A82;
+    --wl-accent:#1B5FA8;
+    --wl-accent-bg:#EAF2FA;
+    --wl-answer-bg:#F3FAF6;
+    --wl-answer-line:#1F8A5F;
+    --wl-shadow:0 2px 10px rgba(30,42,61,0.06);
   }
   /* ---------- Dark mode ---------- */
   /* Only the "surface" tokens (page/card backgrounds, borders, body text)
@@ -769,6 +783,24 @@
   .rl-pager-btn{flex:1; background:var(--card); border:1.5px solid var(--line); color:var(--ink); padding:11px; border-radius:11px; font-weight:700; font-size:13px; cursor:pointer; font-family:'Noto Sans Bengali';}
   .rl-pager-btn:disabled{opacity:.4;}
   .rl-pager-info{font-size:12px; color:var(--ink-faint); white-space:nowrap; font-family:'Space Mono',monospace;}
+  /* ---------- রিটেন জব সলুশন — সাদা/চোখের আরাম কার্ড ---------- */
+  .wl-toggle-all-bar{display:flex; justify-content:flex-end; margin-bottom:12px;}
+  .wl-toggle-all-btn{
+    display:flex; align-items:center; gap:6px; background:var(--wl-accent-bg); color:var(--wl-accent);
+    border:1px solid var(--wl-line); border-radius:20px; padding:8px 16px; font-size:12.5px; font-weight:700;
+    font-family:'Noto Sans Bengali'; cursor:pointer;
+  }
+  .wl-toggle-all-btn.on{background:var(--wl-accent); color:#fff; border-color:var(--wl-accent);}
+  .wl-card{background:var(--wl-bg); border:1px solid var(--wl-line); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:var(--wl-shadow);}
+  .wl-top{display:flex; gap:10px; align-items:flex-start; margin-bottom:2px;}
+  .wl-num{font-family:'Space Mono',monospace; font-weight:700; font-size:12px; color:var(--wl-accent); background:var(--wl-accent-bg); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .wl-text{font-size:14.5px; font-weight:700; line-height:1.6; color:var(--wl-ink); padding-top:2px;}
+  .wl-meta{font-size:11px; color:var(--wl-ink-soft); font-weight:600; margin:5px 0 0 36px;}
+  .wl-toggle{
+    margin-top:10px; margin-left:36px; background:var(--wl-page); color:var(--wl-accent); border:1px solid var(--wl-line);
+    border-radius:10px; padding:8px 14px; font-size:12.5px; font-weight:700; font-family:'Noto Sans Bengali'; cursor:pointer;
+  }
+  .wl-answer{font-size:13px; color:var(--wl-ink); font-weight:500; background:var(--wl-answer-bg); border-left:3px solid var(--wl-answer-line); border-radius:8px; padding:10px 12px; margin:10px 0 0 36px; line-height:1.7;}
 
   /* ---- টপিকভিত্তিক জব সলুশন toolbar: progress ring, bulk toggles, filter tabs ---- */
   .tq-toolbar{background:var(--card); border-radius:16px; padding:14px 15px; margin-bottom:14px; box-shadow:var(--neu-shadow);}
@@ -4489,6 +4521,7 @@
   let WRITTEN_LIB_TOPICS_CACHE = null; // topics for the currently open subject
   let WRITTEN_LIB_SUBTOPICS_CACHE = null; // subtopics for the currently open topic
   let WRITTEN_LIB_ALL = []; // full (up to 300) question+answer rows for the current subject/topic/subtopic
+  let WRITTEN_LIB_SHOW_ALL = false; // "সব উত্তর দেখান" toggle — one tap reveals/hides every answer on the page
 
   async function renderWrittenLibraryScreen(){
     if(WRITTEN_LIB_NAV.level === 'topics'){ renderWrittenLibTopicsScreen(); return; }
@@ -4619,6 +4652,7 @@
     if(WRITTEN_LIB_SUBTOPICS_CACHE.length === 1){
       WRITTEN_LIB_NAV = {level:'list', subject:WRITTEN_LIB_NAV.subject, topic:WRITTEN_LIB_NAV.topic, subtopic:WRITTEN_LIB_SUBTOPICS_CACHE[0].subtopic, page:1};
       WRITTEN_LIB_ALL = [];
+      WRITTEN_LIB_SHOW_ALL = false;
       history.replaceState({drill:true}, '', location.pathname);
       renderModelScreen();
       return;
@@ -4655,6 +4689,7 @@
   function openWrittenLibSubtopicQuestions(subtopic){
     WRITTEN_LIB_NAV = {level:'list', subject:WRITTEN_LIB_NAV.subject, topic:WRITTEN_LIB_NAV.topic, subtopic, page:1};
     WRITTEN_LIB_ALL = [];
+    WRITTEN_LIB_SHOW_ALL = false;
     history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
@@ -4689,14 +4724,22 @@
     const startIdx = (page - 1) * perPage;
     const pageQuestions = WRITTEN_LIB_ALL.slice(startIdx, startIdx + perPage);
 
+    const toggleAllBar = pageQuestions.length ? `
+      <div class="wl-toggle-all-bar">
+        <button class="wl-toggle-all-btn${WRITTEN_LIB_SHOW_ALL ? ' on' : ''}" id="wl-toggle-all-btn" onclick="toggleAllWrittenLibAnswers()">
+          ${WRITTEN_LIB_SHOW_ALL ? '🙈 সব উত্তর লুকান' : '👁️ সব উত্তর দেখান'}
+        </button>
+      </div>` : '';
+
     const cards = pageQuestions.map((q, i)=>{
-      const metaParts = [q.topic, q.subtopic, q.marks ? `পূর্ণমান ${toBnDigits(q.marks)}` : null].filter(Boolean);
+      const metaParts = [q.post_name, q.exam_year ? `${toBnDigits(q.exam_year)} সাল` : null].filter(Boolean);
+      const shown = WRITTEN_LIB_SHOW_ALL;
       return `
-        <div class="rl-q-card" id="wl-q-${q.id}">
-          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startIdx + i + 1)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
-          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
-          <button class="tj2-pill" onclick="toggleWrittenLibAnswer(${q.id})" id="wl-toggle-${q.id}">উত্তর দেখুন</button>
-          <div class="rl-q-explain" style="display:none;" id="wl-ans-${q.id}">${escapeHtml(q.model_answer)}</div>
+        <div class="wl-card" id="wl-q-${q.id}">
+          <div class="wl-top"><span class="wl-num">${toBnDigits(startIdx + i + 1)}.</span><span class="wl-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="wl-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <button class="wl-toggle" onclick="toggleWrittenLibAnswer(${q.id})" id="wl-toggle-${q.id}">${shown ? 'উত্তর লুকান' : 'উত্তর দেখুন'}</button>
+          <div class="wl-answer" style="display:${shown ? 'block' : 'none'};" id="wl-ans-${q.id}">${escapeHtml(q.model_answer)}</div>
         </div>`;
     }).join('');
 
@@ -4707,13 +4750,27 @@
         <button class="rl-pager-btn" onclick="goWrittenLibPage(1)" ${page>=totalPages?'disabled':''}>পরের পৃষ্ঠা →</button>
       </div>`;
 
-    listEl.innerHTML = (pageQuestions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + pager;
+    listEl.innerHTML = (pageQuestions.length ? (toggleAllBar + cards) : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + pager;
   }
 
   function goWrittenLibPage(delta){
     WRITTEN_LIB_NAV.page = (WRITTEN_LIB_NAV.page || 1) + delta;
     renderModelScreen();
     window.scrollTo(0,0);
+  }
+
+  // এক ট্যাপে এই পৃষ্ঠার সব উত্তর দেখানো/লুকানো — বারবার প্রতিটা প্রশ্নে
+  // আলাদা করে "উত্তর দেখুন" চাপার ঝামেলা এড়াতে। প্রতিটা কার্ডের নিজস্ব
+  // দেখুন/লুকান বাটনও আলাদাভাবে কাজ করে, এটা শুধু সবগুলো একসাথে বদলে দেয়।
+  function toggleAllWrittenLibAnswers(){
+    WRITTEN_LIB_SHOW_ALL = !WRITTEN_LIB_SHOW_ALL;
+    document.querySelectorAll('.wl-answer').forEach(ans => { ans.style.display = WRITTEN_LIB_SHOW_ALL ? 'block' : 'none'; });
+    document.querySelectorAll('.wl-toggle').forEach(btn => { btn.textContent = WRITTEN_LIB_SHOW_ALL ? 'উত্তর লুকান' : 'উত্তর দেখুন'; });
+    const allBtn = document.getElementById('wl-toggle-all-btn');
+    if(allBtn){
+      allBtn.textContent = WRITTEN_LIB_SHOW_ALL ? '🙈 সব উত্তর লুকান' : '👁️ সব উত্তর দেখান';
+      allBtn.classList.toggle('on', WRITTEN_LIB_SHOW_ALL);
+    }
   }
 
   function toggleWrittenLibAnswer(qid){
