@@ -518,11 +518,15 @@ CREATE TABLE IF NOT EXISTS written_questions (
   topic VARCHAR(200),
   subtopic VARCHAR(200),
   post_name VARCHAR(200), -- kept alongside questions.post_name so exam_templates' filter query works identically for both banks
+  exam_year INTEGER, -- mirrors questions.exam_year — shown on the রিটেন জব সলুশন reading card instead of পূর্ণমান
   question_text TEXT NOT NULL,
   model_answer TEXT NOT NULL,
   marks NUMERIC(5,2) NOT NULL DEFAULT 10,
   created_at TIMESTAMP DEFAULT NOW()
 );
+-- ALTER kept alongside the CREATE for databases that already have this table
+-- from before exam_year existed (CREATE TABLE IF NOT EXISTS alone won't add it).
+ALTER TABLE written_questions ADD COLUMN IF NOT EXISTS exam_year INTEGER;
 CREATE INDEX IF NOT EXISTS idx_written_questions_subject ON written_questions(subject);
 CREATE INDEX IF NOT EXISTS idx_written_questions_topic ON written_questions(topic, subtopic);
 
