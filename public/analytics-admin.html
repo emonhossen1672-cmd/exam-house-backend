@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>অ্যানালিটিক্স ড্যাশবোর্ড</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Noto Sans Bengali", sans-serif; background:#0f1115; color:#e8e8e8; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:15px; margin:0 0 12px; }
+  p.sub { color:#9aa0a6; font-size:13px; margin:0 0 20px; }
+  .card { background:#1a1d24; border:1px solid #2a2e37; border-radius:12px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-size:13px; color:#c0c4cc; margin:10px 0 4px; }
+  input, select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #333844; background:#0f1115; color:#fff; font-size:15px; font-family:inherit; }
+  button { margin-top:14px; width:100%; padding:12px; border:none; border-radius:8px; background:#4f8cff; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333844; color:#888; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
+  .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
+  .hidden { display:none; }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; }
+  .stat-box { background:#0f1115; border:1px solid #2a2e37; border-radius:10px; padding:12px; }
+  .stat-box .num { font-size:20px; font-weight:800; color:#fff; }
+  .stat-box .lbl { font-size:11.5px; color:#9aa0a6; margin-top:2px; }
+  .stat-box .sub2 { font-size:10.5px; color:#7a8290; margin-top:2px; }
+
+  .chart-wrap { display:flex; align-items:flex-end; gap:2px; height:110px; margin-top:8px; overflow-x:auto; }
+  .chart-bar { flex:1 0 6px; min-width:6px; background:#4f8cff; border-radius:2px 2px 0 0; position:relative; }
+  .chart-bar.rev { background:#2fbf71; }
+  .chart-legend { display:flex; justify-content:space-between; font-size:10.5px; color:#7a8290; margin-top:4px; }
+
+  .funnel-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .funnel-bar-bg { flex:1; background:#0f1115; border-radius:6px; height:22px; overflow:hidden; }
+  .funnel-bar-fill { height:100%; background:#4f8cff; display:flex; align-items:center; padding-left:8px; font-size:11px; font-weight:700; color:#fff; white-space:nowrap; }
+  .funnel-lbl { width:110px; font-size:12.5px; color:#c0c4cc; flex-shrink:0; }
+
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid #2a2e37; }
+  th { color:#9aa0a6; font-weight:600; }
+
+  .days-select { display:flex; gap:8px; margin-bottom:10px; }
+  .days-select button { margin-top:0; width:auto; padding:6px 12px; font-size:12px; background:#2a2e37; }
+  .days-select button.active { background:#4f8cff; }
+</style>
+</head>
+<body>
+
+<h1>📊 অ্যানালিটিক্স ড্যাশবোর্ড</h1>
+<p class="sub">সাইন-আপ, দৈনিক অ্যাক্টিভ স্টুডেন্ট, পরীক্ষা সাবমিশন, আয় ও ফানেল — এক জায়গায়।</p>
+
+<div class="card" id="loginCard">
+  <h2>অ্যাডমিন লগইন</h2>
+  <label>ইউজারনেম</label>
+  <input id="username" type="text" autocomplete="username">
+  <label>পাসওয়ার্ড</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">লগইন করুন</button>
+  <div id="loginResult"></div>
+</div>
+
+<div id="dashWrap" class="hidden">
+  <div class="days-select" id="daysSelect">
+    <button data-days="7" onclick="setDays(7)">৭ দিন</button>
+    <button data-days="30" class="active" onclick="setDays(30)">৩০ দিন</button>
+    <button data-days="90" onclick="setDays(90)">৯০ দিন</button>
+  </div>
+
+  <div class="card">
+    <h2>ওভারভিউ</h2>
+    <div class="stat-grid" id="statGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>দৈনিক নতুন সাইন-আপ</h2>
+    <div class="chart-wrap" id="signupsChart"></div>
+    <div class="chart-legend" id="signupsLegend"></div>
+  </div>
+
+  <div class="card">
+    <h2>দৈনিক পরীক্ষা সাবমিশন</h2>
+    <div class="chart-wrap" id="submissionsChart"></div>
+    <div class="chart-legend" id="submissionsLegend"></div>
+  </div>
+
+  <div class="card">
+    <h2>দৈনিক আয় (৳)</h2>
+    <div class="chart-wrap" id="revenueChart"></div>
+    <div class="chart-legend" id="revenueLegend"></div>
+  </div>
+
+  <div class="card">
+    <h2>ফানেল</h2>
+    <div id="funnelBody"></div>
+  </div>
+
+  <div class="card">
+    <h2>সবচেয়ে বেশি অ্যাটেম্পট হওয়া পরীক্ষা</h2>
+    <table id="topExamsTable"><thead><tr><th>পরীক্ষা</th><th>অ্যাটেম্পট</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>শীর্ষ রেফারার</h2>
+    <table id="topReferrersTable"><thead><tr><th>নাম</th><th>আইডি</th><th>রেফার</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<script>
+  let token = null;
+  let currentDays = 30;
+
+  function showResult(id, ok, text) {
+    const el = document.getElementById(id);
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) return showResult('loginResult', false, 'ইউজারনেম ও পাসওয়ার্ড দিন');
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'লগইন ব্যর্থ');
+      token = data.token;
+      document.getElementById('loginCard').classList.add('hidden');
+      document.getElementById('dashWrap').classList.remove('hidden');
+      loadDashboard();
+    } catch (err) {
+      showResult('loginResult', false, err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function setDays(d){
+    currentDays = d;
+    document.querySelectorAll('#daysSelect button').forEach(b=>{
+      b.classList.toggle('active', parseInt(b.dataset.days) === d);
+    });
+    loadDashboard();
+  }
+
+  function bn(n){
+    return Number(n||0).toLocaleString('bn-BD');
+  }
+
+  function renderChart(containerId, legendId, series, cls){
+    const wrap = document.getElementById(containerId);
+    const max = Math.max(1, ...series.map(s=>s.count ?? s.amount));
+    wrap.innerHTML = series.map(s=>{
+      const v = s.count ?? s.amount;
+      const h = Math.max(2, Math.round((v/max)*100));
+      const label = `${s.date}: ${bn(v)}`;
+      return `<div class="chart-bar${cls?' '+cls:''}" style="height:${h}px" title="${label}"></div>`;
+    }).join('');
+    const legend = document.getElementById(legendId);
+    if(series.length){
+      legend.innerHTML = `<span>${series[0].date}</span><span>${series[series.length-1].date}</span>`;
+    }
+  }
+
+  function renderFunnel(funnel){
+    const total = Math.max(1, funnel.signed_up);
+    const rows = [
+      { lbl: 'সাইন-আপ', val: funnel.signed_up },
+      { lbl: 'পরীক্ষা দিয়েছে', val: funnel.took_exam },
+      { lbl: 'পেমেন্ট করেছে', val: funnel.purchased },
+    ];
+    document.getElementById('funnelBody').innerHTML = rows.map(r=>{
+      const pct = Math.round((r.val/total)*100);
+      return `<div class="funnel-row">
+        <div class="funnel-lbl">${r.lbl}</div>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:${Math.max(pct,4)}%">${bn(r.val)} (${bn(pct)}%)</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadDashboard(){
+    try{
+      const r = await fetch('/api/analytics/dashboard?days='+currentDays, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await r.json();
+      if(!r.ok) throw new Error(data.error || 'লোড করা যায়নি');
+
+      const o = data.overview;
+      document.getElementById('statGrid').innerHTML = `
+        <div class="stat-box"><div class="num">${bn(o.total_users)}</div><div class="lbl">মোট স্টুডেন্ট</div><div class="sub2">+${bn(o.new_users_7d)} (৭দিন) · +${bn(o.new_users_30d)} (৩০দিন)</div></div>
+        <div class="stat-box"><div class="num">${bn(o.dau)}</div><div class="lbl">DAU (আজ অ্যাক্টিভ)</div></div>
+        <div class="stat-box"><div class="num">${bn(o.wau)}</div><div class="lbl">WAU (৭দিন)</div></div>
+        <div class="stat-box"><div class="num">${bn(o.mau)}</div><div class="lbl">MAU (৩০দিন)</div></div>
+        <div class="stat-box"><div class="num">${bn(o.total_submissions)}</div><div class="lbl">মোট সাবমিশন</div><div class="sub2">+${bn(o.submissions_7d)} (৭দিন)</div></div>
+        <div class="stat-box"><div class="num">৳${bn(o.revenue_this_month)}</div><div class="lbl">এই মাসের আয়</div><div class="sub2">গত মাস: ৳${bn(o.revenue_last_month)}</div></div>
+        <div class="stat-box"><div class="num">৳${bn(o.revenue_all_time)}</div><div class="lbl">সর্বমোট আয়</div></div>
+        <div class="stat-box"><div class="num">${bn(o.pending_payments)}</div><div class="lbl">পেমেন্ট অনুমোদনের অপেক্ষায়</div></div>
+      `;
+
+      renderChart('signupsChart', 'signupsLegend', data.signups_by_day, '');
+      renderChart('submissionsChart', 'submissionsLegend', data.submissions_by_day, '');
+      renderChart('revenueChart', 'revenueLegend', data.revenue_by_day, 'rev');
+      renderFunnel(data.funnel);
+
+      document.querySelector('#topExamsTable tbody').innerHTML = data.top_exams.map(e=>
+        `<tr><td>${escapeHtml(e.title)}</td><td>${bn(e.attempts)}</td></tr>`
+      ).join('') || '<tr><td colspan="2">কোনো ডেটা নেই</td></tr>';
+
+      document.querySelector('#topReferrersTable tbody').innerHTML = data.top_referrers.map(r=>
+        `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.student_code||'—')}</td><td>${bn(r.referred_count)}</td></tr>`
+      ).join('') || '<tr><td colspan="3">কেউ এখনো রেফার করেনি</td></tr>';
+    }catch(err){
+      alert(err.message);
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+</script>
+</body>
+</html>
