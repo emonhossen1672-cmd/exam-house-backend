@@ -539,6 +539,24 @@
       <div class="upload-result" id="wqBulkResult" style="display:none;"></div>
 
       <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
+      <h2>CSV/Excel আপলোড</h2>
+      <div class="desc">
+        কলাম: <b>subject, question, answer</b> (আবশ্যক)। ঐচ্ছিক: ministry, grade, topic, subtopic,
+        post_name, marks। <b>topic ফাঁকা রাখলে প্রশ্নের লেখা থেকে অটোমেটিক টপিক বসানোর চেষ্টা করা হবে</b>
+        (যেমন "পদ নির্ণয়" → পদ প্রকরণ, "কারক নির্ণয়" → কারক ও বিভক্তি, "শুদ্ধ বানান লিখুন" → বানান শুদ্ধিকরণ,
+        "বাগধারা" → বাগধারা ও প্রবাদ, "Make a sentence with the idiom" → Idioms & Phrases, "Translate into
+        English" → Translation, "Fill in the blank" → Fill in the Blanks ইত্যাদি) — এভাবে একই বিষয়ের মিশ্র
+        প্রশ্ন (idiom, সমাস, কারক, বাগধারা...) নিজে নিজে আলাদা আলাদা টপিকে ভাগ হয়ে যাবে। চেনা প্যাটার্নে না পড়লে
+        topic কলামে নিজে বসিয়ে দিন।
+      </div>
+      <div class="err-box" id="wqCsvErr"></div>
+      <div class="drop-zone">
+        <input type="file" id="wqCsvFile" accept=".csv,.xlsx,.xls">
+      </div>
+      <button class="btn btn-primary" id="wqCsvBtn" style="width:auto; padding-left:26px; padding-right:26px;">আপলোড করুন</button>
+      <div class="upload-result" id="wqCsvResult" style="display:none;"></div>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid var(--line, #E4DCC6);">
       <h2>সব রিটেন প্রশ্ন</h2>
       <div class="filters">
         <input type="text" id="wq_f_search" placeholder="প্রশ্ন খুঁজুন...">
@@ -1557,6 +1575,38 @@ document.getElementById('wqBulkSubmitBtn').addEventListener('click', async () =>
     loadWrittenQuestions();
   } catch(err){
     resultBox.textContent = err.message;
+  }
+});
+
+// ---- Written question CSV/Excel upload ----
+document.getElementById('wqCsvBtn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('wqCsvFile');
+  const errBox = document.getElementById('wqCsvErr');
+  const resultBox = document.getElementById('wqCsvResult');
+  errBox.style.display = 'none';
+  resultBox.style.display = 'none';
+  if (!fileInput.files.length){
+    errBox.textContent = 'একটি ফাইল নির্বাচন করুন';
+    errBox.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('wqCsvBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    const data = await api('/api/written-questions/bulk-upload', { method: 'POST', body: fd });
+    let msg = `${data.added} টি প্রশ্ন যোগ হয়েছে।`;
+    if (data.failed) msg += `\n${data.failed} টি সারিতে সমস্যা হয়েছে:\n` + data.errors.join('\n');
+    resultBox.textContent = msg;
+    resultBox.style.display = 'block';
+    fileInput.value = '';
+    loadWrittenQuestions();
+  } catch(err){
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'আপলোড করুন';
   }
 });
 
