@@ -524,6 +524,30 @@
   .tj2-topic-card .gc-meta{ color:var(--tj2-ink-soft); opacity:1; }
   .tj2-topic-card .gc-arrow{ color:var(--tj2-teal); opacity:.85; }
 
+  /* টপিক প্র্যাকটিস — হোমপেজ ফিচার্ড কার্ড ক্যারুসেল (একই --tj2-* থিম) */
+  .tj2-fc-wrap{ margin-bottom:14px; }
+  .tj2-fc-track{ position:relative; height:150px; }
+  .tj2-fc-card{
+    position:absolute; inset:0; border-radius:20px; padding:18px;
+    background:var(--tj2-card); box-shadow:var(--tj2-shadow);
+    opacity:0; transform:translateX(14px) scale(.98);
+    transition:opacity .28s ease, transform .28s ease;
+    pointer-events:none; display:flex; flex-direction:column; justify-content:flex-end;
+    cursor:pointer;
+  }
+  .tj2-fc-card.on{ opacity:1; transform:translateX(0) scale(1); pointer-events:auto; }
+  .tj2-fc-card .tj2-fc-emoji{ position:absolute; right:16px; top:16px; font-size:38px; opacity:.55; }
+  .tj2-fc-card .tj2-fc-kicker{ font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--tj2-teal); }
+  .tj2-fc-card .tj2-fc-title{ margin:5px 0 4px; font-size:17px; font-weight:700; color:var(--tj2-ink); }
+  .tj2-fc-card .tj2-fc-sub{ margin:0 0 12px; font-size:11.5px; color:var(--tj2-ink-soft); }
+  .tj2-fc-card .tj2-fc-cta{
+    align-self:flex-start; border:none; font-family:'Noto Sans Bengali'; font-weight:700; font-size:12px;
+    color:#fff; background:var(--tj2-teal); padding:8px 15px; border-radius:10px;
+  }
+  .tj2-fc-dots{ display:flex; justify-content:center; gap:6px; margin-top:10px; }
+  .tj2-fc-dots span{ width:6px; height:6px; border-radius:50%; background:var(--tj2-line); cursor:pointer; transition:all .2s ease; }
+  .tj2-fc-dots span.on{ background:var(--tj2-teal); width:16px; border-radius:4px; }
+
   /* ---------- Live category tabs (used on লাইভ পরীক্ষা screen) ---------- */
   .live-cat-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; -webkit-overflow-scrolling:touch;}
   .live-cat-tabs::-webkit-scrollbar{display:none;}
@@ -1730,6 +1754,12 @@
       <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
       <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
       <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
+    </div>
+
+    <div class="sec-head"><h2>টপিক প্র্যাকটিস</h2><a onclick="goHomeTopicSolution()">সবগুলো →</a></div>
+    <div class="tj2-fc-wrap">
+      <div class="tj2-fc-track" id="home-topic-fc-track"></div>
+      <div class="tj2-fc-dots" id="home-topic-fc-dots"></div>
     </div>
 
     <div id="home-pkg-promo-wrap"></div>
@@ -6176,6 +6206,7 @@
       refreshHomeLiveDots();
       loadHomePackagePromo();
       loadHeroZoneBanner();
+      initHomeTopicCarousel();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
@@ -6230,6 +6261,66 @@
     goScreen('model');
     setModelMode('topic');
     if(subject) openTopicSubject(subject);
+  }
+
+  // হোমপেজ "টপিক প্র্যাকটিস" ফিচার্ড কার্ড ক্যারুসেল — অটো-ঘোরে, ডট/সোয়াইপে
+  // বদলানো যায়, কার্ডে ট্যাপ করলে সরাসরি সেই সাবজেক্টের টপিকভিত্তিক জব
+  // সলুশনে চলে যায়।
+  const HOME_TOPIC_FC_ITEMS = [
+    { emoji:'✂️', kicker:'বাংলা ব্যাকরণ', title:'সমাস', sub:'আজকের সবচেয়ে বেশি প্র্যাকটিস করা টপিক', subject:'বাংলা ব্যাকরণ' },
+    { emoji:'🔤', kicker:'ইংরেজি ব্যাকরণ', title:'Parts of Speech', sub:'পরীক্ষায় সবচেয়ে বেশি আসা ইংরেজি টপিক', subject:'ইংরেজি ব্যাকরণ' },
+    { emoji:'📐', kicker:'বাংলা ব্যাকরণ', title:'ণ-ত্ব ও ষ-ত্ব বিধান', sub:'তোমার এই টপিকে অ্যাক্যুরেসি এখনো কম', subject:'বাংলা ব্যাকরণ' },
+    { emoji:'💬', kicker:'ইংরেজি ব্যাকরণ', title:'Idioms and Phrases', sub:'নতুন যোগ হওয়া প্রশ্ন আছে এই টপিকে', subject:'ইংরেজি ব্যাকরণ' }
+  ];
+  let HOME_TOPIC_FC_IDX = 0, HOME_TOPIC_FC_TIMER = null;
+
+  function initHomeTopicCarousel(){
+    const track = document.getElementById('home-topic-fc-track');
+    const dotsWrap = document.getElementById('home-topic-fc-dots');
+    if(!track || !dotsWrap || track.dataset.ready) return;
+    track.dataset.ready = '1';
+
+    track.innerHTML = HOME_TOPIC_FC_ITEMS.map((it,i) => `
+      <div class="tj2-fc-card${i===0?' on':''}" data-i="${i}" onclick="goHomeTopicSolution(${JSON.stringify(it.subject)})">
+        <span class="tj2-fc-emoji">${it.emoji}</span>
+        <div class="tj2-fc-kicker">${escapeHtml(it.kicker)}</div>
+        <div class="tj2-fc-title">${escapeHtml(it.title)}</div>
+        <div class="tj2-fc-sub">${escapeHtml(it.sub)}</div>
+        <button class="tj2-fc-cta" onclick="event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(it.subject)})">শুরু করো</button>
+      </div>`).join('');
+    dotsWrap.innerHTML = HOME_TOPIC_FC_ITEMS.map((_,i) => `<span${i===0?' class="on"':''} onclick="homeTopicFcGoTo(${i})"></span>`).join('');
+
+    homeTopicFcResetTimer();
+
+    let startX = null;
+    track.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; });
+    track.addEventListener('touchend', e=>{
+      if(startX===null) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      if(Math.abs(dx) > 40){
+        const n = HOME_TOPIC_FC_ITEMS.length;
+        dx < 0 ? homeTopicFcGoTo((HOME_TOPIC_FC_IDX+1)%n) : homeTopicFcGoTo((HOME_TOPIC_FC_IDX-1+n)%n);
+      }
+      startX = null;
+    });
+  }
+
+  function homeTopicFcGoTo(i){
+    const track = document.getElementById('home-topic-fc-track');
+    const dotsWrap = document.getElementById('home-topic-fc-dots');
+    if(!track || !dotsWrap) return;
+    track.children[HOME_TOPIC_FC_IDX].classList.remove('on');
+    dotsWrap.children[HOME_TOPIC_FC_IDX].classList.remove('on');
+    HOME_TOPIC_FC_IDX = i;
+    track.children[HOME_TOPIC_FC_IDX].classList.add('on');
+    dotsWrap.children[HOME_TOPIC_FC_IDX].classList.add('on');
+    homeTopicFcResetTimer();
+  }
+  function homeTopicFcResetTimer(){
+    clearInterval(HOME_TOPIC_FC_TIMER);
+    HOME_TOPIC_FC_TIMER = setInterval(()=>{
+      homeTopicFcGoTo((HOME_TOPIC_FC_IDX+1)%HOME_TOPIC_FC_ITEMS.length);
+    }, 3200);
   }
 
   // ---------- লাইভ পরীক্ষা category cards (vertically stacked, same style
