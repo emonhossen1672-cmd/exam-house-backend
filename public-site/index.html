@@ -2150,6 +2150,7 @@
     <div class="name-sheet">
       <h3 id="name-sheet-title">পরীক্ষায় প্রবেশ</h3>
       <p id="name-sheet-meta" style="font-weight:600; color:var(--ink);"></p>
+      <button type="button" class="duel-btn" style="margin-bottom:14px;" onclick="shareExamLink()">📤 বন্ধুদের সাথে শেয়ার করুন</button>
       <p>ফলাফল ও মেধাতালিকায় দেখানোর জন্য আপনার নাম দিন</p>
       <label>আপনার নাম *</label>
       <input id="pname" placeholder="যেমনঃ রাকিব হাসান">
@@ -2211,6 +2212,7 @@
     </div>
     <div style="padding:0 18px 6px;">
       <button class="result-review-btn" id="result-review-btn" onclick="openReview()" style="display:none;">📖 উত্তরপত্র ও ব্যাখ্যা দেখুন</button>
+      <button class="duel-btn" style="margin-top:8px;" onclick="shareResultExamLink()">📤 বন্ধুদের চ্যালেঞ্জ করুন</button>
     </div>
     <div class="sec-head" style="margin:6px 18px 4px;"><h2>মেধা তালিকা</h2></div>
     <div class="review-list" id="merit-list"></div>
@@ -5509,6 +5511,53 @@
       prompt('কপি করুন:', text);
     }
   }
+
+  // Shares the exam currently open in the name-entry sheet as a real
+  // /exam/<id> link (see routes/seo.routes.js) — unlike a plain homepage
+  // link, this one shows the exam's own title/description as a link
+  // preview on Facebook/WhatsApp, and opens straight to this exam for
+  // whoever taps it.
+  function shareExamLink(){
+    if(!PENDING_EXAM_ID) return;
+    const exam = ALL_EXAMS.find(e=>e.id===PENDING_EXAM_ID);
+    const title = exam ? exam.title : 'এই পরীক্ষা';
+    const link = location.origin + '/exam/' + PENDING_EXAM_ID;
+    const text = `${title} — Exam House-এ ফ্রি দিন: ${link}`;
+    if(navigator.share){
+      navigator.share({ title, text, url: link }).catch(()=>{});
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text)
+        .then(()=> ehToast('লিংক কপি হয়েছে'))
+        .catch(()=> prompt('কপি করুন:', text));
+    } else {
+      prompt('কপি করুন:', text);
+    }
+  }
+
+  // Same idea as shareExamLink() above, but from the result screen — covers
+  // logged-in students too (who skip the name-entry sheet entirely, so
+  // PENDING_EXAM_ID is never set for them), using CURRENT_EXAM instead.
+  // Framed as a challenge ("try and beat my score") since that's the more
+  // natural share moment right after finishing an exam.
+  function shareResultExamLink(){
+    if(!CURRENT_EXAM || !CURRENT_EXAM.id) return;
+    const title = CURRENT_EXAM.title || 'এই পরীক্ষা';
+    const link = location.origin + '/exam/' + CURRENT_EXAM.id;
+    const scoreEl = document.getElementById('score-num');
+    const scoreTxt = scoreEl ? scoreEl.textContent.trim() : '';
+    const text = `আমি "${title}" পরীক্ষায় ${scoreTxt} পেয়েছি — তুমিও Exam House-এ ফ্রি দিয়ে দেখো: ${link}`;
+    if(navigator.share){
+      navigator.share({ title, text, url: link }).catch(()=>{});
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text)
+        .then(()=> ehToast('লিংক কপি হয়েছে'))
+        .catch(()=> prompt('কপি করুন:', text));
+    } else {
+      prompt('কপি করুন:', text);
+    }
+  }
+
+
 
   async function joinDuelByCode(){
     const codeInput = document.getElementById('duel-join-code');
