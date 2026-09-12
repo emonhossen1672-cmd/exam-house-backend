@@ -3815,6 +3815,7 @@
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     else if(mode === 'topic'){ TOPIC_NAV = {level:'subjects'}; }
     else if(mode === 'written'){ WRITTEN_NAV = {level:'ministries'}; }
+    else if(mode === 'written-library'){ WRITTEN_LIB_NAV = {level:'subjects'}; }
     renderModelScreen();
     window.scrollTo(0,0);
   }
@@ -3825,6 +3826,7 @@
     if(MODEL_MODE === 'topic'){ renderTopicScreen(); return; }
     if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
     if(MODEL_MODE === 'written'){ renderWrittenScreen(); return; }
+    if(MODEL_MODE === 'written-library'){ renderWrittenLibraryScreen(); return; }
     // Daily quiz (is_daily) and practice-mode quizzes (is_practice) are auto-generated
     // on the fly and have no real ministry — they belong only on the home "today's
     // quiz" card and inside the Practice Mode tab, not mixed into ministry-wise listing.
@@ -3929,6 +3931,7 @@
         <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>প্রশ্নব্যাংক</span></div>
         <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
         <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="goScreen('live')"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ</span></div>
+        <div class="cat-tile" style="--t-bg:#D9EAD3; --t-bd:#B9D9AE; --t-fg:#2E5E1F;" onclick="goScreen('model'); setModelMode('written-library');"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিটেন জব সলুশন (পড়ুন)</span></div>
       </div>`;
   }
 
@@ -4066,6 +4069,7 @@
     if(MODEL_MODE === 'topic') return TOPIC_NAV.level === 'subjects';
     if(MODEL_MODE === 'ministry') return MODEL_NAV.level === 'ministries';
     if(MODEL_MODE === 'written') return WRITTEN_NAV.level === 'ministries';
+    if(MODEL_MODE === 'written-library') return WRITTEN_LIB_NAV.level === 'subjects';
     return true;
   }
   function drillBackStep(){
@@ -4108,6 +4112,12 @@
     if(MODEL_MODE === 'written'){
       if(WRITTEN_NAV.level === 'exams'){ WRITTEN_NAV.level='posts'; WRITTEN_NAV.post=null; WRITTEN_NAV.grade=null; }
       else if(WRITTEN_NAV.level === 'posts'){ WRITTEN_NAV = {level:'ministries'}; }
+      renderModelScreen();
+      window.scrollTo(0,0);
+      return;
+    }
+    if(MODEL_MODE === 'written-library'){
+      WRITTEN_LIB_NAV = {level:'subjects'};
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -4451,6 +4461,125 @@
       listEl.innerHTML = prevHtml;
       alert(err.message || 'কুইজ শুরু করা যায়নি');
     }
+  }
+
+  // ---------- রিটেন জব সলুশন — reading list for written_questions (question +
+  // model_answer), no exam involved. Mirrors the MCQ reading list above:
+  // subject list -> client-side paginated 30-per-page read-through, but with
+  // a tap-to-reveal model answer instead of MCQ options (there are none here).
+  // The /public/library endpoint returns up to 300 rows in one call and has
+  // no page param, so pagination is done client-side against WRITTEN_LIB_ALL.
+  let WRITTEN_LIB_NAV = {level:'subjects'};
+  let WRITTEN_LIB_SUBJECTS_CACHE = null;
+  let WRITTEN_LIB_ALL = []; // full (up to 300) question+answer rows for the current subject
+
+  async function renderWrittenLibraryScreen(){
+    if(WRITTEN_LIB_NAV.level === 'list'){ renderWrittenLibListPage(); return; }
+
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'none';
+    heading.textContent = 'রিটেন জব সলুশন';
+    subtext.textContent = 'বিষয় বেছে নিন — প্রশ্ন ও আদর্শ উত্তর দুটোই পড়তে পারবেন';
+
+    if(!WRITTEN_LIB_SUBJECTS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        WRITTEN_LIB_SUBJECTS_CACHE = await apiGet('/api/written-questions/public/subjects');
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!WRITTEN_LIB_SUBJECTS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো রিটেন প্রশ্ন যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    listEl.innerHTML = WRITTEN_LIB_SUBJECTS_CACHE.map(s=>`
+      <div class="group-card" onclick='openWrittenLibSubject(${JSON.stringify(s.subject)})'>
+        <div class="gc-left">
+          <div class="gc-ic post">📖</div>
+          <div>
+            <div class="gc-name">${s.subject}</div>
+            <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`).join('');
+  }
+
+  function openWrittenLibSubject(subject){
+    WRITTEN_LIB_NAV = {level:'list', subject, page:1};
+    WRITTEN_LIB_ALL = [];
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderWrittenLibListPage(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = WRITTEN_LIB_NAV.subject;
+    subtext.textContent = 'রিটেন জব সলুশন';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    if(!WRITTEN_LIB_ALL.length){
+      try{
+        WRITTEN_LIB_ALL = await apiGet('/api/written-questions/public/library?subject=' + encodeURIComponent(WRITTEN_LIB_NAV.subject));
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    const perPage = 30;
+    const totalPages = Math.max(1, Math.ceil(WRITTEN_LIB_ALL.length / perPage));
+    const page = Math.min(Math.max(1, WRITTEN_LIB_NAV.page), totalPages);
+    WRITTEN_LIB_NAV.page = page;
+    const startIdx = (page - 1) * perPage;
+    const pageQuestions = WRITTEN_LIB_ALL.slice(startIdx, startIdx + perPage);
+
+    const cards = pageQuestions.map((q, i)=>{
+      const metaParts = [q.topic, q.subtopic, q.marks ? `পূর্ণমান ${toBnDigits(q.marks)}` : null].filter(Boolean);
+      return `
+        <div class="rl-q-card" id="wl-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startIdx + i + 1)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <button class="tj2-pill" onclick="toggleWrittenLibAnswer(${q.id})" id="wl-toggle-${q.id}">উত্তর দেখুন</button>
+          <div class="rl-q-explain" style="display:none;" id="wl-ans-${q.id}">${escapeHtml(q.model_answer)}</div>
+        </div>`;
+    }).join('');
+
+    const pager = `
+      <div class="rl-pager">
+        <button class="rl-pager-btn" onclick="goWrittenLibPage(-1)" ${page<=1?'disabled':''}>← আগের পৃষ্ঠা</button>
+        <span class="rl-pager-info">${toBnDigits(page)} / ${toBnDigits(totalPages)}</span>
+        <button class="rl-pager-btn" onclick="goWrittenLibPage(1)" ${page>=totalPages?'disabled':''}>পরের পৃষ্ঠা →</button>
+      </div>`;
+
+    listEl.innerHTML = (pageQuestions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + pager;
+  }
+
+  function goWrittenLibPage(delta){
+    WRITTEN_LIB_NAV.page = (WRITTEN_LIB_NAV.page || 1) + delta;
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  function toggleWrittenLibAnswer(qid){
+    const ans = document.getElementById('wl-ans-' + qid);
+    const btn = document.getElementById('wl-toggle-' + qid);
+    if(!ans) return;
+    const showing = ans.style.display !== 'none';
+    ans.style.display = showing ? 'none' : 'block';
+    if(btn) btn.textContent = showing ? 'উত্তর দেখুন' : 'উত্তর লুকান';
   }
 
   // ---------- Topic-wise Job Solution (টপিকভিত্তিক জব সলুশন) ----------
