@@ -4117,7 +4117,22 @@
       return;
     }
     if(MODEL_MODE === 'written-library'){
-      WRITTEN_LIB_NAV = {level:'subjects'};
+      if(WRITTEN_LIB_NAV.level === 'list'){
+        // যদি এই টপিকে মাত্র ১টা সাবটপিক ছিল, subtopics স্ক্রিন
+        // renderWrittenLibSubtopicsScreen() স্বয়ংক্রিয়ভাবে এড়িয়ে সরাসরি
+        // 'list'-এ চলে এসেছিল — তাই সেখানে ফিরে গেলে আবার সাথে সাথে
+        // 'list'-এ চলে আসবে (no-op মনে হবে)। সেক্ষেত্রে সরাসরি topics-এ যাও।
+        if(WRITTEN_LIB_SUBTOPICS_CACHE && WRITTEN_LIB_SUBTOPICS_CACHE.length === 1){
+          WRITTEN_LIB_NAV = {level:'topics', subject:WRITTEN_LIB_NAV.subject};
+        } else if(WRITTEN_LIB_NAV.topic){
+          WRITTEN_LIB_NAV = {level:'subtopics', subject:WRITTEN_LIB_NAV.subject, topic:WRITTEN_LIB_NAV.topic};
+        } else {
+          WRITTEN_LIB_NAV = {level:'topics', subject:WRITTEN_LIB_NAV.subject};
+        }
+      }
+      else if(WRITTEN_LIB_NAV.level === 'subtopics'){ WRITTEN_LIB_NAV = {level:'topics', subject:WRITTEN_LIB_NAV.subject}; }
+      else if(WRITTEN_LIB_NAV.level === 'topics'){ WRITTEN_LIB_NAV = {level:'subjects'}; WRITTEN_LIB_SUBJECTS_CACHE = null; }
+      else { WRITTEN_LIB_NAV = {level:'subjects'}; }
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -4471,9 +4486,13 @@
   // no page param, so pagination is done client-side against WRITTEN_LIB_ALL.
   let WRITTEN_LIB_NAV = {level:'subjects'};
   let WRITTEN_LIB_SUBJECTS_CACHE = null;
-  let WRITTEN_LIB_ALL = []; // full (up to 300) question+answer rows for the current subject
+  let WRITTEN_LIB_TOPICS_CACHE = null; // topics for the currently open subject
+  let WRITTEN_LIB_SUBTOPICS_CACHE = null; // subtopics for the currently open topic
+  let WRITTEN_LIB_ALL = []; // full (up to 300) question+answer rows for the current subject/topic/subtopic
 
   async function renderWrittenLibraryScreen(){
+    if(WRITTEN_LIB_NAV.level === 'topics'){ renderWrittenLibTopicsScreen(); return; }
+    if(WRITTEN_LIB_NAV.level === 'subtopics'){ renderWrittenLibSubtopicsScreen(); return; }
     if(WRITTEN_LIB_NAV.level === 'list'){ renderWrittenLibListPage(); return; }
 
     const backBtn = document.getElementById('model-back-btn');
@@ -4513,7 +4532,128 @@
   }
 
   function openWrittenLibSubject(subject){
-    WRITTEN_LIB_NAV = {level:'list', subject, page:1};
+    WRITTEN_LIB_NAV = {level:'topics', subject};
+    WRITTEN_LIB_TOPICS_CACHE = null;
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  // টপিক বেছে নেওয়ার স্ক্রিন — idiom, সমাস, কারক, বাগধারা ইত্যাদি প্রতিটা
+  // টপিক এখানে আলাদা কার্ড হিসেবে আসে (CSV আপলোডের সময় অটো-ডিটেক্ট হওয়া বা
+  // অ্যাডমিন হাতে বসানো টপিক অনুযায়ী), মিশ্র একটা লম্বা লিস্টের বদলে।
+  async function renderWrittenLibTopicsScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = WRITTEN_LIB_NAV.subject;
+    subtext.textContent = 'টপিক বেছে নিন';
+
+    if(!WRITTEN_LIB_TOPICS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        const data = await apiGet('/api/written-questions/public/topics?subject=' + encodeURIComponent(WRITTEN_LIB_NAV.subject));
+        WRITTEN_LIB_TOPICS_CACHE = data.topics;
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!WRITTEN_LIB_TOPICS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এই বিষয়ে এখনো কোনো প্রশ্ন যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    listEl.innerHTML = WRITTEN_LIB_TOPICS_CACHE.map(t=>`
+      <div class="group-card" onclick='openWrittenLibTopic(${JSON.stringify(t.topic)})'>
+        <div class="gc-left">
+          <div class="gc-ic post">📌</div>
+          <div>
+            <div class="gc-name">${escapeHtml(t.topic)}</div>
+            <div class="gc-meta">${toBnDigits(t.question_count)}টি প্রশ্ন · ${toBnDigits(t.subtopic_count)}টি সাবটপিক</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`).join('');
+  }
+
+  function openWrittenLibTopic(topic){
+    WRITTEN_LIB_NAV = {level:'subtopics', subject:WRITTEN_LIB_NAV.subject, topic};
+    WRITTEN_LIB_SUBTOPICS_CACHE = null;
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderWrittenLibSubtopicsScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = WRITTEN_LIB_NAV.topic;
+    subtext.textContent = WRITTEN_LIB_NAV.subject + ' · সাবটপিক বেছে নিন';
+
+    if(!WRITTEN_LIB_SUBTOPICS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        const data = await apiGet('/api/written-questions/public/subtopics?subject=' + encodeURIComponent(WRITTEN_LIB_NAV.subject)
+          + '&topic=' + encodeURIComponent(WRITTEN_LIB_NAV.topic));
+        WRITTEN_LIB_SUBTOPICS_CACHE = data.subtopics;
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!WRITTEN_LIB_SUBTOPICS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এই টপিকে এখনো কোনো প্রশ্ন যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    // মাত্র ১টা সাবটপিক থাকলে (যেমন "অন্যান্য") এই মধ্যবর্তী স্ক্রিন না
+    // দেখিয়ে সরাসরি প্রশ্নে চলে যাও।
+    if(WRITTEN_LIB_SUBTOPICS_CACHE.length === 1){
+      WRITTEN_LIB_NAV = {level:'list', subject:WRITTEN_LIB_NAV.subject, topic:WRITTEN_LIB_NAV.topic, subtopic:WRITTEN_LIB_SUBTOPICS_CACHE[0].subtopic, page:1};
+      WRITTEN_LIB_ALL = [];
+      history.replaceState({drill:true}, '', location.pathname);
+      renderModelScreen();
+      return;
+    }
+
+    const totalQuestions = WRITTEN_LIB_SUBTOPICS_CACHE.reduce((a,s)=>a+s.question_count, 0);
+    const allBtn = `
+      <div class="group-card" onclick='openWrittenLibSubtopicQuestions(null)'>
+        <div class="gc-left">
+          <div class="gc-ic post">📋</div>
+          <div>
+            <div class="gc-name">সব প্রশ্ন (এই টপিকের)</div>
+            <div class="gc-meta">${toBnDigits(totalQuestions)}টি প্রশ্ন</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`;
+
+    const cards = WRITTEN_LIB_SUBTOPICS_CACHE.map(s=>`
+      <div class="group-card" onclick='openWrittenLibSubtopicQuestions(${JSON.stringify(s.subtopic)})'>
+        <div class="gc-left">
+          <div class="gc-ic post">📌</div>
+          <div>
+            <div class="gc-name">${escapeHtml(s.subtopic)}</div>
+            <div class="gc-meta">${toBnDigits(s.question_count)}টি প্রশ্ন</div>
+          </div>
+        </div>
+        <div class="gc-arrow">›</div>
+      </div>`).join('');
+
+    listEl.innerHTML = allBtn + cards;
+  }
+
+  function openWrittenLibSubtopicQuestions(subtopic){
+    WRITTEN_LIB_NAV = {level:'list', subject:WRITTEN_LIB_NAV.subject, topic:WRITTEN_LIB_NAV.topic, subtopic, page:1};
     WRITTEN_LIB_ALL = [];
     history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
@@ -4526,13 +4666,16 @@
     const subtext = document.getElementById('model-subtext');
     const listEl = document.getElementById('model-list');
     backBtn.style.display = 'flex';
-    heading.textContent = WRITTEN_LIB_NAV.subject;
-    subtext.textContent = 'রিটেন জব সলুশন';
+    heading.textContent = WRITTEN_LIB_NAV.subtopic || WRITTEN_LIB_NAV.topic || WRITTEN_LIB_NAV.subject;
+    subtext.textContent = WRITTEN_LIB_NAV.topic ? (WRITTEN_LIB_NAV.subject + ' · ' + WRITTEN_LIB_NAV.topic) : 'রিটেন জব সলুশন';
     listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
 
     if(!WRITTEN_LIB_ALL.length){
       try{
-        WRITTEN_LIB_ALL = await apiGet('/api/written-questions/public/library?subject=' + encodeURIComponent(WRITTEN_LIB_NAV.subject));
+        let url = '/api/written-questions/public/library?subject=' + encodeURIComponent(WRITTEN_LIB_NAV.subject);
+        if(WRITTEN_LIB_NAV.topic) url += '&topic=' + encodeURIComponent(WRITTEN_LIB_NAV.topic);
+        if(WRITTEN_LIB_NAV.subtopic) url += '&subtopic=' + encodeURIComponent(WRITTEN_LIB_NAV.subtopic);
+        WRITTEN_LIB_ALL = await apiGet(url);
       }catch(err){
         listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
         return;
