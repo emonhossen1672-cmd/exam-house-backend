@@ -44,30 +44,30 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
 
 // POST /api/written-questions — add one
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { ministry_id, grade, subject, topic, subtopic, post_name, question_text, model_answer, marks } = req.body;
+  const { ministry_id, grade, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks } = req.body;
   if (!subject || !question_text || !model_answer) {
     return res.status(400).json({ error: 'বিষয়, প্রশ্ন ও আদর্শ উত্তর দিতে হবে' });
   }
   const finalTopic = resolveTopic(normalizeText(topic), question_text);
   const { rows } = await pool.query(
-    `INSERT INTO written_questions (ministry_id, grade, subject, topic, subtopic, post_name, question_text, model_answer, marks)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    `INSERT INTO written_questions (ministry_id, grade, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [ministry_id || null, grade || null, normalizeText(subject), finalTopic || null,
-     normalizeText(subtopic) || null, (post_name || '').toString().trim() || null, question_text, model_answer, marks || 10]
+     normalizeText(subtopic) || null, (post_name || '').toString().trim() || null, exam_year || null, question_text, model_answer, marks || 10]
   );
   res.status(201).json(rows[0]);
 }));
 
 // PUT /api/written-questions/:id
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { ministry_id, grade, subject, topic, subtopic, post_name, question_text, model_answer, marks } = req.body;
+  const { ministry_id, grade, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks } = req.body;
   const finalTopic = resolveTopic(normalizeText(topic), question_text);
   const { rows } = await pool.query(
     `UPDATE written_questions SET ministry_id=$1, grade=$2, subject=$3, topic=$4, subtopic=$5,
-       post_name=$6, question_text=$7, model_answer=$8, marks=$9
-     WHERE id=$10 RETURNING *`,
+       post_name=$6, exam_year=$7, question_text=$8, model_answer=$9, marks=$10
+     WHERE id=$11 RETURNING *`,
     [ministry_id || null, grade || null, normalizeText(subject), finalTopic || null,
-     normalizeText(subtopic) || null, (post_name || '').toString().trim() || null, question_text, model_answer, marks || 10, req.params.id]
+     normalizeText(subtopic) || null, (post_name || '').toString().trim() || null, exam_year || null, question_text, model_answer, marks || 10, req.params.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'প্রশ্ন পাওয়া যায়নি' });
   res.json(rows[0]);
@@ -99,10 +99,10 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
       }
       const finalTopic = resolveTopic(normalizeText(q.topic), q.question_text);
       await client.query(
-        `INSERT INTO written_questions (ministry_id, grade, subject, topic, subtopic, post_name, question_text, model_answer, marks)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        `INSERT INTO written_questions (ministry_id, grade, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
         [q.ministry_id || null, q.grade || null, normalizeText(q.subject), finalTopic || null,
-         normalizeText(q.subtopic) || null, (q.post_name || '').toString().trim() || null, q.question_text, q.model_answer, q.marks || 10]
+         normalizeText(q.subtopic) || null, (q.post_name || '').toString().trim() || null, q.exam_year || null, q.question_text, q.model_answer, q.marks || 10]
       );
       added++;
     }
@@ -119,7 +119,7 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
 // POST /api/written-questions/bulk-upload — CSV/XLSX file upload (multipart,
 // field name: file). Expected columns (header row, any order):
 //   subject, question, answer
-// Optional: ministry, grade, topic, subtopic, post_name, marks
+// Optional: ministry, grade, topic, subtopic, post_name, exam_year (or year), marks
 // `topic` left blank is auto-detected from the question text where possible
 // (see utils/topicAutoDetect.js — catches recurring patterns like "পদ
 // নির্ণয়", "কারক নির্ণয়", "শুদ্ধ বানান লিখুন", "Make a sentence with the
@@ -185,10 +185,10 @@ router.post('/bulk-upload', requireAdmin, upload.single('file'), asyncHandler(as
       const ministryId = await getMinistryId(r.ministry);
       const finalTopic = resolveTopic(normalizeText(r.topic), r.question);
       await client.query(
-        `INSERT INTO written_questions (ministry_id, grade, subject, topic, subtopic, post_name, question_text, model_answer, marks)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        `INSERT INTO written_questions (ministry_id, grade, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
         [ministryId, r.grade || null, normalizeText(r.subject), finalTopic || null, normalizeText(r.subtopic) || null,
-         r.post_name || null, r.question, r.answer, r.marks || 10]
+         r.post_name || null, r.exam_year || r.year || null, r.question, r.answer, r.marks || 10]
       );
       added++;
     }
@@ -294,7 +294,7 @@ router.get('/public/library', asyncHandler(async (req, res) => {
   }
   const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
   const { rows } = await pool.query(
-    `SELECT id, subject, topic, subtopic, question_text, model_answer, marks, created_at
+    `SELECT id, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks, created_at
      FROM written_questions ${where} ORDER BY created_at DESC LIMIT 300`,
     params
   );
