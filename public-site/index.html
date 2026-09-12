@@ -6324,52 +6324,123 @@
     }, 2600);
   }
 
-  function goHomeTopicSolution(subject){
+  // একটিমাত্র render কল করি (subject/topic ঠিক করেই TOPIC_NAV সেট করে
+  // renderModelScreen() একবার ডাকি) — আগে এখানে setModelMode('topic') (যেটা
+  // নিজে থেকেই 'subjects' লেভেল লোড করে) তারপর openTopicSubject() আলাদাভাবে
+  // ডাকা হতো; প্রথমবার টপিক জব সলুশন খোলার সময় (ক্যাশ খালি থাকলে) দুটো
+  // async fetch একসাথে চলত, আর যেটা পরে শেষ হতো সেটা স্ক্রিন ওভাররাইট করে
+  // ইউজারকে আবার সাবজেক্ট-বাছাই স্ক্রিনে ফেরত পাঠাত — তাই "শুরু করো"-তে চাপ
+  // দিলে ভিতরে টপিকে ঢুকছিল না।
+  function goHomeTopicSolution(subject, topic){
     goScreen('model');
-    setModelMode('topic');
-    if(subject) openTopicSubject(subject);
+    MODEL_MODE = 'topic';
+    document.getElementById('mode-btn-ministry').classList.remove('active');
+    document.getElementById('mode-btn-practice').classList.remove('active');
+    document.getElementById('mode-btn-topic').classList.add('active');
+    document.getElementById('mode-btn-duel').classList.remove('active');
+    if(subject && topic){
+      TOPIC_NAV = {level:'subtopics', subject, topic};
+      TOPIC_TOPICS_CACHE = null;
+      TOPIC_SUBTOPICS_CACHE = null;
+    } else if(subject){
+      TOPIC_NAV = {level:'topics', subject};
+      TOPIC_TOPICS_CACHE = null;
+    } else {
+      TOPIC_NAV = {level:'subjects'};
+    }
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
   }
 
   // হোমপেজ "টপিক প্র্যাকটিস" ফিচার্ড কার্ড ক্যারুসেল — অটো-ঘোরে, ডট/সোয়াইপে
-  // বদলানো যায়, কার্ডে ট্যাপ করলে সরাসরি সেই সাবজেক্টের টপিকভিত্তিক জব
-  // সলুশনে চলে যায়।
-  const HOME_TOPIC_FC_ITEMS = [
-    { emoji:'✂️', kicker:'বাংলা ব্যাকরণ', title:'সমাস', sub:'আজকের সবচেয়ে বেশি প্র্যাকটিস করা টপিক', subject:'বাংলা ব্যাকরণ' },
-    { emoji:'🔤', kicker:'ইংরেজি ব্যাকরণ', title:'Parts of Speech', sub:'পরীক্ষায় সবচেয়ে বেশি আসা ইংরেজি টপিক', subject:'ইংরেজি ব্যাকরণ' },
-    { emoji:'📐', kicker:'বাংলা ব্যাকরণ', title:'ণ-ত্ব ও ষ-ত্ব বিধান', sub:'তোমার এই টপিকে অ্যাক্যুরেসি এখনো কম', subject:'বাংলা ব্যাকরণ' },
-    { emoji:'💬', kicker:'ইংরেজি ব্যাকরণ', title:'Idioms and Phrases', sub:'নতুন যোগ হওয়া প্রশ্ন আছে এই টপিকে', subject:'ইংরেজি ব্যাকরণ' }
-  ];
+  // বদলানো যায়, কার্ডে ট্যাপ করলে সরাসরি সেই টপিকের ভিতরে (সাবটপিক/প্রশ্ন
+  // স্ক্রিনে) চলে যায়। কার্ডের ডেটা আর হার্ডকোড না — GET
+  // /api/questions/public/topic-job-all-topics থেকে লাইভ লোড হয়, তাই এ
+  // পর্যন্ত এড করা সব টপিক এবং ভবিষ্যতে যোগ হওয়া যেকোনো নতুন টপিকও কোনো
+  // কোড পরিবর্তন ছাড়াই আপনাআপনি এখানে পর্যায়ক্রমে দেখা যাবে।
+  let HOME_TOPIC_FC_ITEMS = [];
   let HOME_TOPIC_FC_IDX = 0, HOME_TOPIC_FC_TIMER = null;
 
-  function initHomeTopicCarousel(){
+  // বিষয় অনুযায়ী একটা fixed ইমোজি — টপিক-নির্দিষ্ট কোনো ইমোজি ডেটাবেজে
+  // নেই, তাই সাবজেক্ট দেখে একটা মানানসই আইকন বসাই (তালিকায় না থাকা কোনো
+  // সাবজেক্ট এলে 📌 ফলব্যাক)।
+  const TJ_TOPIC_EMOJI = {
+    'বাংলা ব্যাকরণ': '✂️',
+    'বাংলা সাহিত্য': '📖',
+    'ইংরেজি ব্যাকরণ': '🔤',
+    'ইংরেজি সাহিত্য': '📚',
+    'ভোকাবুলারি': '💬',
+    'গণিত': '📐',
+    'বাংলাদেশ': '🇧🇩',
+    'আন্তর্জাতিক': '🌍',
+    'বিজ্ঞান': '🔬',
+    'তথ্য ও যোগাযোগ প্রযুক্তি': '💻',
+    'ভূগোল, পরিবেশ ও ব্যবস্থাপনা': '🗺️',
+    'নৈতিকতা, মূল্যবোধ ও সুশাসন': '⚖️'
+  };
+
+  async function initHomeTopicCarousel(){
     const track = document.getElementById('home-topic-fc-track');
-    const dotsWrap = document.getElementById('home-topic-fc-dots');
-    if(!track || !dotsWrap || track.dataset.ready) return;
+    if(!track || track.dataset.ready) return;
     track.dataset.ready = '1';
 
+    try{
+      const data = await apiGet('/api/questions/public/topic-job-all-topics');
+      HOME_TOPIC_FC_ITEMS = (data.topics || []).map(t => ({
+        emoji: TJ_TOPIC_EMOJI[t.subject] || '📌',
+        kicker: t.subject,
+        title: t.topic,
+        sub: `${toBnDigits(t.question_count)}টি প্রশ্ন · ${toBnDigits(t.subtopic_count)}টি সাবটপিক`,
+        subject: t.subject
+      }));
+    }catch(err){
+      HOME_TOPIC_FC_ITEMS = [];
+    }
+    renderHomeTopicCarousel();
+  }
+
+  function renderHomeTopicCarousel(){
+    const wrap = document.querySelector('.tj2-fc-wrap');
+    const track = document.getElementById('home-topic-fc-track');
+    const dotsWrap = document.getElementById('home-topic-fc-dots');
+    if(!track || !dotsWrap) return;
+
+    if(!HOME_TOPIC_FC_ITEMS.length){
+      // কোনো টপিক এখনো এড হয়নি — পুরো ক্যারুসেল সেকশনটাই লুকিয়ে রাখি,
+      // খালি কার্ড দেখানোর চেয়ে।
+      if(wrap) wrap.style.display = 'none';
+      return;
+    }
+    if(wrap) wrap.style.display = '';
+
+    HOME_TOPIC_FC_IDX = 0;
     track.innerHTML = HOME_TOPIC_FC_ITEMS.map((it,i) => `
-      <div class="tj2-fc-card${i===0?' on':''}" data-i="${i}" onclick="goHomeTopicSolution(${JSON.stringify(it.subject)})">
+      <div class="tj2-fc-card${i===0?' on':''}" data-i="${i}" onclick="goHomeTopicSolution(${JSON.stringify(it.subject)}, ${JSON.stringify(it.title)})">
         <span class="tj2-fc-emoji">${it.emoji}</span>
         <div class="tj2-fc-kicker">${escapeHtml(it.kicker)}</div>
         <div class="tj2-fc-title">${escapeHtml(it.title)}</div>
         <div class="tj2-fc-sub">${escapeHtml(it.sub)}</div>
-        <button class="tj2-fc-cta" onclick="event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(it.subject)})">শুরু করো</button>
+        <button class="tj2-fc-cta" onclick="event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(it.subject)}, ${JSON.stringify(it.title)})">শুরু করো</button>
       </div>`).join('');
     dotsWrap.innerHTML = HOME_TOPIC_FC_ITEMS.map((_,i) => `<span${i===0?' class="on"':''} onclick="homeTopicFcGoTo(${i})"></span>`).join('');
 
     homeTopicFcResetTimer();
 
-    let startX = null;
-    track.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; });
-    track.addEventListener('touchend', e=>{
-      if(startX===null) return;
-      const dx = e.changedTouches[0].clientX - startX;
-      if(Math.abs(dx) > 40){
-        const n = HOME_TOPIC_FC_ITEMS.length;
-        dx < 0 ? homeTopicFcGoTo((HOME_TOPIC_FC_IDX+1)%n) : homeTopicFcGoTo((HOME_TOPIC_FC_IDX-1+n)%n);
-      }
-      startX = null;
-    });
+    if(!track.dataset.swipeBound){
+      track.dataset.swipeBound = '1';
+      let startX = null;
+      track.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; });
+      track.addEventListener('touchend', e=>{
+        if(startX===null) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        if(Math.abs(dx) > 40){
+          const n = HOME_TOPIC_FC_ITEMS.length;
+          dx < 0 ? homeTopicFcGoTo((HOME_TOPIC_FC_IDX+1)%n) : homeTopicFcGoTo((HOME_TOPIC_FC_IDX-1+n)%n);
+        }
+        startX = null;
+      });
+    }
   }
 
   function homeTopicFcGoTo(i){
