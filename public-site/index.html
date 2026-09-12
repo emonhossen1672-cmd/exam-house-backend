@@ -1160,7 +1160,12 @@
     transition:all .2s ease;
   }
   .qcard.answered .qnum{background:var(--gold); color:#fff;}
-  .q-text{font-family:'Baloo Da 2', 'Noto Serif Bengali', serif; font-size:18px; color:var(--ink); line-height:1.55; margin-bottom:16px;}
+  .q-text{font-family:'Baloo Da 2', 'Noto Serif Bengali', serif; font-size:18px; color:var(--ink); line-height:1.55; margin-bottom:16px; white-space:pre-wrap;}
+  .wq-part{margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed var(--line);}
+  .wq-part:last-child{margin-bottom:0; padding-bottom:0; border-bottom:none;}
+  .wq-part-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:3px;}
+  .wq-part-num{font-weight:700; color:var(--ink-faint); font-size:13px;}
+  .wq-part-marks{font-size:11px; color:var(--ink-faint); white-space:nowrap; font-family:'Space Mono',monospace;}
   .q-source-tag{
     font-family:'Space Mono',monospace; font-size:10px; color:#7A5E12;
     background:var(--gold-soft); display:inline-block; padding:4px 9px; border-radius:20px;
@@ -1261,7 +1266,7 @@
     font-size:11.5px; font-weight:700; color:var(--x-teal-ink); background:var(--x-teal-bg);
     padding:5px 11px; border-radius:20px; font-family:'Noto Sans Bengali';
   }
-  #exam-overlay .q-text{ font-family:'Noto Sans Bengali',sans-serif; font-size:15.5px; color:var(--xi); margin-bottom:16px; }
+  #exam-overlay .q-text{ font-family:'Noto Sans Bengali',sans-serif; font-size:15.5px; color:var(--xi); margin-bottom:16px; white-space:pre-wrap; }
   #exam-overlay .q-source-tag{ background:var(--x-amber-bg); color:var(--x-amber-ink); box-shadow:none; }
 
   #exam-overlay .opt{ background:var(--xb); box-shadow:var(--x-sh-sm); border:none; border-radius:16px; padding:14px 15px; margin-bottom:12px; color:var(--xi); }
@@ -3910,6 +3915,21 @@
   // অবস্থান হারিয়ে যায় না)। এই স্ক্রিনও প্রিমিয়াম — লক থাকলে পরীক্ষা খোলার
   // সময় সার্ভার থেকেই "প্যাকেজ প্রয়োজন" এরর আসবে (startExam-এর ক্যাচ ব্লক
   // দেখুন), এখানে আলাদা করে লক-আইকন দেখানো হয়নি — মডেল/লাইভ পরীক্ষাতেও হয় না।
+  // অন্যান্য পরীক্ষার সেকশনের (লাইভ/মডেল) মতো রিটেন সেকশনেও দ্রুত-অ্যাক্সেস
+  // বাটন — শুধু ল্যান্ডিং (মন্ত্রণালয় লিস্ট) ভিউতে দেখানো হয়, ড্রিল-ডাউনে না,
+  // যাতে আসল পরীক্ষার লিস্টের জায়গা কমে না যায়।
+  function writtenQuickAccessTiles(){
+    return `
+      <div class="cat-grid" style="grid-template-columns:1fr 1fr; margin-bottom:16px;">
+        <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="openCentralArchive()"><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>আর্কাইভ</span></div>
+        <div class="cat-tile" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="goScreen('history')"><span class="ct-ic"><svg class="ic"><use href="#i-check"/></svg></span><span>ফলাফল</span></div>
+        <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>পিডিএফ</span></div>
+        <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>প্রশ্নব্যাংক</span></div>
+        <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
+        <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="goScreen('live')"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ</span></div>
+      </div>`;
+  }
+
   function renderWrittenScreen(){
     const written = ALL_EXAMS.filter(e=>e.type==='written');
     const backBtn = document.getElementById('model-back-btn');
@@ -3921,7 +3941,7 @@
       backBtn.style.display='none';
       heading.textContent = 'রিটেন পরীক্ষা';
       subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
-      listEl.innerHTML = '<div class="empty-note">এখনো কোনো রিটেন পরীক্ষা যুক্ত হয়নি।</div>';
+      listEl.innerHTML = writtenQuickAccessTiles() + '<div class="empty-note">এখনো কোনো রিটেন পরীক্ষা যুক্ত হয়নি।</div>';
       return;
     }
 
@@ -3930,7 +3950,7 @@
       heading.textContent = 'রিটেন পরীক্ষা';
       subtext.textContent = 'মন্ত্রণালয় বেছে নিন';
       const groups = groupBy(written, e=>e.ministry_name || 'অন্যান্য');
-      listEl.innerHTML = [...groups.entries()].map(([name, exams])=>{
+      listEl.innerHTML = writtenQuickAccessTiles() + [...groups.entries()].map(([name, exams])=>{
         const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
         const t = tintFor(name);
         return `
@@ -6918,6 +6938,34 @@
     document.getElementById('exam-progress-count').textContent = toBnDigits(done) + ' / ' + toBnDigits(total) + ' উত্তর দেওয়া হয়েছে';
   }
 
+  // অনেক রিটেন প্রশ্ন admin একসাথে অনেকগুলো ছোট প্রশ্ন এক question_text-এ পেস্ট
+  // করে ফেলেন ("প্রশ্ন: ... উত্তর: [...] মার্ক: ৫ প্রশ্ন: ... মার্ক: ১ ...") —
+  // লাইন-ব্রেক ছাড়া হলে সেটা একটা এলোমেলো বড় প্যারাগ্রাফ হয়ে দেখায়। এই ফাংশন
+  // সেই প্যাটার্ন চিনে প্রতিটা ছোট প্রশ্নকে আলাদা, নম্বর ও মার্কসহ সাজিয়ে দেখায়;
+  // প্যাটার্ন না মিললে (স্বাভাবিক একক প্রশ্ন) শুধু লাইন-ব্রেক ঠিক রেখে দেখায়
+  // (আগে white-space:pre-wrap না থাকায় আসল লাইন-ব্রেকও হারিয়ে যেত)।
+  function formatWrittenQuestionHtml(rawText){
+    const text = (rawText || '').trim();
+    const re = /প্রশ্ন\s*:\s*([\s\S]*?)উত্তর\s*:\s*[\s\S]*?মার্ক\s*:\s*([০-৯0-9.]+)/g;
+    const parts = [];
+    let m;
+    while((m = re.exec(text)) !== null){
+      const stem = m[1].trim();
+      if(stem) parts.push({ q: stem, marks: m[2].trim() });
+    }
+    if(parts.length >= 2){
+      return parts.map((p, i) => `
+        <div class="wq-part">
+          <div class="wq-part-head">
+            <span class="wq-part-num">${toBnDigits(i+1)}.</span>
+            <span class="wq-part-marks">মার্ক: ${toBnDigits(p.marks)}</span>
+          </div>
+          <div>${escapeHtml(p.q)}</div>
+        </div>`).join('');
+    }
+    return escapeHtml(text);
+  }
+
   // ---- রিটেন (written) পরীক্ষা — টেক্সট-এরিয়া + ছবি (আপলোড বা লিংক) ভিত্তিক উত্তর ----
   function renderAllWrittenQuestions(){
     const body = document.getElementById('exam-body');
@@ -6929,7 +6977,7 @@
             <span class="qnum">${toBnDigits(qi+1)}</span><span class="q-subj-chip">${escapeHtml(q.subject)}</span>
             <span style="margin-left:auto; font-size:11px; color:var(--ink-soft);">${toBnDigits(q.marks)} মার্ক</span>
           </div>
-          <div class="q-text">${escapeHtml(q.question_text)}</div>
+          <div class="q-text">${formatWrittenQuestionHtml(q.question_text)}</div>
           <textarea id="wans-${q.id}" rows="6" placeholder="এখানে আপনার উত্তর লিখুন..."
             oninput="onWrittenAnswerInput(${q.id})"
             style="width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--paper); font-family:inherit; font-size:14.5px; color:var(--ink); resize:vertical;">${escapeHtml(draft.text||'')}</textarea>
