@@ -283,19 +283,22 @@ router.get('/public/library', asyncHandler(async (req, res) => {
   const { subject, topic, subtopic } = req.query;
   const clauses = [];
   const params = [];
-  if (subject) { params.push(subject); clauses.push(`subject = $${params.length}`); }
+  if (subject) { params.push(subject); clauses.push(`wq.subject = $${params.length}`); }
   if (topic) {
-    if (topic === UNTAGGED_TOPIC) clauses.push(`(topic IS NULL OR TRIM(topic) = '')`);
-    else { params.push(topic); clauses.push(`topic = $${params.length}`); }
+    if (topic === UNTAGGED_TOPIC) clauses.push(`(wq.topic IS NULL OR TRIM(wq.topic) = '')`);
+    else { params.push(topic); clauses.push(`wq.topic = $${params.length}`); }
   }
   if (subtopic) {
-    if (subtopic === UNTAGGED_SUBTOPIC) clauses.push(`(subtopic IS NULL OR TRIM(subtopic) = '')`);
-    else { params.push(subtopic); clauses.push(`subtopic = $${params.length}`); }
+    if (subtopic === UNTAGGED_SUBTOPIC) clauses.push(`(wq.subtopic IS NULL OR TRIM(wq.subtopic) = '')`);
+    else { params.push(subtopic); clauses.push(`wq.subtopic = $${params.length}`); }
   }
   const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
   const { rows } = await pool.query(
-    `SELECT id, subject, topic, subtopic, post_name, exam_year, question_text, model_answer, marks, created_at
-     FROM written_questions ${where} ORDER BY created_at DESC LIMIT 300`,
+    `SELECT wq.id, wq.subject, wq.topic, wq.subtopic, wq.post_name, wq.exam_year, m.name AS ministry_name,
+            wq.question_text, wq.model_answer, wq.marks, wq.created_at
+     FROM written_questions wq
+     LEFT JOIN ministries m ON m.id = wq.ministry_id
+     ${where} ORDER BY wq.created_at DESC LIMIT 300`,
     params
   );
   res.json(rows);
