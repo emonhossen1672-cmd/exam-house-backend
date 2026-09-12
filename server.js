@@ -27,6 +27,13 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
+// SEO: /exam/:id, /notice/:id (meta-tag-injected shell), /sitemap.xml,
+// /robots.txt — registered BEFORE the static middleware below so these
+// paths get real per-page <title>/description/OG tags instead of the
+// generic static index.html. Falls through to the static file (next())
+// when an id doesn't match a public exam/notice.
+app.use(require('./routes/seo.routes'));
+
 // main student-facing website — served at "/"
 app.use(express.static(path.join(__dirname, 'public-site')));
 
