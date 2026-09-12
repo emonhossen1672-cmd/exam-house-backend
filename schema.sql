@@ -729,3 +729,27 @@ CREATE INDEX IF NOT EXISTS idx_question_attempts_source ON question_attempts(use
 ALTER TABLE question_attempts ALTER COLUMN selected_option DROP NOT NULL;
 
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_zone_quiz BOOLEAN NOT NULL DEFAULT false;
+
+-- ===================== AI Study Coach =====================
+-- Product decision (2026-09): /api/exams/public/weak-topics already computes
+-- weak/unexplored topics from question_attempts, but it's raw numbers —
+-- the student still has to interpret "Bangla Grammar 42% accuracy" into an
+-- actual next step themselves. This adds a short Gemini-generated Bangla
+-- paragraph (2-4 sentences: what's weak, why it likely matters, what to do
+-- today) built from that same weak/unexplored data, same low-stakes
+-- fail-soft Gemini pattern as services/aiExplanation.js.
+--
+-- Cached once per user per calendar day (not per request) for two reasons:
+-- (1) cost — this is a free-tier Gemini key, and the underlying stats don't
+-- meaningfully change within a day; (2) so the advice stays stable if the
+-- student reopens the page rather than re-rolling every tap. A UNIQUE
+-- (user_id, coach_date) lets the route UPSERT: first request of the day
+-- generates and stores, every later request that day just reads the row.
+CREATE TABLE IF NOT EXISTS ai_study_coach_cache (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  coach_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  advice_text TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (user_id, coach_date)
+);
