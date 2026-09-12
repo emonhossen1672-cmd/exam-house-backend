@@ -524,6 +524,23 @@
   .tj2-topic-card .gc-meta{ color:var(--tj2-ink-soft); opacity:1; }
   .tj2-topic-card .gc-arrow{ color:var(--tj2-teal); opacity:.85; }
 
+  /* পরীক্ষার ব্যানারে অটো-যুক্ত টপিক তালিকা — প্লেইন নম্বর-লিস্টের বদলে
+     ছোট নিউমরফিক চিপ হিসেবে দেখানো (একই --tj2-* থিম, ইংরেজি-নামের
+     টপিক টিল রঙে, বাংলা-নামের টপিক গোল্ড রঙে) */
+  .tj2-topic-chip-wrap{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .tj2-topic-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:5px 10px; border-radius:9px; font-size:11.5px; font-weight:600;
+    background:var(--tj2-bg); color:var(--tj2-ink);
+    box-shadow:3px 3px 7px rgba(150,120,70,0.22), -3px -3px 7px rgba(255,255,255,0.8);
+  }
+  .tj2-topic-chip b{ font-weight:700; opacity:.6; font-size:10px; }
+  .tj2-topic-chip.en{ color:var(--tj2-teal-deep); }
+  .tj2-topic-chip.en b{ color:var(--tj2-teal); opacity:.8; }
+  .tj2-topic-chip.bn{ color:#5C3F0A; }
+  .tj2-topic-chip.bn b{ color:var(--tj2-gold); opacity:.8; }
+  .tj2-topic-chip.more{ color:var(--tj2-ink-soft); cursor:pointer; }
+
   /* টপিক প্র্যাকটিস — হোমপেজ ফিচার্ড কার্ড ক্যারুসেল (একই --tj2-* থিম) */
   .tj2-fc-wrap{ margin-bottom:14px; }
   .tj2-fc-track{ position:relative; height:150px; }
@@ -5617,6 +5634,52 @@
     }
   }
 
+  // পরীক্ষার ব্যানারে অটো-যুক্ত টপিক তালিকা (exam.topics_summary — নিউলাইনে
+  // আলাদা করা "১. টপিক নাম" ফরম্যাটের স্ট্রিং) কে ছোট চিপে ভেঙে দেখায়।
+  // নম্বর প্রিফিক্স আলাদা করে হালকা করে দেখানো হয়, আর টপিক নামটা যদি পুরোপুরি
+  // ইংরেজি অক্ষরে লেখা হয় (Parts of speech, Noun...) তাহলে টিল রঙে, নইলে
+  // (বাংলা ব্যাকরণ বা সাধারণ জ্ঞান — দুটোই বাংলায় লেখা, স্ক্রিপ্ট দিয়ে আলাদা
+  // করা যায় না) গোল্ড রঙে দেখানো হয়। কার্ড যাতে বেশি লম্বা না হয়ে যায়,
+  // তাই শুরুতে মাত্র TJ2_TOPIC_CHIP_LIMIT-টা চিপ দেখানো হয়, বাকিগুলো
+  // "+N আরও" চিপে ট্যাপ করলে খোলে (tj2ToggleTopicChips)।
+  const TJ2_TOPIC_CHIP_LIMIT = 5;
+  function tj2RenderTopicChips(str, examId){
+    if(!str) return '';
+    const lines = String(str).split(/\n/).map(l=>l.trim()).filter(Boolean);
+    if(!lines.length) return '';
+    const chipHtml = (line, hidden) => {
+      const m = line.match(/^([০-৯0-9]+)[.।]\s*(.+)$/);
+      const num = m ? m[1] : '';
+      const text = m ? m[2] : line;
+      const isEn = /^[A-Za-z][A-Za-z\s,'’\-\/]*$/.test(text.trim());
+      return `<span class="tj2-topic-chip ${isEn?'en':'bn'}${hidden?' tj2-chip-extra':''}"${hidden?' style="display:none;"':''}>${num?`<b>${escapeHtml(num)}</b>`:''}${escapeHtml(text)}</span>`;
+    };
+    const shown = lines.slice(0, TJ2_TOPIC_CHIP_LIMIT).map(l=>chipHtml(l, false)).join('');
+    const extra = lines.slice(TJ2_TOPIC_CHIP_LIMIT).map(l=>chipHtml(l, true)).join('');
+    const extraCount = lines.length - TJ2_TOPIC_CHIP_LIMIT;
+    const moreChip = extraCount > 0
+      ? `<span class="tj2-topic-chip more" onclick="tj2ToggleTopicChips(this)">+${toBnDigits(extraCount)} আরও</span>`
+      : '';
+    const wrapId = `tj2-topics-${examId || Math.random().toString(36).slice(2)}`;
+    return `<div class="tj2-topic-chip-wrap" id="${wrapId}">${shown}${extra}${moreChip}</div>`;
+  }
+
+  // "+N আরও" চিপে ট্যাপ করলে বাকি টপিকগুলো (.tj2-chip-extra) দেখায়/লুকায়,
+  // আর নিজের লেবেল "+N আরও" ↔ "কম দেখুন" এ বদলে যায়।
+  function tj2ToggleTopicChips(moreEl){
+    const wrap = moreEl.closest('.tj2-topic-chip-wrap');
+    if(!wrap) return;
+    const extras = wrap.querySelectorAll('.tj2-chip-extra');
+    const isOpen = wrap.dataset.open === '1';
+    extras.forEach(el => { el.style.display = isOpen ? 'none' : 'inline-flex'; });
+    wrap.dataset.open = isOpen ? '0' : '1';
+    if(isOpen){
+      moreEl.textContent = '+' + toBnDigits(extras.length) + ' আরও';
+    } else {
+      moreEl.textContent = 'কম দেখুন';
+    }
+  }
+
   function ticketHtml(exam){
     const st = examStatus(exam);
     const tagsHtml = `
@@ -5627,11 +5690,15 @@
 
     // Subject/topic breakdown + routine-progress note, only present on
     // routine-auto-generated exams (routineExamScheduler.js fills these in).
-    // Shown directly on the card now (no expand/collapse toggle).
+    // Shown directly on the card now (no expand/collapse toggle). Topics are
+    // rendered as small neumorphic chips instead of a plain numbered list —
+    // English-named topics get a teal accent, Bengali-named ones gold — and
+    // only the first few show by default so the card doesn't grow too tall;
+    // the rest reveal behind a "+N আরও" chip.
     const detailsHtml = (exam.subject || exam.topics_summary || exam.routine_note) ? `
       <div class="ticket-details" style="padding:10px 0; font-size:13px; line-height:1.6;">
         ${exam.subject ? `<div><b>বিষয়:</b> ${escapeHtml(exam.subject)}</div>` : ''}
-        ${exam.topics_summary ? `<div style="margin-top:6px;"><b>টপিক:</b><br>${escapeHtml(exam.topics_summary).replace(/\n/g,'<br>')}</div>` : ''}
+        ${exam.topics_summary ? `<div style="margin-top:6px;"><b>টপিক:</b>${tj2RenderTopicChips(exam.topics_summary, exam.id)}</div>` : ''}
         ${exam.routine_note ? `<div style="margin-top:8px; color:var(--ink-faint,#888);">[নির্দেশিকা: ${escapeHtml(exam.routine_note)}]</div>` : ''}
       </div>
     ` : '';
