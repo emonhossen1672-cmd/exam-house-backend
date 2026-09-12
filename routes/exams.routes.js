@@ -683,14 +683,13 @@ router.get('/public/smart-practice', requireUser, asyncHandler(async (req, res) 
   }
 }));
 
-// GET /api/exams/public/weak-topics — টপিক/সাবটপিক-লেভেলে ইউজারের দুর্বলতা।
-// smart-practice শুধু subject-লেভেলে accuracy দেখে; এখানে question_attempts
-// আর questions.topic/subtopic জয়েন করে আরও সূক্ষ্ম (subject → topic) লেভেলে
-// accuracy বের করা হয়, যাতে ইউজার ঠিক কোন টপিকে দুর্বল সেটা দেখতে পায়।
-// শুধু topic সেট করা প্রশ্নগুলোই ধরা হয় (পুরনো topic-বিহীন প্রশ্ন বাদ)।
-router.get('/public/weak-topics', requireUser, asyncHandler(async (req, res) => {
-  const MIN_ATTEMPTS = 3; // এর কম অ্যাটেম্পটে accuracy অনির্ভরযোগ্য, তাই "explore" এ রাখি
+// শেয়ার্ড হেলপার: subject → topic লেভেলে এই ইউজারের weak/unexplored টপিক বের করে।
+// GET /public/weak-topics আর GET /public/study-coach দুটোই একই কম্পিউটেশন
+// লাগে (দ্বিতীয়টা শুধু প্রথমটার সংখ্যাগুলোকে AI দিয়ে এক প্যারাগ্রাফ
+// উপদেশে বদলায়), তাই কোয়েরি ডুপ্লিকেট না করে একবারই লেখা হলো।
+const MIN_TOPIC_ATTEMPTS = 3; // এর কম অ্যাটেম্পটে accuracy অনির্ভরযোগ্য, তাই "explore" এ রাখি
 
+async function computeWeakTopics(userId) {
   const statsRes = await pool.query(`
     SELECT q.subject, q.topic,
       COUNT(*)::int AS total,
@@ -700,7 +699,7 @@ router.get('/public/weak-topics', requireUser, asyncHandler(async (req, res) => 
     JOIN questions q ON q.id = qa.question_id
     WHERE qa.user_id = $1 AND q.topic IS NOT NULL AND q.topic <> ''
     GROUP BY q.subject, q.topic
-  `, [req.user.id]);
+  `, [userId]);
 
   const bankRes = await pool.query(`
     SELECT subject, topic, COUNT(*)::int AS bank_count
@@ -716,7 +715,7 @@ router.get('/public/weak-topics', requireUser, asyncHandler(async (req, res) => 
   for (const b of bankRes.rows) {
     const key = `${b.subject}::${b.topic}`;
     const s = statsByKey.get(key);
-    if (!s || s.total < MIN_ATTEMPTS) {
+    if (!s || s.total < MIN_TOPIC_ATTEMPTS) {
       unexplored.push({ subject: b.subject, topic: b.topic, bank_count: b.bank_count, attempts: s ? s.total : 0 });
     } else {
       weak.push({
@@ -728,10 +727,79 @@ router.get('/public/weak-topics', requireUser, asyncHandler(async (req, res) => 
   }
   weak.sort((a, b) => a.accuracy - b.accuracy);
 
+  return { weak, unexplored };
+}
+
+// GET /api/exams/public/weak-topics — টপিক/সাবটপিক-লেভেলে ইউজারের দুর্বলতা।
+// smart-practice শুধু subject-লেভেলে accuracy দেখে; এখানে question_attempts
+// আর questions.topic/subtopic জয়েন করে আরও সূক্ষ্ম (subject → topic) লেভেলে
+// accuracy বের করা হয়, যাতে ইউজার ঠিক কোন টপিকে দুর্বল সেটা দেখতে পায়।
+// শুধু topic সেট করা প্রশ্নগুলোই ধরা হয় (পুরনো topic-বিহীন প্রশ্ন বাদ)।
+router.get('/public/weak-topics', requireUser, asyncHandler(async (req, res) => {
+  const { weak, unexplored } = await computeWeakTopics(req.user.id);
   res.json({
     weak_topics: weak.slice(0, 10),
     unexplored_topics: unexplored.slice(0, 10),
   });
+}));
+
+// GET /api/exams/public/study-coach — weak-topics-এর কাঁচা সংখ্যাগুলোকে
+// (accuracy %, attempts) একটা ছোট বাংলা উপদেশ-প্যারাগ্রাফে বদলায় Gemini
+// দিয়ে ("বাংলা ব্যাকরণে তোমার accuracy কম, আজ ওখান থেকে শুরু করো..."),
+// যাতে ছাত্রকে নিজে সংখ্যা দেখে বুঝে নিতে না হয়।
+//
+// দিনে একবারই generate হয় (ai_study_coach_cache, UNIQUE user_id+coach_date) —
+// একই দিনের পরের রিকোয়েস্টগুলো cache থেকেই সার্ভ হয়, খরচ কমাতে আর উপদেশটা
+// সারাদিন স্থির রাখতে (বার বার রিফ্রেশ করলে বদলে যাবে না)।
+// AI ব্যর্থ হলে (কী নেই / Gemini ডাউন) fail-soft: সংখ্যা থেকে বানানো একটা
+// সাদামাটা (নন-AI) বাক্য ফেরত যায়, is_ai_generated:false সহ — কখনো 500 না।
+router.get('/public/study-coach', requireUser, asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const cachedRes = await pool.query(
+    `SELECT advice_text FROM ai_study_coach_cache WHERE user_id = $1 AND coach_date = CURRENT_DATE`,
+    [userId]
+  );
+  if (cachedRes.rows.length) {
+    return res.json({ advice_text: cachedRes.rows[0].advice_text, is_ai_generated: true, cached: true });
+  }
+
+  const { weak, unexplored } = await computeWeakTopics(userId);
+  const weakTop = weak.slice(0, 5);
+  const unexploredTop = unexplored.slice(0, 5);
+
+  if (!weakTop.length && !unexploredTop.length) {
+    return res.json({
+      advice_text: 'এখনো পর্যাপ্ত প্রশ্ন সমাধান করা হয়নি — কয়েকটা প্র্যাকটিস কুইজ দাও, তারপর তোমার জন্য ব্যক্তিগত পরামর্শ তৈরি হবে।',
+      is_ai_generated: false,
+      cached: false,
+    });
+  }
+
+  let adviceText;
+  let isAiGenerated = true;
+  try {
+    const { generateStudyAdvice } = require('../services/aiStudyCoach');
+    adviceText = await generateStudyAdvice({ weakTopics: weakTop, unexploredTopics: unexploredTop });
+  } catch (err) {
+    isAiGenerated = false;
+    if (weakTop.length) {
+      const w = weakTop[0];
+      adviceText = `তোমার সবচেয়ে দুর্বল জায়গা হলো ${w.subject} বিষয়ের "${w.topic}" টপিক — accuracy মাত্র ${w.accuracy}% (${w.attempts}টা চেষ্টায়)। আজ এখান থেকে কিছু প্রশ্ন প্র্যাকটিস করে শুরু করো।`;
+    } else {
+      const u = unexploredTop[0];
+      adviceText = `"${u.subject}" বিষয়ের "${u.topic}" টপিকে তুমি এখনো তেমন চেষ্টা করোনি — আজ এখান থেকে কিছু প্রশ্ন সমাধান করে দেখো কেমন লাগে।`;
+    }
+  }
+
+  await pool.query(
+    `INSERT INTO ai_study_coach_cache (user_id, coach_date, advice_text)
+     VALUES ($1, CURRENT_DATE, $2)
+     ON CONFLICT (user_id, coach_date) DO UPDATE SET advice_text = EXCLUDED.advice_text`,
+    [userId, adviceText]
+  );
+
+  res.json({ advice_text: adviceText, is_ai_generated: isAiGenerated, cached: false });
 }));
 
 // GET /api/exams/public/weak-topic-practice — weak-topics এর accuracy দিয়ে
