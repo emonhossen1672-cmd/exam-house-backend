@@ -6416,12 +6416,12 @@
 
     HOME_TOPIC_FC_IDX = 0;
     track.innerHTML = HOME_TOPIC_FC_ITEMS.map((it,i) => `
-      <div class="tj2-fc-card${i===0?' on':''}" data-i="${i}" onclick="goHomeTopicSolution(${JSON.stringify(it.subject)}, ${JSON.stringify(it.title)})">
+      <div class="tj2-fc-card${i===0?' on':''}" data-i="${i}" onclick='goHomeTopicSolution(${JSON.stringify(it.subject)}, ${JSON.stringify(it.title)})'>
         <span class="tj2-fc-emoji">${it.emoji}</span>
         <div class="tj2-fc-kicker">${escapeHtml(it.kicker)}</div>
         <div class="tj2-fc-title">${escapeHtml(it.title)}</div>
         <div class="tj2-fc-sub">${escapeHtml(it.sub)}</div>
-        <button class="tj2-fc-cta" onclick="event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(it.subject)}, ${JSON.stringify(it.title)})">শুরু করো</button>
+        <button class="tj2-fc-cta" onclick='event.stopPropagation(); goHomeTopicSolution(${JSON.stringify(it.subject)}, ${JSON.stringify(it.title)})'>শুরু করো</button>
       </div>`).join('');
     dotsWrap.innerHTML = HOME_TOPIC_FC_ITEMS.map((_,i) => `<span${i===0?' class="on"':''} onclick="homeTopicFcGoTo(${i})"></span>`).join('');
 
