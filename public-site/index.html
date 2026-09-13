@@ -580,12 +580,18 @@
   .tj2-fc-dots span.on{ background:var(--tj2-teal); width:16px; border-radius:4px; }
 
   /* ফ্ল্যাশ নিউজ — হোমপেজ হরাইজন্টাল স্ক্রল ইমেজ-কার্ড স্ট্রিপ */
-  .fn-strip-wrap{ display:flex; gap:11px; overflow-x:auto; padding:2px 2px 6px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
+  .fn-strip-wrap{ display:flex; gap:12px; overflow-x:auto; padding:2px 2px 10px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
   .fn-strip-wrap::-webkit-scrollbar{ display:none; }
-  .fn-card{ flex:0 0 128px; width:128px; scroll-snap-align:start; cursor:pointer; }
-  .fn-card .fn-img{ width:128px; height:86px; object-fit:cover; border-radius:12px; background:var(--card); box-shadow:var(--neu-shadow-sm); display:block; }
-  .fn-card .fn-img-ph{ display:flex; align-items:center; justify-content:center; font-size:26px; }
-  .fn-card .fn-title{ margin-top:7px; font-size:11.5px; line-height:1.4; font-weight:700; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .fn-card{ flex:0 0 152px; width:152px; scroll-snap-align:start; cursor:pointer; background:var(--card); border-radius:16px; box-shadow:var(--neu-shadow-sm); overflow:hidden; transition:transform .15s ease; }
+  .fn-card:active{ transform:scale(.96); }
+  .fn-img-frame{ position:relative; width:152px; height:96px; overflow:hidden; background:linear-gradient(135deg, var(--navy-deep), var(--seal)); }
+  .fn-img-frame .fn-img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fn-img-frame .fn-img-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .fn-img-frame::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(to top, rgba(10,20,40,.65), transparent); pointer-events:none; }
+  .fn-time-badge{ position:absolute; left:8px; bottom:7px; font-family:'Noto Sans Bengali'; font-size:9.5px; font-weight:700; color:#fff; z-index:1; display:flex; align-items:center; gap:4px; letter-spacing:.2px; }
+  .fn-live-dot{ width:6px; height:6px; border-radius:50%; background:#FF5A5A; box-shadow:0 0 0 0 rgba(255,90,90,.6); animation:fnPulse 1.7s infinite; flex-shrink:0; }
+  @keyframes fnPulse{ 0%{box-shadow:0 0 0 0 rgba(255,90,90,.55);} 70%{box-shadow:0 0 0 6px rgba(255,90,90,0);} 100%{box-shadow:0 0 0 0 rgba(255,90,90,0);} }
+  .fn-card .fn-title{ padding:9px 10px 12px; font-size:12px; line-height:1.45; font-weight:700; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .fn-detail-img{ width:100%; border-radius:14px; margin-bottom:14px; box-shadow:var(--neu-shadow-sm); }
   .fn-detail-title{ font-size:16px; font-weight:700; color:var(--ink); margin-bottom:8px; line-height:1.5; }
   .fn-detail-body{ font-size:13.5px; color:var(--ink-soft); line-height:1.8; white-space:pre-wrap; }
@@ -1808,7 +1814,7 @@
     </div>
 
 
-    <div class="sec-head" id="home-flash-news-section" style="display:none;"><h2>ফ্ল্যাশ নিউজ</h2></div>
+    <div class="cat-section-bar" id="home-flash-news-section" style="display:none;"><span class="cat-bar" style="background:var(--gold);"></span><h2>ফ্ল্যাশ নিউজ</h2><span class="fn-live-dot" style="margin-left:2px;"></span></div>
     <div class="fn-strip-wrap" id="home-flash-news-strip"></div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
@@ -6509,6 +6515,17 @@
     }
     renderFlashNewsStrip();
   }
+  function fnTimeAgo(iso){
+    if(!iso) return '';
+    const diffMin = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+    if(diffMin < 1) return 'এইমাত্র';
+    if(diffMin < 60) return toBnDigits(diffMin) + ' মিনিট আগে';
+    const diffHr = Math.floor(diffMin / 60);
+    if(diffHr < 24) return toBnDigits(diffHr) + ' ঘণ্টা আগে';
+    const diffDay = Math.floor(diffHr / 24);
+    if(diffDay < 7) return toBnDigits(diffDay) + ' দিন আগে';
+    return new Date(iso).toLocaleDateString('bn-BD', {day:'numeric', month:'short'});
+  }
   function renderFlashNewsStrip(){
     const section = document.getElementById('home-flash-news-section');
     const strip = document.getElementById('home-flash-news-strip');
@@ -6522,9 +6539,12 @@
     strip.style.display = '';
     strip.innerHTML = FLASH_NEWS_CACHE.map((n, i) => `
       <div class="fn-card" onclick="openFlashNews(${i})">
-        ${n.image_url
-          ? `<img class="fn-img" src="${escapeHtml(n.image_url)}" alt="" loading="lazy">`
-          : `<div class="fn-img fn-img-ph">📰</div>`}
+        <div class="fn-img-frame">
+          ${n.image_url
+            ? `<img class="fn-img" src="${escapeHtml(n.image_url)}" alt="" loading="lazy">`
+            : `<div class="fn-img-ph">📰</div>`}
+          <span class="fn-time-badge"><span class="fn-live-dot"></span>${fnTimeAgo(n.created_at)}</span>
+        </div>
         <div class="fn-title">${escapeHtml(n.title)}</div>
       </div>
     `).join('');
