@@ -1050,6 +1050,7 @@
   .prog-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .prog-card{ background:var(--tj2-card,var(--card)); border-radius:18px; padding:14px; box-shadow:var(--tj2-shadow,none); }
   .prog-card-title{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:10px; }
+  .prog-coach-body{ font-size:14px; line-height:1.6; color:var(--ink,#222); }
   .prog-card.wide{ grid-column:1/3; }
 
   /* journey map */
@@ -3516,8 +3517,27 @@
     try{
       const data = await apiGetAuth('/api/questions/public/progress-overview');
       renderProgressOverview(data);
+      loadStudyCoach(); // আলাদা কল, কারণ এটা AI-জেনারেটেড — progress-overview এর
+                        // মূল কার্ডগুলো এর জন্য অপেক্ষা করে না (স্বাধীনভাবে লোড হয়)
     }catch(err){
       wrap.innerHTML = '';
+    }
+  }
+
+  // GET /api/exams/public/study-coach — "তোমার অগ্রগতি" সেকশনে একটা ছোট
+  // AI-জেনারেটেড বাংলা পরামর্শ-কার্ড দেখায় (renderProgressOverview এ বসানো
+  // #prog-coach-body প্লেসহোল্ডারে)। renderProgressOverview এর সাথেই না
+  // এনে আলাদা কল করা হয়েছে যেন Gemini-এর লেটেন্সির জন্য বাকি প্রগ্রেস
+  // কার্ডগুলো (journey/ring/heatmap) দেখাতে দেরি না হয়।
+  async function loadStudyCoach(){
+    const body = document.getElementById('prog-coach-body');
+    if(!body) return;
+    try{
+      const data = await apiGetAuth('/api/exams/public/study-coach');
+      body.textContent = data.advice_text;
+    }catch(err){
+      const card = document.getElementById('prog-coach-card');
+      if(card) card.style.display = 'none'; // fail-soft: ব্যর্থ হলে পুরো কার্ডটাই লুকিয়ে ফেলা হয়, খালি/ভাঙা কার্ড না দেখিয়ে
     }
   }
 
@@ -3623,6 +3643,11 @@
     wrap.innerHTML = `
       <div class="prog-section">
         <div class="cat-section-bar"><span class="cat-bar"></span><h2>তোমার অগ্রগতি</h2></div>
+
+        <div class="prog-card wide" id="prog-coach-card" style="margin-bottom:10px;">
+          <div class="prog-card-title">🎯 আজকের পরামর্শ</div>
+          <div id="prog-coach-body" class="prog-coach-body">লোড হচ্ছে...</div>
+        </div>
 
         <div class="prog-card wide" style="margin-bottom:10px;">
           <div class="prog-card-title">মাস্টারি জার্নি ম্যাপ</div>
