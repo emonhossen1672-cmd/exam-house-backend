@@ -584,6 +584,7 @@
   .fn-strip-wrap::-webkit-scrollbar{ display:none; }
   .fn-card{ flex:0 0 152px; width:152px; scroll-snap-align:start; cursor:pointer; background:var(--card); border-radius:16px; box-shadow:var(--neu-shadow-sm); overflow:hidden; transition:transform .15s ease; }
   .fn-card:active{ transform:scale(.96); }
+  .fn-accent-bar{ height:4px; }
   .fn-img-frame{ position:relative; width:152px; height:96px; overflow:hidden; background:linear-gradient(135deg, var(--navy-deep), var(--seal)); }
   .fn-img-frame .fn-img{ width:100%; height:100%; object-fit:cover; display:block; }
   .fn-img-frame .fn-img-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px; }
@@ -596,6 +597,7 @@
   .fn-detail-title{ font-size:16px; font-weight:700; color:var(--ink); margin-bottom:8px; line-height:1.5; }
   .fn-detail-body{ font-size:13.5px; color:var(--ink-soft); line-height:1.8; white-space:pre-wrap; }
   .fn-detail-src{ display:inline-block; margin-top:16px; font-size:12.5px; font-weight:700; color:var(--seal); text-decoration:none; }
+
 
   /* নোটস / ই-বুক লাইব্রেরি */
   .nt-card{ display:flex; gap:12px; background:var(--card); border-radius:14px; padding:12px; margin-bottom:11px; box-shadow:var(--neu-shadow-sm); cursor:pointer; }
@@ -6526,6 +6528,12 @@
     if(diffDay < 7) return toBnDigits(diffDay) + ' দিন আগে';
     return new Date(iso).toLocaleDateString('bn-BD', {day:'numeric', month:'short'});
   }
+  function fnAccentColor(str){
+    const colors = ['#378ADD','#1D9E75','#D85A30','#EF9F27','#639922','#7F77DD','#D4537E'];
+    let hash = 0;
+    for(let i = 0; i < str.length; i++){ hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+    return colors[Math.abs(hash) % colors.length];
+  }
   function renderFlashNewsStrip(){
     const section = document.getElementById('home-flash-news-section');
     const strip = document.getElementById('home-flash-news-strip');
@@ -6537,17 +6545,21 @@
     }
     section.style.display = '';
     strip.style.display = '';
-    strip.innerHTML = FLASH_NEWS_CACHE.map((n, i) => `
+    strip.innerHTML = FLASH_NEWS_CACHE.map((n, i) => {
+      const accent = fnAccentColor(n.title || String(n.id));
+      return `
       <div class="fn-card" onclick="openFlashNews(${i})">
+        <div class="fn-accent-bar" style="background:${accent};"></div>
         <div class="fn-img-frame">
           ${n.image_url
             ? `<img class="fn-img" src="${escapeHtml(n.image_url)}" alt="" loading="lazy">`
-            : `<div class="fn-img-ph">📰</div>`}
+            : `<div class="fn-img-ph" style="background:${accent};">📰</div>`}
           <span class="fn-time-badge"><span class="fn-live-dot"></span>${fnTimeAgo(n.created_at)}</span>
         </div>
         <div class="fn-title">${escapeHtml(n.title)}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
   function openFlashNews(i){
     const n = FLASH_NEWS_CACHE[i];
