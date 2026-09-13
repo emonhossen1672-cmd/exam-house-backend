@@ -1819,6 +1819,8 @@
 
     <div id="home-pkg-promo-wrap"></div>
 
+    <div id="home-progress-wrap"></div>
+
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>প্রিমিয়াম বিভাগ</h2></div>
     <div class="cat-grid">
       <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="goScreen('model'); setModelMode('duel');"><span class="ct-emoji">⚔️</span><span class="ct-ic"><svg class="ic"><use href="#i-swords"/></svg></span><span>ডুয়েল মোড</span></div>
@@ -6697,6 +6699,9 @@
       loadHomePackagePromo();
       loadHeroZoneBanner();
       initHomeTopicCarousel();
+      loadProgressOverview(); // "তোমার অগ্রগতি" সেকশন — এতদিন ফাংশন/মার্কআপ
+                              // দুটোই ছিল কিন্তু কোথাও কল হতো না, তাই হোমপেজে
+                              // কখনো দেখাই যায়নি — এই কলটাই সেই মিসিং লিংক
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
