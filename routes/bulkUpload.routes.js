@@ -19,6 +19,23 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 // into the "অন্যান্য" bucket for that level.
 const REQUIRED = ['subject', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct'];
 
+// exam_year is an INTEGER column, but source CSVs routinely carry Bengali
+// digits ("১৩"), ranges ("১৮-১৯"), or multi-source lists ("২২ / ০৬") in the
+// year field. Normalize to English digits, then take the first run of
+// digits found (so "১৮-১৯" -> 18, "২২ / ০৬" -> 22). Returns null — not an
+// error — for anything that still isn't a plain number, since year is
+// optional; that keeps one messy cell from failing an otherwise-good row.
+const BN_DIGITS = '০১২৩৪৫৬৭৮৯';
+function parseYear(val) {
+  if (val === null || val === undefined || val === '') return null;
+  let s = String(val).trim();
+  s = s.replace(/[০-৯]/g, (d) => String(BN_DIGITS.indexOf(d)));
+  const match = s.match(/\d+/);
+  if (!match) return null;
+  const n = parseInt(match[0], 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 function parseFile(file) {
   const name = file.originalname.toLowerCase();
   if (name.endsWith('.csv')) {
@@ -85,13 +102,23 @@ router.post('/', requireAdmin, upload.single('file'), asyncHandler(async (req, r
       // result matches one of the 12 টপিকভিত্তিক জব সলুশন subjects, locks it to
       // the exact canonical string — otherwise CSV rows edited on mobile can
       // look right but silently fail the exact-match check (see topicJobSubjects.js).
-      await client.query(
-        `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [ministryId, r.grade || null, snapToFixedSubject(r.subject), normalizeText(r.topic) || null, normalizeText(r.subtopic) || null, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
-         r.post_name || null, r.year || null]
-      );
-      added++;
+      // Each row gets its own savepoint: a bad value (e.g. an unparseable
+      // exam_year) fails just that row instead of rolling back everything
+      // already inserted in this batch.
+      try {
+        await client.query('SAVEPOINT row_sp');
+        await client.query(
+          `INSERT INTO questions (ministry_id, grade, subject, topic, subtopic, question_text, option_a, option_b, option_c, option_d, correct_option, explanation, post_name, exam_year)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+          [ministryId, r.grade || null, snapToFixedSubject(r.subject), normalizeText(r.topic) || null, normalizeText(r.subtopic) || null, r.question, r.option_a, r.option_b, r.option_c, r.option_d, correct, r.explanation || null,
+           r.post_name || null, parseYear(r.year)]
+        );
+        await client.query('RELEASE SAVEPOINT row_sp');
+        added++;
+      } catch (rowErr) {
+        await client.query('ROLLBACK TO SAVEPOINT row_sp');
+        errors.push(`সারি ${rowNum}: সার্ভার সমস্যা: ${rowErr.message}`);
+      }
     }
 
     await client.query('COMMIT');
