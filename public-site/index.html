@@ -579,6 +579,27 @@
   .tj2-fc-dots span{ width:6px; height:6px; border-radius:50%; background:var(--tj2-line); cursor:pointer; transition:all .2s ease; }
   .tj2-fc-dots span.on{ background:var(--tj2-teal); width:16px; border-radius:4px; }
 
+  /* ফ্ল্যাশ নিউজ — হোমপেজ হরাইজন্টাল স্ক্রল ইমেজ-কার্ড স্ট্রিপ */
+  .fn-strip-wrap{ display:flex; gap:11px; overflow-x:auto; padding:2px 2px 6px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
+  .fn-strip-wrap::-webkit-scrollbar{ display:none; }
+  .fn-card{ flex:0 0 128px; width:128px; scroll-snap-align:start; cursor:pointer; }
+  .fn-card .fn-img{ width:128px; height:86px; object-fit:cover; border-radius:12px; background:var(--card); box-shadow:var(--neu-shadow-sm); display:block; }
+  .fn-card .fn-img-ph{ display:flex; align-items:center; justify-content:center; font-size:26px; }
+  .fn-card .fn-title{ margin-top:7px; font-size:11.5px; line-height:1.4; font-weight:700; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .fn-detail-img{ width:100%; border-radius:14px; margin-bottom:14px; box-shadow:var(--neu-shadow-sm); }
+  .fn-detail-title{ font-size:16px; font-weight:700; color:var(--ink); margin-bottom:8px; line-height:1.5; }
+  .fn-detail-body{ font-size:13.5px; color:var(--ink-soft); line-height:1.8; white-space:pre-wrap; }
+  .fn-detail-src{ display:inline-block; margin-top:16px; font-size:12.5px; font-weight:700; color:var(--seal); text-decoration:none; }
+
+  /* নোটস / ই-বুক লাইব্রেরি */
+  .nt-card{ display:flex; gap:12px; background:var(--card); border-radius:14px; padding:12px; margin-bottom:11px; box-shadow:var(--neu-shadow-sm); cursor:pointer; }
+  .nt-card .nt-thumb{ flex:0 0 58px; width:58px; height:58px; border-radius:10px; object-fit:cover; background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .nt-card .nt-body{ flex:1; min-width:0; }
+  .nt-card .nt-title{ font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.4; }
+  .nt-card .nt-meta{ font-size:11px; color:var(--ink-faint); margin-top:3px; }
+  .nt-card .nt-desc{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .nt-lock-badge{ display:inline-block; font-family:'Noto Sans Bengali'; font-weight:700; background:var(--gold-soft); color:#7A5E12; font-size:10.5px; padding:2px 9px; border-radius:12px; margin-top:5px; }
+
   /* ---------- Live category tabs (used on লাইভ পরীক্ষা screen) ---------- */
   .live-cat-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; -webkit-overflow-scrolling:touch;}
   .live-cat-tabs::-webkit-scrollbar{display:none;}
@@ -1787,6 +1808,9 @@
     </div>
 
 
+    <div class="sec-head" id="home-flash-news-section" style="display:none;"><h2>ফ্ল্যাশ নিউজ</h2></div>
+    <div class="fn-strip-wrap" id="home-flash-news-strip"></div>
+
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
       <div class="cat-tile" data-live-cat="__any_live__" style="--t-bg:#9FD7EF; --t-bd:#7EC7E6; --t-fg:#0F5A78;" onclick="goScreen('live')"><span class="ct-live-dot"></span><span class="ct-emoji">🎯</span><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ পরীক্ষা</span></div>
@@ -1808,7 +1832,7 @@
       <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-emoji">❌</span><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
       <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
       <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
-      <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="ehToast('শীঘ্রই আসছে')"><span class="ct-badge">শীঘ্রই</span><span class="ct-emoji">💼</span><span class="ct-ic"><svg class="ic"><use href="#i-bank"/></svg></span><span>জব সলুশন</span></div>
+      <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="openNotesScreen()"><span class="ct-emoji">📓</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>নোটস / ই-বুক</span></div>
     </div>
 
     <div class="sec-head"><h2>টপিক প্র্যাকটিস</h2><a onclick="goHomeTopicSolution()">সবগুলো →</a></div>
@@ -2358,6 +2382,29 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="notice-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ FLASH NEWS DETAIL OVERLAY ============ -->
+  <div class="exam-overlay" id="flash-news-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeFlashNews()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);" id="flash-news-overlay-title">ফ্ল্যাশ নিউজ</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="flash-news-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ NOTES / EBOOK LIBRARY OVERLAY ============ -->
+  <div class="exam-overlay" id="notes-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeNotesScreen()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">নোটস / ই-বুক</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" style="padding:14px 18px 40px;">
+      <input type="text" id="notes-search-input" class="search-input" style="margin-bottom:14px;" placeholder="🔍 নোট খুঁজুন..." oninput="handleNotesSearch(this.value)">
+      <div id="notes-list-body"></div>
+    </div>
   </div>
 
   <!-- ============ ARCHIVE OVERLAY ============ -->
@@ -3809,7 +3856,7 @@
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
     'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay',
-    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay'];
+    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay','flash-news-overlay','notes-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -6450,6 +6497,118 @@
   function closeNoticeBoard(){
     document.getElementById('notice-overlay').classList.remove('active');
   }
+
+  // ---------- ফ্ল্যাশ নিউজ (হোমপেজ হরাইজন্টাল ইমেজ-কার্ড স্ট্রিপ) ----------
+  let FLASH_NEWS_CACHE = [];
+  async function loadFlashNews(){
+    try{
+      const data = await apiGet('/api/flash-news?limit=20');
+      FLASH_NEWS_CACHE = data.flash_news || [];
+    }catch(e){
+      FLASH_NEWS_CACHE = [];
+    }
+    renderFlashNewsStrip();
+  }
+  function renderFlashNewsStrip(){
+    const section = document.getElementById('home-flash-news-section');
+    const strip = document.getElementById('home-flash-news-strip');
+    if(!FLASH_NEWS_CACHE.length){
+      section.style.display = 'none';
+      strip.style.display = 'none';
+      strip.innerHTML = '';
+      return;
+    }
+    section.style.display = '';
+    strip.style.display = '';
+    strip.innerHTML = FLASH_NEWS_CACHE.map((n, i) => `
+      <div class="fn-card" onclick="openFlashNews(${i})">
+        ${n.image_url
+          ? `<img class="fn-img" src="${escapeHtml(n.image_url)}" alt="" loading="lazy">`
+          : `<div class="fn-img fn-img-ph">📰</div>`}
+        <div class="fn-title">${escapeHtml(n.title)}</div>
+      </div>
+    `).join('');
+  }
+  function openFlashNews(i){
+    const n = FLASH_NEWS_CACHE[i];
+    if(!n) return;
+    const img = n.image_url ? `<img class="fn-detail-img" src="${escapeHtml(n.image_url)}" alt="">` : '';
+    const body = n.body ? `<div class="fn-detail-body">${escapeHtml(n.body)}</div>` : '';
+    const src = n.source_url ? `<a class="fn-detail-src" href="${escapeHtml(n.source_url)}" target="_blank" rel="noopener">🔗 সোর্স দেখুন</a>` : '';
+    document.getElementById('flash-news-body').innerHTML = `
+      ${img}
+      <div class="fn-detail-title">${escapeHtml(n.title)}</div>
+      ${body}
+      ${src}
+    `;
+    document.getElementById('flash-news-overlay').classList.add('active');
+  }
+  function closeFlashNews(){
+    document.getElementById('flash-news-overlay').classList.remove('active');
+  }
+
+  // ---------- নোটস / ই-বুক লাইব্রেরি ----------
+  let NOTES_CACHE = [];
+  let NOTES_SEARCH_TIMER = null;
+  async function openNotesScreen(){
+    document.getElementById('notes-overlay').classList.add('active');
+    document.getElementById('notes-search-input').value = '';
+    document.getElementById('notes-list-body').innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+    await loadNotesList('');
+  }
+  function closeNotesScreen(){
+    document.getElementById('notes-overlay').classList.remove('active');
+  }
+  function handleNotesSearch(val){
+    clearTimeout(NOTES_SEARCH_TIMER);
+    NOTES_SEARCH_TIMER = setTimeout(() => loadNotesList(val.trim()), 350);
+  }
+  async function loadNotesList(search){
+    try{
+      const q = search ? ('&search=' + encodeURIComponent(search)) : '';
+      const data = await apiGet('/api/notes?limit=50' + q);
+      NOTES_CACHE = data.notes || [];
+      renderNotesList();
+    }catch(e){
+      document.getElementById('notes-list-body').innerHTML = '<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>';
+    }
+  }
+  function renderNotesList(){
+    const body = document.getElementById('notes-list-body');
+    if(!NOTES_CACHE.length){
+      body.innerHTML = '<p style="color:var(--ink-faint,#888); text-align:center; margin-top:24px;">কোনো নোট পাওয়া যায়নি।</p>';
+      return;
+    }
+    body.innerHTML = NOTES_CACHE.map((n, i) => `
+      <div class="nt-card" onclick="openNoteItem(${n.id})">
+        ${n.thumbnail_url
+          ? `<img class="nt-thumb" src="${escapeHtml(n.thumbnail_url)}" alt="">`
+          : `<div class="nt-thumb">📓</div>`}
+        <div class="nt-body">
+          <div class="nt-title">${escapeHtml(n.title)}</div>
+          <div class="nt-meta">${escapeHtml(n.subject || n.ministry_name || 'সাধারণ')}${n.view_count ? ' · ' + toBnDigits(n.view_count) + ' ভিউ' : ''}</div>
+          ${n.description ? `<div class="nt-desc">${escapeHtml(n.description)}</div>` : ''}
+          ${n.locked ? '<span class="nt-lock-badge">🔒 প্রিমিয়াম</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+  async function openNoteItem(id){
+    try{
+      const data = USER_TOKEN ? await apiGetAuth('/api/notes/' + id) : await apiGet('/api/notes/' + id);
+      const note = data.note;
+      if(note.locked){
+        closeNotesScreen();
+        if(!USER_TOKEN){ showAuthForm('login'); ehToast('এই নোটটি দেখতে লগইন করুন'); }
+        else { ehToast('এই নোটটি প্রিমিয়াম — একটি প্যাকেজ কিনুন'); goScreen('packages'); }
+        return;
+      }
+      if(note.file_url) window.open(note.file_url, '_blank');
+      else ehToast('ফাইল পাওয়া যায়নি');
+    }catch(e){
+      ehToast('লোড করা যায়নি, আবার চেষ্টা করুন');
+    }
+  }
   function renderNoticeBoard(){
     const body = document.getElementById('notice-body');
     if(!NOTICE_CACHE.length){
@@ -6731,6 +6890,7 @@
       loadHomePackagePromo();
       loadHeroZoneBanner();
       initHomeTopicCarousel();
+      loadFlashNews();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
     }
