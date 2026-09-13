@@ -6,16 +6,17 @@
 const pool = require('../db');
 
 // Product decision (2026-09): live exams, admin-curated model exams, AND
-// written (রিটেন) exams are premium. Practice, daily quiz, duel, and the
-// auto-generated বিষয়ভিত্তিক / repeated-question buckets stay free for
-// everyone. Adjust here if that scope ever changes — this is the single
-// place both routes call into.
+// written (রিটেন) exams are premium. Practice, daily quiz, duel, the
+// auto-generated বিষয়ভিত্তিক / repeated-question buckets, and a student's own
+// custom-built model tests (is_custom — POST /api/exams/public/custom) stay
+// free for everyone. Adjust here if that scope ever changes — this is the
+// single place both routes call into.
 function isPremiumExam(exam) {
   if (!exam) return false;
   if (exam.type === 'live') return true;
   if (exam.type === 'model') {
     return !exam.is_practice && !exam.is_duel && !exam.is_daily &&
-      !exam.is_auto_subject && !exam.is_repeated_bank;
+      !exam.is_auto_subject && !exam.is_repeated_bank && !exam.is_custom;
   }
   // written (রিটেন) exams are free now — was premium until 2026-09.
   return false;
@@ -70,7 +71,7 @@ async function getTrialStatus(userId) {
        (SELECT COUNT(*)::int FROM results r JOIN exams e ON e.id = r.exam_id
         WHERE r.user_id = $1 AND e.type IN ('live','model')
           AND e.is_practice = false AND e.is_duel = false AND e.is_daily = false
-          AND e.is_auto_subject = false AND e.is_repeated_bank = false)
+          AND e.is_auto_subject = false AND e.is_repeated_bank = false AND e.is_custom = false)
        +
        (SELECT COUNT(DISTINCT wa.exam_id)::int FROM written_answers wa JOIN exams e ON e.id = wa.exam_id
         WHERE wa.user_id = $1 AND e.type = 'written')
@@ -137,7 +138,7 @@ async function checkExamAccess(userId, exam) {
        WHERE r.user_id = $1 AND e.type = $2
          AND ($3::timestamp IS NULL OR r.created_at >= $3)
          AND e.is_practice = false AND e.is_duel = false AND e.is_daily = false
-         AND e.is_auto_subject = false AND e.is_repeated_bank = false`,
+         AND e.is_auto_subject = false AND e.is_repeated_bank = false AND e.is_custom = false`,
       [userId, exam.type, pkg.active_package_started_at]
     );
     used = usedRes.rows[0].used;
