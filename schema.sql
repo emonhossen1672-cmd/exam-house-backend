@@ -766,3 +766,52 @@ CREATE TABLE IF NOT EXISTS ai_study_coach_cache (
 -- ছোট fixed-taxonomy ট্যাগ লিস্টও চাওয়া হয় (আলাদা কল না — খরচ/লেটেন্সি
 -- বাড়ায় না)। TEXT[] তাই যে kt একাধিক ট্যাগ থাকতে পারে এক উত্তরে।
 ALTER TABLE written_answers ADD COLUMN IF NOT EXISTS weak_areas TEXT[];
+
+-- ===================== নোটস / লেকচার নোট / ই-বুক মডিউল =====================
+-- Product decision (2026-09): competitor apps (Ultimate Job Solutions,
+-- Chorcha Jobs) sell PDF lecture notes / ই-বুক as a standalone browsable
+-- library, separate from MCQ practice. file_url points at a Cloudinary
+-- asset (PDF or image) uploaded via POST /api/upload/note. Reuses the same
+-- ministries table as questions/exams/routine_days so a note can be filed
+-- under the same category tree the student already browses (IBA, বিসিএস
+-- প্রিলি, ব্যাংক জব, ইত্যাদি) — no separate category table needed.
+--
+-- is_premium follows the same "any active package unlocks it" rule as
+-- premium exams (see utils/packageAccess.js), but is a SEPARATE gate from
+-- isPremiumExam()/checkExamAccess() — notes aren't counted against the
+-- live/model/written exam quotas, they're just locked/unlocked by whether
+-- the student has ANY active package at all. Free notes (is_premium=false)
+-- are visible to everyone including guests.
+CREATE TABLE IF NOT EXISTS notes (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(250) NOT NULL,
+  ministry_id INTEGER REFERENCES ministries(id) ON DELETE SET NULL,
+  subject VARCHAR(60),
+  description TEXT,
+  file_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  is_premium BOOLEAN NOT NULL DEFAULT false,
+  view_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notes_ministry ON notes(ministry_id);
+CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at DESC);
+
+-- ===================== ফ্ল্যাশনিউজ =====================
+-- Short image-card news items for the home feed's horizontal scroll strip
+-- (see Chorcha Jobs screenshot). Deliberately a separate table from
+-- `notices` — notices are text announcements shown in a bell/dropdown for
+-- THIS app's own updates, flash_news are short current-affairs cards with
+-- a photo, meant to feed general-knowledge exam prep. is_active lets an
+-- admin unpublish an item without deleting it (e.g. a story that turned
+-- out to be wrong).
+CREATE TABLE IF NOT EXISTS flash_news (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(250) NOT NULL,
+  body TEXT,
+  image_url TEXT,
+  source_url TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_flash_news_active_created ON flash_news(is_active, created_at DESC);
