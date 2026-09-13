@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>নোটস অ্যাডমিন টুল</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Noto Sans Bengali", sans-serif; background:#0f1115; color:#e8e8e8; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:#9aa0a6; font-size:14px; margin:0 0 20px; }
+  .card { background:#1a1d24; border:1px solid #2a2e37; border-radius:12px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:13px; color:#c0c4cc; margin:10px 0 4px; }
+  input, textarea, select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #333844; background:#0f1115; color:#fff; font-size:15px; font-family:inherit; }
+  textarea { resize:vertical; min-height:70px; }
+  button { margin-top:14px; width:100%; padding:12px; border:none; border-radius:8px; background:#4f8cff; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333844; color:#888; }
+  button.secondary { background:#2a2e37; }
+  button.danger { background:#5c1f2a; color:#ff8080; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
+  .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
+  .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
+  .hidden { display:none; }
+  .checkbox-row { display:flex; align-items:center; gap:8px; margin-top:12px; }
+  .checkbox-row input { width:auto; }
+  .checkbox-row label { margin:0; }
+  .item { background:#0f1115; border:1px solid #2a2e37; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .item .title { font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px; }
+  .item .meta { font-size:11px; color:#7a8290; margin-top:6px; }
+  .item .actions { display:flex; gap:8px; margin-top:8px; }
+  .item .actions button { margin-top:0; width:auto; padding:6px 12px; font-size:12px; }
+  .badge { font-size:11px; padding:2px 6px; border-radius:6px; background:#3a2f10; color:#e0b84a; }
+</style>
+</head>
+<body>
+
+<h1>📚 নোটস অ্যাডমিন টুল</h1>
+<p class="sub">লেকচার নোট / ই-বুক (PDF বা ছবি) আপলোড করে লাইব্রেরিতে যোগ করুন।</p>
+
+<div class="card" id="loginCard">
+  <h2>১. অ্যাডমিন লগইন</h2>
+  <label>ইউজারনেম</label>
+  <input id="username" type="text" autocomplete="username">
+  <label>পাসওয়ার্ড</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">লগইন করুন</button>
+  <div id="loginResult"></div>
+</div>
+
+<div class="card hidden" id="postCard">
+  <h2>২. নতুন নোট যোগ করুন</h2>
+  <label>টাইটেল</label>
+  <input id="noteTitle" type="text" placeholder="যেমনঃ বাংলা ব্যাকরণ — সন্ধি বিচ্ছেদ">
+  <label>ক্যাটাগরি (ঐচ্ছিক)</label>
+  <select id="noteMinistry"><option value="">-- নির্বাচন করুন --</option></select>
+  <label>বিষয় (ঐচ্ছিক)</label>
+  <input id="noteSubject" type="text" placeholder="যেমনঃ বাংলা">
+  <label>বিবরণ (ঐচ্ছিক)</label>
+  <textarea id="noteDescription" placeholder="নোট সম্পর্কে সংক্ষিপ্ত বিবরণ..."></textarea>
+  <label>ফাইল (PDF অথবা ছবি, সর্বোচ্চ ২০MB)</label>
+  <input id="noteFile" type="file" accept="application/pdf,image/*">
+  <div class="checkbox-row">
+    <input id="notePremium" type="checkbox">
+    <label for="notePremium">প্রিমিয়াম নোট (শুধু প্যাকেজধারীরা দেখতে পাবে)</label>
+  </div>
+  <button onclick="postNote()">আপলোড ও পোস্ট করুন</button>
+  <div id="postResult"></div>
+</div>
+
+<div class="card hidden" id="listCard">
+  <h2>৩. বিদ্যমান নোটসমূহ</h2>
+  <button class="secondary" onclick="loadNotes()">রিফ্রেশ করুন</button>
+  <div id="noteList" style="margin-top:12px;"></div>
+</div>
+
+<script>
+  let token = null;
+
+  function showResult(elId, ok, text) {
+    const el = document.getElementById(elId);
+    el.className = 'result ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) return showResult('loginResult', false, 'ইউজারনেম ও পাসওয়ার্ড দিন');
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'লগইন ব্যর্থ');
+      token = data.token;
+      showResult('loginResult', true, 'লগইন সফল ✓');
+      document.getElementById('postCard').classList.remove('hidden');
+      document.getElementById('listCard').classList.remove('hidden');
+      loadMinistries();
+      loadNotes();
+    } catch (err) {
+      showResult('loginResult', false, err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function apiCall(path, method, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const r = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'সার্ভার সমস্যা');
+    return data;
+  }
+
+  async function loadMinistries() {
+    try {
+      const data = await apiCall('/api/questions/ministries/list', 'GET');
+      const sel = document.getElementById('noteMinistry');
+      (data.ministries || data.rows || data || []).forEach((m) => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        sel.appendChild(opt);
+      });
+    } catch (err) { /* dropdown just stays empty if this fails */ }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  async function postNote() {
+    const title = document.getElementById('noteTitle').value.trim();
+    const ministry_id = document.getElementById('noteMinistry').value || null;
+    const subject = document.getElementById('noteSubject').value.trim();
+    const description = document.getElementById('noteDescription').value.trim();
+    const is_premium = document.getElementById('notePremium').checked;
+    const fileInput = document.getElementById('noteFile');
+    const file = fileInput.files[0];
+    if (!title) return showResult('postResult', false, 'টাইটেল দিন');
+    if (!file) return showResult('postResult', false, 'একটি ফাইল নির্বাচন করুন');
+
+    showResult('postResult', true, 'ফাইল আপলোড হচ্ছে...');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const uploadRes = await fetch('/api/upload/note', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: form
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.error || 'ফাইল আপলোড ব্যর্থ');
+
+      await apiCall('/api/notes', 'POST', {
+        title, ministry_id, subject: subject || null, description: description || null,
+        file_url: uploadData.url, is_premium
+      });
+      showResult('postResult', true, 'নোট পোস্ট হয়েছে ✓');
+      document.getElementById('noteTitle').value = '';
+      document.getElementById('noteSubject').value = '';
+      document.getElementById('noteDescription').value = '';
+      document.getElementById('notePremium').checked = false;
+      fileInput.value = '';
+      loadNotes();
+    } catch (err) {
+      showResult('postResult', false, err.message);
+    }
+  }
+
+  async function loadNotes() {
+    const list = document.getElementById('noteList');
+    list.innerHTML = '<p style="color:#9aa0a6; font-size:13px;">লোড হচ্ছে...</p>';
+    try {
+      const data = await apiCall('/api/notes/admin/list', 'GET');
+      if (!data.notes.length) {
+        list.innerHTML = '<p style="color:#9aa0a6; font-size:13px;">কোনো নোট নেই।</p>';
+        return;
+      }
+      list.innerHTML = data.notes.map(n => `
+        <div class="item">
+          <div class="title">${n.is_premium ? '<span class="badge">প্রিমিয়াম</span>' : ''} ${escapeHtml(n.title)}</div>
+          <div class="meta">${n.ministry_name ? escapeHtml(n.ministry_name) + ' · ' : ''}${n.subject ? escapeHtml(n.subject) + ' · ' : ''}${n.view_count} বার দেখা হয়েছে · ${new Date(n.created_at).toLocaleString('bn-BD')}</div>
+          <div class="meta"><a href="${n.file_url}" target="_blank" style="color:#4f8cff;">ফাইল দেখুন ↗</a></div>
+          <div class="actions">
+            <button class="danger" onclick="deleteNote(${n.id})">মুছুন</button>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      list.innerHTML = '';
+      showResult('postResult', false, err.message);
+    }
+  }
+
+  async function deleteNote(id) {
+    if (!confirm('এই নোটটি মুছে ফেলতে চান?')) return;
+    try {
+      await apiCall('/api/notes/' + id, 'DELETE');
+      loadNotes();
+    } catch (err) {
+      showResult('postResult', false, err.message);
+    }
+  }
+</script>
+
+</body>
+</html>
