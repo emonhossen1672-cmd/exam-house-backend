@@ -22,7 +22,7 @@ router.post('/', submitLimiter, optionalUser, asyncHandler(async (req, res) => {
   }
 
   const examRes = await pool.query(
-    `SELECT type, status, negative_marks, is_practice, is_duel, is_daily, is_auto_subject, is_repeated_bank
+    `SELECT type, status, negative_marks, is_practice, is_duel, is_daily, is_auto_subject, is_repeated_bank, is_custom
      FROM exams WHERE id=$1`,
     [exam_id]
   );
