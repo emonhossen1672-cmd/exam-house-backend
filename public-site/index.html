@@ -2146,6 +2146,10 @@
     <div id="subject-stats-empty" class="empty-note" style="display:none;">এখনো কোনো তথ্য নেই — একটি পরীক্ষা দিলে এখানে দেখাবে।</div>
     <div id="subject-stats-list"></div>
 
+    <div class="sec-head" style="margin:22px 0 12px;"><h2>লিখিত উত্তরে সাধারণ সমস্যা</h2></div>
+    <div id="written-weak-areas-empty" class="empty-note" style="display:none;">এখনো কোনো AI-গ্রেড হওয়া লিখিত উত্তর নেই — একটি রিটেন পরীক্ষা দিলে এখানে দেখাবে।</div>
+    <div id="written-weak-areas-list"></div>
+
     <div class="sec-head" style="margin:22px 0 12px;"><h2>পরীক্ষার প্রবণতা</h2></div>
     <div id="profile-trend-chart-wrap" style="display:none; margin-bottom:16px;"></div>
   </div>
@@ -2795,6 +2799,7 @@
       await renderSubjectStats([
         {listId:'subject-stats-list', emptyId:'subject-stats-empty'}
       ]);
+      renderWrittenWeakAreas();
 
       refreshRevisionTrigger();
       refreshBookmarkTrigger();
@@ -3265,6 +3270,35 @@
       });
     }catch(e){
       // silent — home widget just won't show if this fails
+    }
+  }
+
+  // GET /api/written-answers/me/weak-areas — লিখিত (written) উত্তরে ছাত্রের
+  // বার বার হওয়া সমস্যার ধরন (renderSubjectStats-এর মতোই bar-list, কিন্তু
+  // % হলো "কতগুলো গ্রেড হওয়া উত্তরে এই সমস্যাটা এসেছে" — accuracy নয়)।
+  async function renderWrittenWeakAreas(){
+    const listEl = document.getElementById('written-weak-areas-list');
+    const emptyEl = document.getElementById('written-weak-areas-empty');
+    if(!listEl) return;
+    try{
+      const data = await apiGetAuth('/api/written-answers/me/weak-areas');
+      if(!data.weak_areas.length){
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      listEl.innerHTML = data.weak_areas.map(w=>{
+        const pct = data.graded_count ? Math.round((w.count/data.graded_count)*100) : 0;
+        return `<div class="subj-stat">
+          <div class="subj-stat-top"><span>${escapeHtml(w.issue)}</span><span style="color:var(--wrong);">${toBnDigits(w.count)}টা উত্তরে</span></div>
+          <div class="subj-stat-bar"><div class="subj-stat-fill" style="width:${pct}%; background:var(--wrong);"></div></div>
+          <div class="subj-stat-meta">মোট ${toBnDigits(data.graded_count)}টি AI-গ্রেড উত্তরের মধ্যে ${toBnDigits(pct)}%-এ এই সমস্যা দেখা গেছে</div>
+        </div>`;
+      }).join('');
+    }catch(e){
+      listEl.innerHTML = '';
+      emptyEl.style.display = 'none'; // fail-soft — সেকশনটা চুপচাপ খালি থাকবে
     }
   }
 
