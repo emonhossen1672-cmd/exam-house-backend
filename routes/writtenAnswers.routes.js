@@ -117,15 +117,15 @@ router.post('/submit', submitLimiter, optionalUser, asyncHandler(async (req, res
       try {
         const wq = await pool.query('SELECT question_text, model_answer, marks FROM written_questions WHERE id=$1', [row.written_question_id]);
         if (!wq.rows.length) continue;
-        const { marks_awarded, feedback } = await gradeWrittenAnswer({
+        const { marks_awarded, feedback, weak_areas } = await gradeWrittenAnswer({
           questionText: wq.rows[0].question_text,
           modelAnswer: wq.rows[0].model_answer,
           studentAnswer: row.answer_text,
           maxMarks: Number(wq.rows[0].marks),
         });
         await pool.query(
-          `UPDATE written_answers SET status='graded', marks_awarded=$1, feedback=$2, graded_by='ai', graded_at=NOW() WHERE id=$3`,
-          [marks_awarded, feedback, row.id]
+          `UPDATE written_answers SET status='graded', marks_awarded=$1, feedback=$2, weak_areas=$3, graded_by='ai', graded_at=NOW() WHERE id=$4`,
+          [marks_awarded, feedback, weak_areas, row.id]
         );
       } catch (err) {
         console.error(`⚠️ AI grading failed for written_answers.id=${row.id}: ${err.message}`);
@@ -210,16 +210,16 @@ router.post('/admin/:id/ai-grade', requireAdmin, asyncHandler(async (req, res) =
   if (!ansRes.rows.length) return res.status(404).json({ error: 'উত্তর পাওয়া যায়নি' });
   const a = ansRes.rows[0];
   try {
-    const { marks_awarded, feedback } = await gradeWrittenAnswer({
+    const { marks_awarded, feedback, weak_areas } = await gradeWrittenAnswer({
       questionText: a.question_text,
       modelAnswer: a.model_answer,
       studentAnswer: a.answer_text,
       maxMarks: Number(a.max_marks),
     });
     const { rows } = await pool.query(
-      `UPDATE written_answers SET marks_awarded=$1, feedback=$2, status='graded', graded_by='ai', graded_at=NOW()
-       WHERE id=$3 RETURNING *`,
-      [marks_awarded, feedback, a.id]
+      `UPDATE written_answers SET marks_awarded=$1, feedback=$2, weak_areas=$3, status='graded', graded_by='ai', graded_at=NOW()
+       WHERE id=$4 RETURNING *`,
+      [marks_awarded, feedback, weak_areas, a.id]
     );
     res.json(rows[0]);
   } catch (err) {
@@ -240,15 +240,15 @@ router.post('/admin/exam/:examId/ai-grade-pending', requireAdmin, asyncHandler(a
   const errors = [];
   for (const a of pending) {
     try {
-      const { marks_awarded, feedback } = await gradeWrittenAnswer({
+      const { marks_awarded, feedback, weak_areas } = await gradeWrittenAnswer({
         questionText: a.question_text,
         modelAnswer: a.model_answer,
         studentAnswer: a.answer_text,
         maxMarks: Number(a.max_marks),
       });
       await pool.query(
-        `UPDATE written_answers SET marks_awarded=$1, feedback=$2, status='graded', graded_by='ai', graded_at=NOW() WHERE id=$3`,
-        [marks_awarded, feedback, a.id]
+        `UPDATE written_answers SET marks_awarded=$1, feedback=$2, weak_areas=$3, status='graded', graded_by='ai', graded_at=NOW() WHERE id=$4`,
+        [marks_awarded, feedback, weak_areas, a.id]
       );
       graded++;
     } catch (err) {
@@ -256,6 +256,30 @@ router.post('/admin/exam/:examId/ai-grade-pending', requireAdmin, asyncHandler(a
     }
   }
   res.json({ graded, failed: errors.length, errors });
+}));
+
+// GET /api/written-answers/me/weak-areas — এই ইউজারের সব AI-গ্রেড হওয়া লিখিত
+// উত্তরের weak_areas ট্যাগ একসাথে করে গণনা করে, যাতে ছাত্র দেখতে পায় তার
+// লিখিত উত্তরে বার বার কোন ধরনের সমস্যা হচ্ছে (শুধু একটা উত্তরের ফিডব্যাক
+// পড়ে বোঝা যায় না — এখানে প্যাটার্নটা একসাথে দেখা যায়)।
+router.get('/me/weak-areas', requireUser, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT weak_areas FROM written_answers
+     WHERE user_id = $1 AND graded_by = 'ai' AND weak_areas IS NOT NULL`,
+    [req.user.id]
+  );
+
+  const counts = new Map();
+  for (const r of rows) {
+    for (const tag of (r.weak_areas || [])) {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+  }
+  const weak_areas = [...counts.entries()]
+    .map(([issue, count]) => ({ issue, count }))
+    .sort((a, b) => b.count - a.count);
+
+  res.json({ graded_count: rows.length, weak_areas });
 }));
 
 module.exports = router;
