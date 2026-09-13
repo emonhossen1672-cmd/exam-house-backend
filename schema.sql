@@ -815,3 +815,11 @@ CREATE TABLE IF NOT EXISTS flash_news (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_flash_news_active_created ON flash_news(is_active, created_at DESC);
+
+-- ফিচার: ইউজার নিজে কাস্টম মডেল টেস্ট বানাতে পারবে (প্রশ্ন সংখ্যা, নেগেটিভ
+-- মার্কিং, সাবজেক্ট বেছে) — দেখুন routes/exams.routes.js এর
+-- POST /api/exams/public/custom। is_custom=true হওয়ায় এটা প্যাকেজ-গেটেড না
+-- (utils/packageAccess.js), এবং কে বানিয়েছে ট্র্যাক করার জন্য
+-- created_by_user_id (নিজের হিস্ট্রি: GET /api/exams/public/custom/mine)।
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_custom BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
