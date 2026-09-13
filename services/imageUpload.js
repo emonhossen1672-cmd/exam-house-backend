@@ -58,4 +58,36 @@ async function uploadImageBuffer(buffer, originalname, folder = 'exam-house/writ
   return data.secure_url;
 }
 
-module.exports = { uploadImageBuffer, isConfigured };
+// uploadFileBuffer — same signed-upload flow as uploadImageBuffer above, but
+// hits Cloudinary's /auto/upload endpoint so PDFs (লেকচার নোট / ই-বুক) work
+// alongside plain images, instead of only image/* like uploadImageBuffer.
+// Used by routes/upload.routes.js's POST /api/upload/note (admin-only).
+async function uploadFileBuffer(buffer, originalname, folder = 'exam-house/notes') {
+  if (!isConfigured()) {
+    throw new Error('ফাইল আপলোড এখনো চালু করা হয়নি (Cloudinary কনফিগার করা নেই)');
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = buildSignature({ timestamp, folder });
+
+  const form = new FormData();
+  form.append('file', new Blob([buffer]), originalname || 'note');
+  form.append('api_key', CLOUDINARY_API_KEY);
+  form.append('timestamp', String(timestamp));
+  form.append('folder', folder);
+  form.append('signature', signature);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+    method: 'POST',
+    body: form
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error('Cloudinary file upload failed:', data);
+    throw new Error('ফাইল আপলোড ব্যর্থ হয়েছে');
+  }
+  return data.secure_url;
+}
+
+module.exports = { uploadImageBuffer, uploadFileBuffer, isConfigured };
