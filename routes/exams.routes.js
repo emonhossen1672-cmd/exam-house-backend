@@ -158,6 +158,10 @@ router.get('/public/list', optionalUser, asyncHandler(async (req, res) => {
   const clauses = [];
   if (type) { params.push(type); clauses.push(`e.type = $${params.length}`); }
   if (routine_category) { params.push(routine_category); clauses.push(`e.routine_category = $${params.length}`); }
+  // Custom model tests are personal (see POST /public/custom) — they never
+  // belong in the shared list every student sees; a student finds their own
+  // via GET /public/custom/mine instead.
+  clauses.push('e.is_custom = false');
   const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
   params.push(req.user ? req.user.id : null);
   const userParamIdx = params.length;
@@ -251,6 +255,118 @@ router.get('/public/daily-quiz', asyncHandler(async (req, res) => {
   } finally {
     client.release();
   }
+}));
+
+// ---------- CUSTOM MODEL TEST (ইউজার নিজে বানানো মডেল টেস্ট) ----------
+// Product decision (2026-09): competitor apps (e.g. Ultimate Job Solutions)
+// let a student pick question count + negative-marking scheme + subject(s)
+// and get an instant model test, instead of only taking admin-curated ones.
+// This mirrors the daily-quiz pattern above — it inserts a REAL 'model' exam
+// row + exam_questions, so taking/submitting/reviewing it all reuse the
+// normal exam flow (results.routes.js, /public/:id/questions, /public/:id/
+// archive) with zero extra code there. is_custom=true keeps it OUT of the
+// package/monetization gate (see utils/packageAccess.js) and out of the
+// general /public/list (it's personal, not something to show every student).
+const CUSTOM_TEST_MIN_QUESTIONS = 5;
+const CUSTOM_TEST_MAX_QUESTIONS = 100;
+const CUSTOM_TEST_ALLOWED_NEGATIVE_MARKS = [0, 0.25, 0.5];
+
+// POST /api/exams/public/custom — body: { question_count, negative_marks, subjects?: string[] }
+// subjects is optional; when omitted/empty, questions are drawn from the
+// whole bank. When given, must match utils/topicJobSubjects.js's fixed list
+// (the same 12 subjects already used by /public/subjects, Reading List, and
+// Duel mode) so one "সাবজেক্ট" tag works everywhere.
+router.post('/public/custom', requireUser, asyncHandler(async (req, res) => {
+  const { question_count, negative_marks, subjects } = req.body;
+
+  const count = parseInt(question_count, 10);
+  if (!Number.isInteger(count) || count < CUSTOM_TEST_MIN_QUESTIONS || count > CUSTOM_TEST_MAX_QUESTIONS) {
+    return res.status(400).json({
+      error: `প্রশ্ন সংখ্যা ${CUSTOM_TEST_MIN_QUESTIONS} থেকে ${CUSTOM_TEST_MAX_QUESTIONS}-এর মধ্যে হতে হবে`
+    });
+  }
+  const negMarks = negative_marks === undefined || negative_marks === null ? 0 : Number(negative_marks);
+  if (!CUSTOM_TEST_ALLOWED_NEGATIVE_MARKS.includes(negMarks)) {
+    return res.status(400).json({
+      error: `নেগেটিভ মার্কিং ${CUSTOM_TEST_ALLOWED_NEGATIVE_MARKS.join('/')} — এর একটি হতে হবে`
+    });
+  }
+  let subjectList = null;
+  if (Array.isArray(subjects) && subjects.length) {
+    subjectList = subjects.filter(s => TOPIC_JOB_SUBJECTS.includes(s));
+    if (!subjectList.length) {
+      return res.status(400).json({ error: 'বৈধ সাবজেক্ট বেছে নিন' });
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const qParams = [];
+    let qWhere = '';
+    if (subjectList) {
+      qParams.push(subjectList);
+      qWhere = `WHERE subject = ANY($${qParams.length})`;
+    }
+    qParams.push(count);
+    const qRes = await client.query(
+      `SELECT id FROM questions ${qWhere} ORDER BY RANDOM() LIMIT $${qParams.length}`,
+      qParams
+    );
+    if (!qRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'এই ফিল্টারে এখনো কোনো প্রশ্ন যোগ করা হয়নি' });
+    }
+
+    const serial = genSerial('model');
+    const subjectLabel = subjectList ? subjectList.join(', ') : 'সকল বিষয়';
+    const title = `কাস্টম মডেল টেস্ট — ${subjectLabel} (${qRes.rows.length} প্রশ্ন)`;
+    // ~50 seconds/question, minimum 10 minutes — a rough default; the
+    // per-attempt countdown a student sees just uses this like any other exam.
+    const durationMinutes = Math.max(10, Math.round(qRes.rows.length * 50 / 60));
+
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, duration_minutes, serial, status, negative_marks, is_custom, created_by_user_id, subject)
+       VALUES ($1,'model',$2,$3,'active',$4,true,$5,$6) RETURNING *`,
+      [title, durationMinutes, serial, negMarks, req.user.id, subjectList ? subjectLabel : null]
+    );
+    const exam = examResult.rows[0];
+
+    for (let i = 0; i < qRes.rows.length; i++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [exam.id, qRes.rows[i].id, i + 1]
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({
+      ...exam,
+      question_count: qRes.rows.length,
+      requested_question_count: count // lets the frontend note "চাওয়া হয়েছিল ৩০টি, পাওয়া গেছে ১৮টি" if the bank came up short
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+}));
+
+// GET /api/exams/public/custom/mine — a student's own past custom tests, most
+// recent first, so they can revisit/retake one instead of only ever creating
+// new ones from scratch.
+router.get('/public/custom/mine', requireUser, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT e.id, e.title, e.subject, e.negative_marks, e.duration_minutes, e.serial, e.created_at,
+      (SELECT COUNT(*) FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
+      EXISTS(SELECT 1 FROM results r WHERE r.exam_id = e.id AND r.user_id = $1) AS attempted
+    FROM exams e
+    WHERE e.is_custom = true AND e.created_by_user_id = $1
+    ORDER BY e.created_at DESC
+    LIMIT 50
+  `, [req.user.id]);
+  res.json(rows);
 }));
 
 // GET /api/exams/public/:id/questions — questions WITHOUT correct answers (for taking the exam)
