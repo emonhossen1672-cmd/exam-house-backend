@@ -881,6 +881,15 @@
   .duel-btn.ghost{background:var(--navy-deep);}
   .duel-btn.small{width:auto; padding:12px 16px; flex-shrink:0;}
   .duel-btn:active{transform:scale(0.98);}
+  .ct-subj-list{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:4px;
+  }
+  .ct-subj-check{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink);
+    border:1.5px solid var(--line); border-radius:9px; padding:8px 10px; cursor:pointer;
+  }
+  .ct-subj-check input{flex-shrink:0;}
+  .ct-subj-check small{color:var(--ink-faint); font-weight:500;}
   .duel-code-box{
     text-align:center; background:var(--navy-deep); color:#fff; border-radius:16px;
     padding:22px 16px; margin-bottom:14px; position:relative; overflow:hidden;
@@ -1968,6 +1977,7 @@
       <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
       <button class="mode-btn" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
       <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
+      <button class="mode-btn" id="mode-btn-custom" onclick="setModelMode('custom')"><span class="mb-ic">✍️</span>কাস্টম টেস্ট</button>
     </div>
     <div class="sec-head" style="margin-top:4px;"><h2 id="model-heading">মডেল টেস্ট</h2></div>
     <p id="model-subtext" style="font-size:12.5px; color:var(--ink-faint); margin:-6px 0 16px;">মন্ত্রণালয় বেছে নিন</p>
@@ -3957,6 +3967,7 @@
     document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
     document.getElementById('mode-btn-topic').classList.toggle('active', mode==='topic');
     document.getElementById('mode-btn-duel').classList.toggle('active', mode==='duel');
+    document.getElementById('mode-btn-custom').classList.toggle('active', mode==='custom');
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     else if(mode === 'topic'){ TOPIC_NAV = {level:'subjects'}; }
@@ -3971,6 +3982,7 @@
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
     if(MODEL_MODE === 'topic'){ renderTopicScreen(); return; }
     if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
+    if(MODEL_MODE === 'custom'){ renderCustomTestScreen(); return; }
     if(MODEL_MODE === 'written'){ renderWrittenScreen(); return; }
     if(MODEL_MODE === 'written-library'){ renderWrittenLibraryScreen(); return; }
     // Daily quiz (is_daily) and practice-mode quizzes (is_practice) are auto-generated
@@ -5952,6 +5964,121 @@
         .catch(()=>prompt('কপি করুন:', text));
     }else{
       prompt('কপি করুন:', text);
+    }
+  }
+
+  // ---------- Custom Model Test (ইউজার নিজে বানানো মডেল টেস্ট) ----------
+  // Backend: POST/GET /api/exams/public/custom(/mine) — see routes/exams.routes.js.
+  // Mirrors renderDuelScreen just above: login-gate, reuse PRACTICE_SUBJECTS_CACHE
+  // for the subject picker, then hand off to the exact same startExam/openNameSheet
+  // flow every other model test uses.
+  async function renderCustomTestScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'none';
+    heading.textContent = 'কাস্টম মডেল টেস্ট';
+    subtext.textContent = 'নিজের মতো করে প্রশ্ন সংখ্যা ও বিষয় বেছে টেস্ট বানান';
+
+    if(!USER_TOKEN){
+      listEl.innerHTML = `
+        <div class="duel-guest">
+          <div class="dg-ic">✍️</div>
+          <p>নিজের পছন্দমতো কাস্টম মডেল টেস্ট বানাতে আগে লগইন করুন — আপনার সব কাস্টম টেস্ট প্রোফাইলে সংরক্ষিত থাকবে।</p>
+          <button class="auth-btn" style="margin-top:0;" onclick="goScreen('history'); showAuthForm('login');">লগইন করুন</button>
+        </div>`;
+      return;
+    }
+
+    if(!PRACTICE_SUBJECTS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{ PRACTICE_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects'); }
+      catch(err){ listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`; return; }
+    }
+
+    const subjectChecks = (PRACTICE_SUBJECTS_CACHE || []).map(s => `
+      <label class="ct-subj-check">
+        <input type="checkbox" value="${escapeHtml(s.subject)}">
+        <span>${escapeHtml(s.subject)} <small>(${toBnDigits(s.question_count)})</small></span>
+      </label>`).join('');
+
+    listEl.innerHTML = `
+      <div class="duel-card">
+        <h3>🆕 নতুন কাস্টম টেস্ট বানান</h3>
+        <label class="auth-label">কতটি প্রশ্ন?</label>
+        <input class="auth-input" id="ct-count" type="number" min="5" max="100" step="1" value="20">
+        <label class="auth-label" style="margin-top:10px;">নেগেটিভ মার্কিং</label>
+        <select class="duel-select" id="ct-negative">
+          <option value="0" selected>নেগেটিভ মার্কিং নেই</option>
+          <option value="0.25">-০.২৫</option>
+          <option value="0.5">-০.৫</option>
+        </select>
+        <label class="auth-label" style="margin-top:10px;">বিষয় বেছে নিন (না বেছে নিলে সব বিষয় থেকে আসবে)</label>
+        <div class="ct-subj-list" id="ct-subjects">${subjectChecks || '<div class="empty-note">এখনো কোনো বিষয় নেই</div>'}</div>
+        <div class="auth-err" id="ct-err"></div>
+        <button class="duel-btn" style="margin-top:12px;" onclick="createCustomTest()">টেস্ট তৈরি করুন</button>
+      </div>
+
+      <div class="sec-head" style="margin:20px 0 12px;"><h2>আমার কাস্টম টেস্ট</h2></div>
+      <div id="ct-my-list"><div class="loading-note">লোড হচ্ছে...</div></div>
+    `;
+
+    loadMyCustomTests();
+  }
+
+  async function createCustomTest(){
+    const countInput = document.getElementById('ct-count');
+    const negSelect = document.getElementById('ct-negative');
+    const errEl = document.getElementById('ct-err');
+    const listEl = document.getElementById('model-list');
+    const count = parseInt(countInput.value, 10);
+    errEl.style.display = 'none';
+    if(!Number.isInteger(count) || count < 5 || count > 100){
+      errEl.textContent = 'প্রশ্ন সংখ্যা ৫ থেকে ১০০-এর মধ্যে দিন';
+      errEl.style.display = 'block';
+      return;
+    }
+    const subjects = [...document.querySelectorAll('#ct-subjects input:checked')].map(el => el.value);
+    const prevHtml = listEl.innerHTML;
+    listEl.innerHTML = '<div class="loading-note">টেস্ট তৈরি হচ্ছে...</div>';
+    try{
+      const exam = await apiPost('/api/exams/public/custom', {
+        question_count: count,
+        negative_marks: Number(negSelect.value),
+        subjects: subjects.length ? subjects : undefined
+      }, true);
+      const idx = ALL_EXAMS.findIndex(e=>e.id===exam.id);
+      if(idx>=0) ALL_EXAMS[idx] = exam; else ALL_EXAMS.push(exam);
+      if(exam.question_count < exam.requested_question_count){
+        ehToast(`চাওয়া হয়েছিল ${toBnDigits(exam.requested_question_count)}টি, এই বিষয়ে পাওয়া গেছে ${toBnDigits(exam.question_count)}টি`);
+      }
+      openNameSheet(exam.id);
+      listEl.innerHTML = prevHtml; // restore the builder form underneath the name-sheet overlay
+      loadMyCustomTests();
+    }catch(err){
+      listEl.innerHTML = prevHtml;
+      const errEl2 = document.getElementById('ct-err');
+      if(errEl2){ errEl2.textContent = err.message || 'টেস্ট তৈরি করা যায়নি'; errEl2.style.display = 'block'; }
+    }
+  }
+
+  async function loadMyCustomTests(){
+    const wrap = document.getElementById('ct-my-list');
+    if(!wrap) return;
+    try{
+      const mine = await apiGetAuth('/api/exams/public/custom/mine');
+      if(!mine.length){
+        wrap.innerHTML = '<div class="empty-note">এখনো কোনো কাস্টম টেস্ট বানানো হয়নি।</div>';
+        return;
+      }
+      mine.forEach(e => {
+        const idx = ALL_EXAMS.findIndex(x=>x.id===e.id);
+        if(idx>=0) ALL_EXAMS[idx] = e; else ALL_EXAMS.push(e);
+      });
+      wrap.innerHTML = mine.map(ticketHtml).join('');
+    }catch(err){
+      wrap.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
     }
   }
 
