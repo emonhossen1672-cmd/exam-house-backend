@@ -753,3 +753,16 @@ CREATE TABLE IF NOT EXISTS ai_study_coach_cache (
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE (user_id, coach_date)
 );
+
+-- ===================== লিখিত উত্তরে দুর্বলতার ধরন ট্র্যাকিং =====================
+-- Product decision (2026-09): MCQ-তে subject/topic-ভিত্তিক weak-area আছে
+-- (question_attempts → /api/exams/public/weak-topics), কিন্তু লিখিত (written)
+-- উত্তরে AI grading শুধু marks + freeform feedback text দিত — কোনো ছাত্র বার
+-- বার ঠিক কোন ধরনের ভুল করছে (তথ্য বাদ যাচ্ছে? উদাহরণ দিচ্ছে না? কাঠামো
+-- এলোমেলো?) সেটা কোথাও structured ভাবে ধরা পড়ত না, তাই aggregate করে
+-- "তোমার লিখিত উত্তরে সবচেয়ে বেশি যে সমস্যা হয়" এমন কিছু দেখানো যেত না।
+--
+-- services/aiGrading.js এর একই AI কলেই এখন marks/feedback এর পাশাপাশি একটা
+-- ছোট fixed-taxonomy ট্যাগ লিস্টও চাওয়া হয় (আলাদা কল না — খরচ/লেটেন্সি
+-- বাড়ায় না)। TEXT[] তাই যে kt একাধিক ট্যাগ থাকতে পারে এক উত্তরে।
+ALTER TABLE written_answers ADD COLUMN IF NOT EXISTS weak_areas TEXT[];
