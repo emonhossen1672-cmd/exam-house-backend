@@ -579,25 +579,33 @@
   .tj2-fc-dots span{ width:6px; height:6px; border-radius:50%; background:var(--tj2-line); cursor:pointer; transition:all .2s ease; }
   .tj2-fc-dots span.on{ background:var(--tj2-teal); width:16px; border-radius:4px; }
 
-  /* ফ্ল্যাশ নিউজ — হোমপেজ হরাইজন্টাল স্ক্রল ইমেজ-কার্ড স্ট্রিপ */
-  /* ---------- colorful live current-affairs ticker (flash news) ---------- */
-  .fn-ticker-card{ background:var(--card); border-radius:16px; box-shadow:var(--neu-shadow-sm); overflow:hidden; margin-bottom:4px; }
-  .fn-ticker-head{ display:flex; align-items:center; gap:8px; padding:10px 12px; background:linear-gradient(90deg, var(--live-red-bg), var(--gold-soft) 140%); cursor:pointer; }
-  .fn-live-badge{ display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:800; color:var(--live-red-deep); background:#fff; padding:3px 8px; border-radius:20px; flex-shrink:0; letter-spacing:.3px; }
-  .fn-headline-wrap{ flex:1; min-width:0; overflow:hidden; }
-  .fn-headline{ font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
-  .fn-headline .fn-emoji{ flex-shrink:0; }
-  .fn-chevron{ flex-shrink:0; width:22px; height:22px; display:flex; align-items:center; justify-content:center; transition:transform .2s ease; color:var(--ink-soft); }
-  .fn-ticker-card.expanded .fn-chevron{ transform:rotate(180deg); }
-  .fn-chip-row{ display:flex; gap:8px; overflow-x:auto; padding:10px 12px; -webkit-overflow-scrolling:touch; }
+  /* ফ্ল্যাশ নিউজ — হোমপেজে ছোট্ট ডাইনামিক বাটন, ভেতরের সব কনটেন্ট আলাদা ওভারলে-তে */
+  /* ---------- হোমপেজ কারেন্ট অ্যাফেয়ার্স বাটন ---------- */
+  .fn-home-card{
+    display:flex; align-items:center; gap:11px; margin-top:10px;
+    background:linear-gradient(90deg, var(--live-red-bg), var(--gold-soft) 140%);
+    border-radius:16px; padding:13px 14px; cursor:pointer;
+    box-shadow:var(--neu-shadow-sm);
+  }
+  .fn-home-icon{
+    width:38px; height:38px; border-radius:11px; background:#fff; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:19px;
+    box-shadow:0 2px 6px -2px rgba(0,0,0,.18);
+  }
+  .fn-home-text{ flex:1; min-width:0; }
+  .fn-home-title{ display:flex; align-items:center; gap:6px; font-family:'Baloo Da 2','Noto Serif Bengali',serif; font-weight:700; font-size:13.5px; color:var(--ink); }
+  .fn-home-title .fn-live-badge{ display:flex; align-items:center; gap:5px; font-size:9.5px; font-weight:800; color:var(--live-red-deep); background:#fff; padding:2px 8px; border-radius:20px; flex-shrink:0; letter-spacing:.3px; }
+  .fn-home-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fn-home-count{ flex-shrink:0; background:var(--live-red-deep); color:#fff; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:20px; }
+  .fn-home-arrow{ flex-shrink:0; color:var(--ink-soft); font-size:16px; }
+
+  /* ---------- কারেন্ট অ্যাফেয়ার্স ফুল ওভারলে (ভেতরের সিস্টেম/ডিজাইন) ---------- */
+  .fn-chip-row{ display:flex; gap:8px; overflow-x:auto; padding-bottom:12px; -webkit-overflow-scrolling:touch; }
   .fn-chip-row::-webkit-scrollbar{ display:none; }
   .fn-chip{ flex-shrink:0; display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:20px; cursor:pointer; border:none; position:relative; }
   .fn-chip.active{ outline:2px solid rgba(0,0,0,.15); }
   .fn-chip .fn-unread-dot{ width:6px; height:6px; border-radius:50%; background:var(--live-red-deep); box-shadow:0 0 0 0 rgba(226,53,43,.6); animation:fnPulse 1.7s infinite; }
-  .fn-expand{ max-height:0; overflow:hidden; transition:max-height .25s ease; }
-  .fn-ticker-card.expanded .fn-expand{ max-height:none; }
-  .fn-expand-inner{ padding:0 12px 14px; }
-  .fn-item{ background:var(--paper); border-radius:12px; padding:12px; margin-top:10px; }
+  .fn-item{ background:var(--card); box-shadow:var(--neu-shadow-sm); border-radius:12px; padding:13px; margin-bottom:12px; }
   .fn-item-title{ font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.5; display:flex; align-items:flex-start; gap:6px; }
   .fn-item-body{ font-size:12.5px; color:var(--ink-soft); line-height:1.7; margin-top:6px; white-space:pre-wrap; }
   .fn-item-src{ display:inline-block; margin-top:8px; font-size:11.5px; font-weight:700; color:var(--seal); text-decoration:none; }
@@ -1868,7 +1876,7 @@
     </div>
 
 
-    <div class="fn-ticker-card" id="home-flash-news-card" style="display:none;"></div>
+    <div class="fn-home-card" id="home-flash-news-card" style="display:none;" onclick="openFlashNewsOverlay()"></div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
@@ -2457,6 +2465,19 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="notice-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ কারেন্ট অ্যাফেয়ার্স (FLASH NEWS) FULL OVERLAY ============ -->
+  <div class="exam-overlay" id="fn-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeFlashNewsOverlay()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">📰 কারেন্ট অ্যাফেয়ার্স</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" style="padding:14px 18px 40px;">
+      <div class="fn-chip-row" id="fn-chip-row"></div>
+      <div id="fn-overlay-list"></div>
+    </div>
   </div>
 
   <!-- ============ NOTES / EBOOK LIBRARY OVERLAY ============ -->
@@ -4031,7 +4052,7 @@
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay','analysis-overlay',
     'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay',
-    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay','notes-overlay'];
+    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay','notes-overlay','fn-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -6919,7 +6940,6 @@
   // ---------- ফ্ল্যাশ নিউজ (হোমপেজ রঙিন লাইভ টিকার) ----------
   let FLASH_NEWS_CACHE = [];
   let FLASH_CATEGORIES_CACHE = [];
-  let FLASH_EXPANDED = false;
   let FLASH_ACTIVE_CATEGORY = null; // null = সব দেখাও
 
   const FLASH_CAT_META = {
@@ -6960,6 +6980,7 @@
   }
 
   function renderFlashNewsTicker(){
+    // হোমপেজে শুধু ছোট্ট একটা বাটন — সব খবর/ডিজাইন এখন fn-overlay এর ভেতরে
     const card = document.getElementById('home-flash-news-card');
     if(!FLASH_NEWS_CACHE.length){
       card.style.display = 'none';
@@ -6967,11 +6988,38 @@
       return;
     }
     card.style.display = '';
-    card.classList.toggle('expanded', FLASH_EXPANDED);
 
     const latest = FLASH_NEWS_CACHE[0];
     const latestMeta = fnCatMeta(latest.category);
+    const unreadCount = FLASH_NEWS_CACHE.filter(n => n.is_read === false).length;
 
+    card.innerHTML = `
+      <div class="fn-home-icon">${latestMeta.emoji}</div>
+      <div class="fn-home-text">
+        <div class="fn-home-title"><span class="fn-live-badge"><span class="fn-live-dot"></span>LIVE</span>কারেন্ট অ্যাফেয়ার্স</div>
+        <div class="fn-home-sub">${escapeHtml(latest.title)}</div>
+      </div>
+      ${unreadCount > 0 ? `<div class="fn-home-count">${toBnDigits(unreadCount)} নতুন</div>` : ''}
+      <div class="fn-home-arrow">→</div>
+    `;
+
+    // ওভারলে খোলা থাকলে (রিফ্রেশে) ভেতরের লিস্টও আপডেট রাখি
+    if(document.getElementById('fn-overlay').classList.contains('active')){
+      renderFlashNewsOverlayBody();
+    }
+  }
+
+  function openFlashNewsOverlay(){
+    if(!FLASH_NEWS_CACHE.length) return;
+    document.getElementById('fn-overlay').classList.add('active');
+    renderFlashNewsOverlayBody();
+    fnMarkVisibleRead();
+  }
+  function closeFlashNewsOverlay(){
+    document.getElementById('fn-overlay').classList.remove('active');
+  }
+
+  function renderFlashNewsOverlayBody(){
     const chips = FLASH_CATEGORIES_CACHE.map(c => {
       const meta = fnCatMeta(c.category);
       const active = FLASH_ACTIVE_CATEGORY === c.category;
@@ -6987,21 +7035,8 @@
       ? FLASH_NEWS_CACHE.filter(n => n.category === FLASH_ACTIVE_CATEGORY)
       : FLASH_NEWS_CACHE;
 
-    const itemsHtml = FLASH_EXPANDED
-      ? itemsToShow.map(n => renderFlashItem(n)).join('')
-      : '';
-
-    card.innerHTML = `
-      <div class="fn-ticker-head" onclick="fnToggleExpand()">
-        <span class="fn-live-badge"><span class="fn-live-dot"></span>LIVE</span>
-        <div class="fn-headline-wrap">
-          <div class="fn-headline"><span class="fn-emoji">${latestMeta.emoji}</span>${escapeHtml(latest.title)}</div>
-        </div>
-        <span class="fn-chevron"><svg class="ic" style="width:16px;height:16px;"><use href="#i-chevron-down"/></svg></span>
-      </div>
-      <div class="fn-chip-row">${chips}</div>
-      <div class="fn-expand"><div class="fn-expand-inner">${itemsHtml}</div></div>
-    `;
+    document.getElementById('fn-chip-row').innerHTML = chips;
+    document.getElementById('fn-overlay-list').innerHTML = itemsToShow.map(n => renderFlashItem(n)).join('');
   }
 
   function renderFlashItem(n){
@@ -7030,17 +7065,10 @@
     `;
   }
 
-  function fnToggleExpand(){
-    FLASH_EXPANDED = !FLASH_EXPANDED;
-    if(FLASH_EXPANDED) fnMarkVisibleRead();
-    renderFlashNewsTicker();
-  }
-
   function fnSelectCategory(cat, ev){
     if(ev) ev.stopPropagation();
     FLASH_ACTIVE_CATEGORY = (FLASH_ACTIVE_CATEGORY === cat) ? null : cat;
-    FLASH_EXPANDED = true;
-    renderFlashNewsTicker();
+    renderFlashNewsOverlayBody();
     fnMarkVisibleRead();
   }
 
@@ -7055,7 +7083,7 @@
           // once something is read, its category's unread dot may need to clear —
           // cheapest correct fix is a light re-fetch of just the chip counts
           (USER_TOKEN ? apiGetAuth('/api/flash-news/categories') : apiGet('/api/flash-news/categories'))
-            .then(d => { FLASH_CATEGORIES_CACHE = d.categories || []; renderFlashNewsTicker(); })
+            .then(d => { FLASH_CATEGORIES_CACHE = d.categories || []; renderFlashNewsTicker(); if(document.getElementById('fn-overlay').classList.contains('active')) renderFlashNewsOverlayBody(); })
             .catch(()=>{});
         }).catch(()=>{});
       }
