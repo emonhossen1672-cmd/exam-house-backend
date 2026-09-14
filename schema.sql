@@ -816,6 +816,35 @@ CREATE TABLE IF NOT EXISTS flash_news (
 );
 CREATE INDEX IF NOT EXISTS idx_flash_news_active_created ON flash_news(is_active, created_at DESC);
 
+-- ফ্ল্যাশনিউজ রিডিজাইন: হোমপেজের রঙিন লাইভ টিকার — প্রতিটা আইটেম একটা
+-- ক্যাটাগরিতে (আন্তর্জাতিক/অর্থনীতি/রাজনীতি/কৌশলগত) পড়ে, সাথে তথ্য-পয়েন্ট
+-- (facts) ও প্র্যাকটিস MCQ থাকে। image_url আগের ভার্সনের ব্যাকওয়ার্ড
+-- কম্প্যাটিবিলিটির জন্য রয়ে গেছে, নতুন পোস্টে আর ব্যবহার হয় না।
+ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS category VARCHAR(50);
+ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS facts JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE flash_news ADD COLUMN IF NOT EXISTS mcqs JSONB NOT NULL DEFAULT '[]';
+CREATE INDEX IF NOT EXISTS idx_flash_news_category ON flash_news(category);
+
+-- কোন ইউজার কোন ফ্ল্যাশনিউজ আইটেম পড়ে ফেলেছে — ক্যাটাগরি চিপের আনরিড ডট
+-- হিসাব করতে ব্যবহার হয়। গেস্ট ইউজারের জন্য কিছু সেভ হয় না (routes/flashNews)।
+CREATE TABLE IF NOT EXISTS flash_news_reads (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  flash_news_id INTEGER NOT NULL REFERENCES flash_news(id) ON DELETE CASCADE,
+  read_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, flash_news_id)
+);
+
+-- ফ্ল্যাশনিউজের ভেতরের প্র্যাকটিস MCQ-তে ইউজারের উত্তর — সার্ভার-সাইডে গ্রেড
+-- করা হয় (mcqs JSONB-এর correct_index ক্লায়েন্টকে পাঠানো হয় না বলে ভরসাযোগ্য)।
+CREATE TABLE IF NOT EXISTS flash_news_answers (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  flash_news_id INTEGER NOT NULL REFERENCES flash_news(id) ON DELETE CASCADE,
+  mcq_index INTEGER NOT NULL,
+  is_correct BOOLEAN NOT NULL,
+  answered_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, flash_news_id, mcq_index)
+);
+
 -- ফিচার: ইউজার নিজে কাস্টম মডেল টেস্ট বানাতে পারবে (প্রশ্ন সংখ্যা, নেগেটিভ
 -- মার্কিং, সাবজেক্ট বেছে) — দেখুন routes/exams.routes.js এর
 -- POST /api/exams/public/custom। is_custom=true হওয়ায় এটা প্যাকেজ-গেটেড না
