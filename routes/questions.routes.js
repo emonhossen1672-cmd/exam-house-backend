@@ -76,6 +76,25 @@ router.get('/ministries/list', requireAdmin, asyncHandler(async (req, res) => {
   res.json(rows);
 }));
 
+// GET /api/questions/public/ministries — organization/ministry cards for the
+// "প্রতিষ্ঠানভিত্তিক আর্কাইভ" (organization-based archive) screen, each with a
+// question_count badge — mirrors /api/exams/public/subjects (same shape,
+// grouped by ministry_id instead of subject). Only ministries that actually
+// have questions are returned — an empty "রেলওয়ে (০)" card is dead weight,
+// not a feature. Public: no login needed, matches Reading List's subject
+// picker being public too.
+router.get('/public/ministries', asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT m.id, m.name, COUNT(q.id)::int AS question_count
+    FROM ministries m
+    JOIN questions q ON q.ministry_id = m.id
+    GROUP BY m.id, m.name
+    HAVING COUNT(q.id) > 0
+    ORDER BY COUNT(q.id) DESC, m.name ASC
+  `);
+  res.json(rows);
+}));
+
 // POST /api/questions/ministries — add a new ministry
 router.post('/ministries', requireAdmin, asyncHandler(async (req, res) => {
   const { name } = req.body;
@@ -142,14 +161,24 @@ router.post('/bulk', requireAdmin, asyncHandler(async (req, res) => {
 // endpoint shows EVERY question tagged with that subject, whether or not it
 // also has a topic — topic-tagged questions show up here too (superset);
 // see /public/topic-job-subjects etc. below for the topic-only subset.
+//
+// Also accepts ?ministry_id=N INSTEAD of ?subject= — same pagination/shape,
+// but scoped to one organization's whole question bank (all subjects mixed)
+// for the প্রতিষ্ঠানভিত্তিক আর্কাইভ screen (see /public/ministries above).
+// Exactly one of subject/ministry_id is required.
 const READING_PAGE_SIZE = 30;
 router.get('/public/reading-list', asyncHandler(async (req, res) => {
   const subject = (req.query.subject || '').trim();
+  const ministryId = parseInt(req.query.ministry_id, 10);
+  const byMinistry = Number.isInteger(ministryId);
   let page = parseInt(req.query.page, 10);
   if (!Number.isFinite(page) || page < 1) page = 1;
-  if (!subject) return res.status(400).json({ error: 'বিষয় নির্বাচন করুন' });
+  if (!subject && !byMinistry) return res.status(400).json({ error: 'বিষয় বা প্রতিষ্ঠান নির্বাচন করুন' });
 
-  const countRes = await pool.query('SELECT COUNT(*)::int AS total FROM questions WHERE subject = $1', [subject]);
+  const filterCol = byMinistry ? 'ministry_id' : 'subject';
+  const filterVal = byMinistry ? ministryId : subject;
+
+  const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM questions WHERE ${filterCol} = $1`, [filterVal]);
   const total = countRes.rows[0].total;
   const totalPages = Math.max(1, Math.ceil(total / READING_PAGE_SIZE));
   if (page > totalPages) page = totalPages;
@@ -157,16 +186,16 @@ router.get('/public/reading-list', asyncHandler(async (req, res) => {
 
   const { rows } = await pool.query(
     `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
-            q.correct_option, q.explanation, q.post_name, q.exam_year,
+            q.correct_option, q.explanation, q.post_name, q.exam_year, q.subject,
             m.name AS ministry_name
      FROM questions q LEFT JOIN ministries m ON m.id = q.ministry_id
-     WHERE q.subject = $1
+     WHERE q.${filterCol} = $1
      ORDER BY q.id ASC
      LIMIT $2 OFFSET $3`,
-    [subject, READING_PAGE_SIZE, offset]
+    [filterVal, READING_PAGE_SIZE, offset]
   );
 
-  res.json({ subject, page, total_pages: totalPages, total_count: total, questions: rows });
+  res.json({ subject: subject || null, ministry_id: byMinistry ? ministryId : null, page, total_pages: totalPages, total_count: total, questions: rows });
 }));
 
 // GET /api/questions/public/search?q=&subject=&page=1&unique=1 — free-text
