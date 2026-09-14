@@ -1063,6 +1063,30 @@
   .subj-stat-fill{height:100%; border-radius:20px;}
   .subj-stat-meta{font-size:10.5px; color:var(--ink-faint); margin-top:7px;}
 
+  .an-overall{
+    display:flex; align-items:center; gap:18px; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:18px 16px; margin-bottom:18px;
+  }
+  .an-donut-wrap{position:relative; flex-shrink:0; line-height:0;}
+  .an-donut-center{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .an-donut-center b{font-size:18px; color:var(--ink); font-family:'Space Mono',monospace;}
+  .an-donut-center span{font-size:9.5px; color:var(--ink-faint);}
+  .an-legend{flex:1; display:flex; flex-direction:column; gap:9px;}
+  .an-legend-row{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink);}
+  .an-legend-row .dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+  .an-legend-row b{margin-left:auto; font-family:'Space Mono',monospace;}
+  .an-subj-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .an-subj-card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
+  }
+  .an-subj-card .an-donut-center b{font-size:13px;}
+  .an-subj-card .an-donut-center span{font-size:8px;}
+  .an-subj-name{font-size:12px; font-weight:700; color:var(--ink);}
+  .an-subj-meta{font-size:10px; color:var(--ink-faint);}
+
   .result-review-btn{
     width:100%; background:var(--navy-deep, #10182C); color:#fff; border:none; border-radius:12px;
     padding:12px; font-size:13.5px; font-weight:700; font-family:'Noto Sans Bengali'; cursor:pointer;
@@ -2139,6 +2163,10 @@
         🏆 <span>সার্বিক র‍্যাংকিং দেখুন</span>
       </button>
 
+      <button class="revision-trigger" id="analysis-trigger-btn" style="background:#2f6f4f;" onclick="openAnalysis()">
+        📊 <span>গ্রাফিক্যাল অ্যানালাইসিস দেখুন</span>
+      </button>
+
       <button class="revision-trigger" id="achievements-trigger-btn" style="background:var(--seal);" onclick="openAchievements()">
         🎖️ <span id="achievements-trigger-label">অর্জন দেখুন</span>
       </button>
@@ -2340,6 +2368,16 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="leaderboard-body" style="padding:14px 18px 40px;"></div>
+  </div>
+
+  <!-- ============ গ্রাফিক্যাল অ্যানালাইসিস (overall + per-subject donut charts) ============ -->
+  <div class="exam-overlay" id="analysis-overlay">
+    <div class="exam-top">
+      <button class="exam-exit" onclick="closeAnalysis()">✕</button>
+      <div style="font-size:13px; font-weight:700; color:var(--ink);">গ্রাফিক্যাল অ্যানালাইসিস</div>
+      <div style="width:20px;"></div>
+    </div>
+    <div class="exam-body" id="analysis-body" style="padding:14px 18px 40px;"></div>
   </div>
 
   <!-- ============ ACHIEVEMENTS / BADGES OVERLAY ============ -->
@@ -3349,6 +3387,105 @@
     }
   }
 
+  // ---------- গ্রাফিক্যাল অ্যানালাইসিস (donut charts) ----------
+  // Pure SVG, no charting library — draws each segment as an arc of a ring
+  // using stroke-dasharray on a circle. Reuses the exact same data this
+  // screen's bar-chart version already fetches (USER_INFO.stats from
+  // /api/auth/me, SUBJ_STATS_CACHE from /api/results/me/subject-stats) —
+  // no new backend endpoint needed, just a different visualization of it.
+  function donutSvg(segments, size, thickness){
+    const total = segments.reduce((a,s)=>a+s.value,0);
+    const r = (size - thickness) / 2;
+    const c = size / 2;
+    const circumference = 2 * Math.PI * r;
+    if(!total){
+      return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+        <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--paper-deep)" stroke-width="${thickness}"/>
+      </svg>`;
+    }
+    let offset = 0;
+    const arcs = segments.filter(s=>s.value>0).map(s=>{
+      const dash = (s.value/total) * circumference;
+      const circle = `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thickness}"
+        stroke-dasharray="${dash} ${circumference-dash}" stroke-dashoffset="${-offset}" stroke-linecap="butt"
+        transform="rotate(-90 ${c} ${c})"/>`;
+      offset += dash;
+      return circle;
+    }).join('');
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${arcs}</svg>`;
+  }
+
+  function openAnalysis(){
+    document.getElementById('analysis-overlay').classList.add('active');
+    renderAnalysisScreen();
+  }
+  function closeAnalysis(){
+    document.getElementById('analysis-overlay').classList.remove('active');
+  }
+
+  async function renderAnalysisScreen(){
+    const body = document.getElementById('analysis-body');
+    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const s = (USER_INFO && USER_INFO.stats) || {};
+      const right = s.total_right || 0, wrong = s.total_wrong || 0, skipped = s.total_unanswered || 0;
+      const answeredTotal = right + wrong + skipped;
+
+      if(!answeredTotal){
+        body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">এখনো কোনো পরীক্ষা দেওয়া হয়নি — একটি পরীক্ষা দিলে এখানে গ্রাফিক্যাল বিশ্লেষণ দেখাবে।</p>';
+        return;
+      }
+
+      const pct = n => Math.round((n/answeredTotal)*100);
+      let html = `
+        <div class="an-overall">
+          <div class="an-donut-wrap">
+            ${donutSvg([
+              {value:right, color:'var(--success)'},
+              {value:wrong, color:'var(--wrong)'},
+              {value:skipped, color:'var(--paper-deep)'}
+            ], 118, 18)}
+            <div class="an-donut-center"><b>${toBnDigits(answeredTotal)}</b><span>মোট প্রশ্ন</span></div>
+          </div>
+          <div class="an-legend">
+            <div class="an-legend-row"><span class="dot" style="background:var(--success);"></span>সঠিক<b>${toBnDigits(right)} (${toBnDigits(pct(right))}%)</b></div>
+            <div class="an-legend-row"><span class="dot" style="background:var(--wrong);"></span>ভুল<b>${toBnDigits(wrong)} (${toBnDigits(pct(wrong))}%)</b></div>
+            <div class="an-legend-row"><span class="dot" style="background:var(--paper-deep); border:1px solid var(--line);"></span>বাদ<b>${toBnDigits(skipped)} (${toBnDigits(pct(skipped))}%)</b></div>
+          </div>
+        </div>
+        <div class="sec-head" style="margin:0 0 12px;"><h2 style="font-size:14px;">বিষয়ভিত্তিক বিশ্লেষণ</h2></div>
+      `;
+
+      if(!SUBJ_STATS_CACHE) SUBJ_STATS_CACHE = await apiGetAuth('/api/results/me/subject-stats');
+      const subjRows = (SUBJ_STATS_CACHE || []).map(sub => {
+        const answered = sub.correct + sub.wrong;
+        return { ...sub, subjPct: answered ? Math.round((sub.correct/answered)*100) : 0 };
+      }).sort((a,b) => a.subjPct - b.subjPct); // weakest first
+
+      if(!subjRows.length){
+        html += '<p style="padding:10px 0; color:var(--ink-faint,#888); font-size:12.5px;">বিষয়ভিত্তিক তথ্য এখনো জমা হয়নি।</p>';
+      }else{
+        html += '<div class="an-subj-grid">' + subjRows.map(sub => `
+          <div class="an-subj-card">
+            <div class="an-donut-wrap">
+              ${donutSvg([
+                {value:sub.correct, color:'var(--success)'},
+                {value:sub.wrong, color:'var(--wrong)'},
+                {value:sub.skipped, color:'var(--paper-deep)'}
+              ], 74, 11)}
+              <div class="an-donut-center"><b>${toBnDigits(sub.subjPct)}%</b><span>সঠিক</span></div>
+            </div>
+            <div class="an-subj-name">${escapeHtml(sub.subject)}</div>
+            <div class="an-subj-meta">মোট ${toBnDigits(sub.total)}টি প্রশ্ন</div>
+          </div>`).join('') + '</div>';
+      }
+
+      body.innerHTML = html;
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
+  }
+
   // GET /api/written-answers/me/weak-areas — লিখিত (written) উত্তরে ছাত্রের
   // বার বার হওয়া সমস্যার ধরন (renderSubjectStats-এর মতোই bar-list, কিন্তু
   // % হলো "কতগুলো গ্রেড হওয়া উত্তরে এই সমস্যাটা এসেছে" — accuracy নয়)।
@@ -3883,7 +4020,7 @@
   // entry while it's open, so a back press closes it instead of leaving
   // the whole site. We just watch each overlay's "active" class rather
   // than editing every open/close call site.
-  const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay',
+  const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay','analysis-overlay',
     'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay',
     'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay','flash-news-overlay','notes-overlay'];
 
