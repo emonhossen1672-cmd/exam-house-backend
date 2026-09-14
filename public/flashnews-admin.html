@@ -17,24 +17,38 @@
   button:disabled { background:#333844; color:#888; }
   button.secondary { background:#2a2e37; }
   button.danger { background:#5c1f2a; color:#ff8080; }
+  button.small { margin-top:8px; width:auto; padding:8px 14px; font-size:13px; }
   .result { margin-top:12px; padding:10px; border-radius:8px; font-size:13px; white-space:pre-wrap; word-break:break-word; }
   .result.ok { background:#123322; color:#7ee787; border:1px solid #1f5c3a; }
   .result.err { background:#3a1620; color:#ff8080; border:1px solid #5c1f2a; }
   .hidden { display:none; }
   .item { background:#0f1115; border:1px solid #2a2e37; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
-  .item img { width:100%; max-height:140px; object-fit:cover; border-radius:6px; margin-bottom:6px; }
-  .item .title { font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px; }
+  .item .title { font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .item .cat-tag { font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; background:#233047; color:#8fb8ff; }
   .item .body-text { font-size:13px; color:#c0c4cc; margin-top:4px; white-space:pre-wrap; }
   .item .meta { font-size:11px; color:#7a8290; margin-top:6px; }
+  .item .facts-list { font-size:12px; color:#9aa0a6; margin-top:6px; }
+  .item .facts-list div { padding:2px 0; }
+  .item .mcq-count { font-size:11px; color:#7a8290; margin-top:4px; }
   .item .actions { display:flex; gap:8px; margin-top:8px; }
   .item .actions button { margin-top:0; width:auto; padding:6px 12px; font-size:12px; }
   .badge-off { font-size:11px; padding:2px 6px; border-radius:6px; background:#3a1620; color:#ff8080; }
+
+  .fact-row, .mcq-block { background:#0f1115; border:1px solid #2a2e37; border-radius:8px; padding:12px; margin-top:10px; position:relative; }
+  .fact-row-inputs { display:flex; gap:8px; }
+  .fact-row-inputs input { margin:0; }
+  .remove-btn { position:absolute; top:8px; right:8px; background:#3a1620; color:#ff8080; border:none; border-radius:6px; width:26px; height:26px; font-size:14px; cursor:pointer; padding:0; margin:0; }
+  .mcq-block .opt-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .mcq-block .opt-row input[type="text"] { margin:0; }
+  .mcq-block .opt-row input[type="radio"] { width:auto; flex-shrink:0; }
+  .mcq-block h3 { font-size:13px; margin:0 0 8px; color:#c0c4cc; }
+  .add-row-btn { margin-top:10px; background:#233047; color:#8fb8ff; }
 </style>
 </head>
 <body>
 
 <h1>⚡ ফ্ল্যাশনিউজ অ্যাডমিন টুল</h1>
-<p class="sub">হোম স্ক্রিনের ফ্ল্যাশনিউজ স্ট্রিপে দেখানোর জন্য ছবিসহ সংবাদ কার্ড পোস্ট করুন।</p>
+<p class="sub">হোমপেজের রঙিন লাইভ টিকারে দেখানোর জন্য ক্যাটাগরি, তথ্য-পয়েন্ট ও প্র্যাকটিস MCQ সহ কারেন্ট অ্যাফেয়ার্স কার্ড পোস্ট করুন।</p>
 
 <div class="card" id="loginCard">
   <h2>১. অ্যাডমিন লগইন</h2>
@@ -48,14 +62,28 @@
 
 <div class="card hidden" id="postCard">
   <h2>২. নতুন ফ্ল্যাশনিউজ পোস্ট করুন</h2>
-  <label>টাইটেল</label>
-  <input id="newsTitle" type="text" placeholder="যেমনঃ যুক্তরাষ্ট্রের হাতে কি সত্যি আর ১৪ দিন চলার মতো তেল আছে">
+  <label>হেডলাইন (টিকারে যা স্ক্রল হবে)</label>
+  <input id="newsTitle" type="text" placeholder="যেমনঃ বৈশ্বিক ক্ষমতার নতুন সমীকরণ">
   <label>সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)</label>
   <textarea id="newsBody" placeholder="সংক্ষিপ্ত সারমর্ম..."></textarea>
-  <label>ছবি (ঐচ্ছিক)</label>
-  <input id="newsImage" type="file" accept="image/*">
+  <label>ক্যাটাগরি</label>
+  <select id="newsCategory">
+    <option value="আন্তর্জাতিক">🌍 আন্তর্জাতিক</option>
+    <option value="অর্থনীতি">💰 অর্থনীতি</option>
+    <option value="রাজনীতি">🏛️ রাজনীতি</option>
+    <option value="কৌশলগত">⚓ কৌশলগত</option>
+  </select>
   <label>মূল লিংক (ঐচ্ছিক)</label>
   <input id="newsSource" type="text" placeholder="https://...">
+
+  <label style="margin-top:16px;">তথ্য-পয়েন্ট (এক্সপ্যান্ড করলে যা দেখাবে)</label>
+  <div id="factsList"></div>
+  <button type="button" class="small add-row-btn" onclick="addFactRow()">+ তথ্য যোগ করুন</button>
+
+  <label style="margin-top:16px;">প্র্যাকটিস MCQ</label>
+  <div id="mcqList"></div>
+  <button type="button" class="small add-row-btn" onclick="addMcqBlock()">+ MCQ যোগ করুন</button>
+
   <button onclick="postNews()">পোস্ট করুন</button>
   <div id="postResult"></div>
 </div>
@@ -68,6 +96,8 @@
 
 <script>
   let token = null;
+  let factCount = 0;
+  let mcqCount = 0;
 
   function showResult(elId, ok, text) {
     const el = document.getElementById(elId);
@@ -93,6 +123,8 @@
       showResult('loginResult', true, 'লগইন সফল ✓');
       document.getElementById('postCard').classList.remove('hidden');
       document.getElementById('listCard').classList.remove('hidden');
+      if (!factCount) addFactRow();
+      if (!mcqCount) addMcqBlock();
       loadNews();
     } catch (err) {
       showResult('loginResult', false, err.message);
@@ -116,36 +148,89 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // ---------- dynamic "তথ্য" (facts) rows ----------
+  function addFactRow(label, value) {
+    const id = 'fact-' + (factCount++);
+    const wrap = document.createElement('div');
+    wrap.className = 'fact-row';
+    wrap.id = id;
+    wrap.innerHTML = `
+      <button type="button" class="remove-btn" onclick="document.getElementById('${id}').remove()">✕</button>
+      <div class="fact-row-inputs">
+        <input type="text" placeholder="লেবেল (যেমনঃ কারণ)" class="fact-label" value="${escapeHtml(label || '')}">
+        <input type="text" placeholder="ভ্যালু (যেমনঃ শুল্ক-যুদ্ধ)" class="fact-value" value="${escapeHtml(value || '')}">
+      </div>
+    `;
+    document.getElementById('factsList').appendChild(wrap);
+  }
+
+  function collectFacts() {
+    return Array.from(document.querySelectorAll('#factsList .fact-row')).map(row => ({
+      label: row.querySelector('.fact-label').value.trim(),
+      value: row.querySelector('.fact-value').value.trim()
+    })).filter(f => f.label || f.value);
+  }
+
+  // ---------- dynamic MCQ blocks ----------
+  function addMcqBlock(data) {
+    data = data || {};
+    const id = 'mcq-' + (mcqCount++);
+    const opts = data.options || ['', '', '', ''];
+    const wrap = document.createElement('div');
+    wrap.className = 'mcq-block';
+    wrap.id = id;
+    wrap.innerHTML = `
+      <button type="button" class="remove-btn" onclick="document.getElementById('${id}').remove()">✕</button>
+      <h3>প্রশ্ন</h3>
+      <input type="text" class="mcq-question" placeholder="প্রশ্ন লিখুন" value="${escapeHtml(data.question || '')}">
+      ${[0,1,2,3].map(i => `
+        <div class="opt-row">
+          <input type="radio" name="${id}-correct" class="mcq-correct" value="${i}" ${data.correct_index === i ? 'checked' : ''}>
+          <input type="text" class="mcq-option" placeholder="অপশন ${String.fromCharCode(65+i)}" value="${escapeHtml(opts[i] || '')}">
+        </div>
+      `).join('')}
+      <label style="margin-top:8px;">ব্যাখ্যা (ঐচ্ছিক)</label>
+      <textarea class="mcq-explanation" placeholder="সঠিক উত্তর কেন সঠিক...">${escapeHtml(data.explanation || '')}</textarea>
+    `;
+    document.getElementById('mcqList').appendChild(wrap);
+  }
+
+  function collectMcqs() {
+    return Array.from(document.querySelectorAll('#mcqList .mcq-block')).map(block => {
+      const question = block.querySelector('.mcq-question').value.trim();
+      const options = Array.from(block.querySelectorAll('.mcq-option')).map(i => i.value.trim());
+      const checked = block.querySelector('.mcq-correct:checked');
+      const explanation = block.querySelector('.mcq-explanation').value.trim();
+      if (!question || options.some(o => !o) || !checked) return null;
+      return { question, options, correct_index: parseInt(checked.value), explanation: explanation || null };
+    }).filter(Boolean);
+  }
+
   async function postNews() {
     const title = document.getElementById('newsTitle').value.trim();
     const body = document.getElementById('newsBody').value.trim();
+    const category = document.getElementById('newsCategory').value;
     const source_url = document.getElementById('newsSource').value.trim();
-    const imageInput = document.getElementById('newsImage');
-    const file = imageInput.files[0];
-    if (!title) return showResult('postResult', false, 'টাইটেল দিন');
+    if (!title) return showResult('postResult', false, 'হেডলাইন দিন');
+
+    const facts = collectFacts();
+    const mcqs = collectMcqs();
+    const mcqBlockCount = document.querySelectorAll('#mcqList .mcq-block').length;
+    if (mcqs.length !== mcqBlockCount) {
+      return showResult('postResult', false, 'প্রতিটা MCQ-তে প্রশ্ন, ৪টা অপশন ও সঠিক উত্তর বাছাই আবশ্যক');
+    }
 
     try {
-      let image_url = null;
-      if (file) {
-        showResult('postResult', true, 'ছবি আপলোড হচ্ছে...');
-        const form = new FormData();
-        form.append('image', file);
-        const uploadRes = await fetch('/api/upload/flash-news', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token },
-          body: form
-        });
-        const uploadData = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(uploadData.error || 'ছবি আপলোড ব্যর্থ');
-        image_url = uploadData.url;
-      }
-
-      await apiCall('/api/flash-news', 'POST', { title, body: body || null, image_url, source_url: source_url || null });
+      await apiCall('/api/flash-news', 'POST', { title, body: body || null, category, source_url: source_url || null, facts, mcqs });
       showResult('postResult', true, 'ফ্ল্যাশনিউজ পোস্ট হয়েছে ✓');
       document.getElementById('newsTitle').value = '';
       document.getElementById('newsBody').value = '';
       document.getElementById('newsSource').value = '';
-      imageInput.value = '';
+      document.getElementById('factsList').innerHTML = '';
+      document.getElementById('mcqList').innerHTML = '';
+      factCount = 0; mcqCount = 0;
+      addFactRow();
+      addMcqBlock();
       loadNews();
     } catch (err) {
       showResult('postResult', false, err.message);
@@ -163,9 +248,10 @@
       }
       list.innerHTML = data.flash_news.map(n => `
         <div class="item">
-          ${n.image_url ? `<img src="${n.image_url}" alt="">` : ''}
-          <div class="title">${!n.is_active ? '<span class="badge-off">অপ্রকাশিত</span>' : ''} ${escapeHtml(n.title)}</div>
+          <div class="title">${!n.is_active ? '<span class="badge-off">অপ্রকাশিত</span>' : ''} ${n.category ? `<span class="cat-tag">${escapeHtml(n.category)}</span>` : ''} ${escapeHtml(n.title)}</div>
           ${n.body ? `<div class="body-text">${escapeHtml(n.body)}</div>` : ''}
+          ${(n.facts && n.facts.length) ? `<div class="facts-list">${n.facts.map(f => `<div>• <b>${escapeHtml(f.label)}:</b> ${escapeHtml(f.value)}</div>`).join('')}</div>` : ''}
+          ${(n.mcqs && n.mcqs.length) ? `<div class="mcq-count">📝 ${n.mcqs.length}টা MCQ যুক্ত আছে</div>` : ''}
           <div class="meta">${new Date(n.created_at).toLocaleString('bn-BD')}</div>
           <div class="actions">
             <button class="secondary" onclick="toggleNews(${n.id})">${n.is_active ? 'অপ্রকাশ করুন' : 'প্রকাশ করুন'}</button>
