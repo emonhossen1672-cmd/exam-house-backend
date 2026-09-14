@@ -580,23 +580,41 @@
   .tj2-fc-dots span.on{ background:var(--tj2-teal); width:16px; border-radius:4px; }
 
   /* ফ্ল্যাশ নিউজ — হোমপেজ হরাইজন্টাল স্ক্রল ইমেজ-কার্ড স্ট্রিপ */
-  .fn-strip-wrap{ display:flex; gap:12px; overflow-x:auto; padding:2px 2px 10px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
-  .fn-strip-wrap::-webkit-scrollbar{ display:none; }
-  .fn-card{ flex:0 0 152px; width:152px; scroll-snap-align:start; cursor:pointer; background:var(--card); border-radius:16px; box-shadow:var(--neu-shadow-sm); overflow:hidden; transition:transform .15s ease; }
-  .fn-card:active{ transform:scale(.96); }
-  .fn-accent-bar{ height:4px; }
-  .fn-img-frame{ position:relative; width:152px; height:96px; overflow:hidden; background:linear-gradient(135deg, var(--navy-deep), var(--seal)); }
-  .fn-img-frame .fn-img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .fn-img-frame .fn-img-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px; }
-  .fn-img-frame::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(to top, rgba(10,20,40,.65), transparent); pointer-events:none; }
-  .fn-time-badge{ position:absolute; left:8px; bottom:7px; font-family:'Noto Sans Bengali'; font-size:9.5px; font-weight:700; color:#fff; z-index:1; display:flex; align-items:center; gap:4px; letter-spacing:.2px; }
+  /* ---------- colorful live current-affairs ticker (flash news) ---------- */
+  .fn-ticker-card{ background:var(--card); border-radius:16px; box-shadow:var(--neu-shadow-sm); overflow:hidden; margin-bottom:4px; }
+  .fn-ticker-head{ display:flex; align-items:center; gap:8px; padding:10px 12px; background:linear-gradient(90deg, var(--live-red-bg), var(--gold-soft) 140%); cursor:pointer; }
+  .fn-live-badge{ display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:800; color:var(--live-red-deep); background:#fff; padding:3px 8px; border-radius:20px; flex-shrink:0; letter-spacing:.3px; }
+  .fn-headline-wrap{ flex:1; min-width:0; overflow:hidden; }
+  .fn-headline{ font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
+  .fn-headline .fn-emoji{ flex-shrink:0; }
+  .fn-chevron{ flex-shrink:0; width:22px; height:22px; display:flex; align-items:center; justify-content:center; transition:transform .2s ease; color:var(--ink-soft); }
+  .fn-ticker-card.expanded .fn-chevron{ transform:rotate(180deg); }
+  .fn-chip-row{ display:flex; gap:8px; overflow-x:auto; padding:10px 12px; -webkit-overflow-scrolling:touch; }
+  .fn-chip-row::-webkit-scrollbar{ display:none; }
+  .fn-chip{ flex-shrink:0; display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:20px; cursor:pointer; border:none; position:relative; }
+  .fn-chip.active{ outline:2px solid rgba(0,0,0,.15); }
+  .fn-chip .fn-unread-dot{ width:6px; height:6px; border-radius:50%; background:var(--live-red-deep); box-shadow:0 0 0 0 rgba(226,53,43,.6); animation:fnPulse 1.7s infinite; }
+  .fn-expand{ max-height:0; overflow:hidden; transition:max-height .25s ease; }
+  .fn-ticker-card.expanded .fn-expand{ max-height:none; }
+  .fn-expand-inner{ padding:0 12px 14px; }
+  .fn-item{ background:var(--paper); border-radius:12px; padding:12px; margin-top:10px; }
+  .fn-item-title{ font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.5; display:flex; align-items:flex-start; gap:6px; }
+  .fn-item-body{ font-size:12.5px; color:var(--ink-soft); line-height:1.7; margin-top:6px; white-space:pre-wrap; }
+  .fn-item-src{ display:inline-block; margin-top:8px; font-size:11.5px; font-weight:700; color:var(--seal); text-decoration:none; }
+  .fn-facts{ margin-top:10px; background:var(--card); border-radius:10px; overflow:hidden; }
+  .fn-fact-row{ display:flex; gap:8px; padding:7px 10px; font-size:12px; border-bottom:1px solid var(--line); }
+  .fn-fact-row:last-child{ border-bottom:none; }
+  .fn-fact-label{ color:var(--ink-soft); flex-shrink:0; min-width:72px; font-weight:600; }
+  .fn-fact-value{ color:var(--ink); font-weight:600; }
+  .fn-mcq{ margin-top:10px; background:var(--card); border-radius:10px; padding:10px; }
+  .fn-mcq-q{ font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:8px; }
+  .fn-mcq-opt{ display:block; width:100%; text-align:right; font-family:inherit; font-size:12px; padding:8px 10px; border-radius:8px; border:1.5px solid var(--line); background:var(--paper); color:var(--ink); margin-top:6px; cursor:pointer; }
+  .fn-mcq-opt.correct{ border-color:var(--success); background:var(--success-bg); color:var(--success); font-weight:700; }
+  .fn-mcq-opt.wrong{ border-color:var(--wrong); background:var(--wrong-bg); color:var(--wrong); font-weight:700; }
+  .fn-mcq-explain{ font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.6; padding-top:8px; border-top:1px dashed var(--line); }
+  .fn-time-badge{ font-size:10.5px; color:var(--ink-soft); margin-top:6px; display:flex; align-items:center; gap:4px; }
   .fn-live-dot{ width:6px; height:6px; border-radius:50%; background:#FF5A5A; box-shadow:0 0 0 0 rgba(255,90,90,.6); animation:fnPulse 1.7s infinite; flex-shrink:0; }
   @keyframes fnPulse{ 0%{box-shadow:0 0 0 0 rgba(255,90,90,.55);} 70%{box-shadow:0 0 0 6px rgba(255,90,90,0);} 100%{box-shadow:0 0 0 0 rgba(255,90,90,0);} }
-  .fn-card .fn-title{ padding:9px 10px 12px; font-size:12px; line-height:1.45; font-weight:700; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .fn-detail-img{ width:100%; border-radius:14px; margin-bottom:14px; box-shadow:var(--neu-shadow-sm); }
-  .fn-detail-title{ font-size:16px; font-weight:700; color:var(--ink); margin-bottom:8px; line-height:1.5; }
-  .fn-detail-body{ font-size:13.5px; color:var(--ink-soft); line-height:1.8; white-space:pre-wrap; }
-  .fn-detail-src{ display:inline-block; margin-top:16px; font-size:12.5px; font-weight:700; color:var(--seal); text-decoration:none; }
 
 
   /* নোটস / ই-বুক লাইব্রেরি */
@@ -1722,6 +1740,7 @@
 <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.3 12.4L12.9 5a2 2 0 00-1.4-.6H5.3A1.3 1.3 0 004 5.7v6.2c0 .5.2 1 .6 1.4l7.4 7.4a2 2 0 002.8 0l5.5-5.5a2 2 0 000-2.8z"/><circle cx="8.6" cy="8.6" r="1.4"/></symbol>
 <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3s-7-4.3-9.4-8.8C1.2 8.2 2.7 5 6.1 5c2 0 3.5 1.2 4.2 2.6C11 6.2 12.5 5 14.5 5c3.4 0 4.9 3.2 3.5 6.5-2.4 4.5-9.4 8.8-9.4 8.8z"/></symbol>
 <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 14v-1.5a8 8 0 0116 0V14"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M5.5 8.5l6.5 7 6.5-7"/></symbol>
 </defs>
 </svg>
 
@@ -1849,8 +1868,7 @@
     </div>
 
 
-    <div class="cat-section-bar" id="home-flash-news-section" style="display:none;"><span class="cat-bar" style="background:var(--gold);"></span><h2>ফ্ল্যাশ নিউজ</h2><span class="fn-live-dot" style="margin-left:2px;"></span></div>
-    <div class="fn-strip-wrap" id="home-flash-news-strip"></div>
+    <div class="fn-ticker-card" id="home-flash-news-card" style="display:none;"></div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পরীক্ষা বিভাগ</h2></div>
     <div class="cat-grid">
@@ -2439,16 +2457,6 @@
       <div style="width:20px;"></div>
     </div>
     <div class="exam-body" id="notice-body" style="padding:14px 18px 40px;"></div>
-  </div>
-
-  <!-- ============ FLASH NEWS DETAIL OVERLAY ============ -->
-  <div class="exam-overlay" id="flash-news-overlay">
-    <div class="exam-top">
-      <button class="exam-exit" onclick="closeFlashNews()">✕</button>
-      <div style="font-size:13px; font-weight:700; color:var(--ink);" id="flash-news-overlay-title">ফ্ল্যাশ নিউজ</div>
-      <div style="width:20px;"></div>
-    </div>
-    <div class="exam-body" id="flash-news-body" style="padding:14px 18px 40px;"></div>
   </div>
 
   <!-- ============ NOTES / EBOOK LIBRARY OVERLAY ============ -->
@@ -4023,7 +4031,7 @@
   // than editing every open/close call site.
   const OVERLAY_IDS = ['bookmark-overlay','leaderboard-overlay','achievements-overlay','analysis-overlay',
     'name-overlay','archive-overlay','exam-overlay','result-overlay','review-overlay','revision-overlay','notify-overlay','side-menu-overlay',
-    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay','flash-news-overlay','notes-overlay'];
+    'cat-result-overlay','cat-archive-overlay','written-result-overlay','notice-overlay','notes-overlay'];
 
   function anyOverlayOpen(){
     return OVERLAY_IDS.some(id=>{
@@ -6908,17 +6916,37 @@
     document.getElementById('notice-overlay').classList.remove('active');
   }
 
-  // ---------- ফ্ল্যাশ নিউজ (হোমপেজ হরাইজন্টাল ইমেজ-কার্ড স্ট্রিপ) ----------
+  // ---------- ফ্ল্যাশ নিউজ (হোমপেজ রঙিন লাইভ টিকার) ----------
   let FLASH_NEWS_CACHE = [];
+  let FLASH_CATEGORIES_CACHE = [];
+  let FLASH_EXPANDED = false;
+  let FLASH_ACTIVE_CATEGORY = null; // null = সব দেখাও
+
+  const FLASH_CAT_META = {
+    'আন্তর্জাতিক': { emoji:'🌍', bg:'#FCEEE3', fg:'#B15A1E' },
+    'অর্থনীতি':   { emoji:'💰', bg:'#E4EEFB', fg:'#1B5FA8' },
+    'রাজনীতি':    { emoji:'🏛️', bg:'#E6F1EA', fg:'#2F7A4F' },
+    'কৌশলগত':    { emoji:'⚓', bg:'#E9EEF5', fg:'#3A4B63' },
+  };
+  function fnCatMeta(cat){
+    return FLASH_CAT_META[cat] || { emoji:'📰', bg:'#EEEFF2', fg:'#4A5568' };
+  }
+
   async function loadFlashNews(){
     try{
-      const data = await apiGet('/api/flash-news?limit=20');
-      FLASH_NEWS_CACHE = data.flash_news || [];
+      const [newsData, catData] = await Promise.all([
+        (USER_TOKEN ? apiGetAuth('/api/flash-news?limit=20') : apiGet('/api/flash-news?limit=20')),
+        (USER_TOKEN ? apiGetAuth('/api/flash-news/categories') : apiGet('/api/flash-news/categories'))
+      ]);
+      FLASH_NEWS_CACHE = newsData.flash_news || [];
+      FLASH_CATEGORIES_CACHE = catData.categories || [];
     }catch(e){
       FLASH_NEWS_CACHE = [];
+      FLASH_CATEGORIES_CACHE = [];
     }
-    renderFlashNewsStrip();
+    renderFlashNewsTicker();
   }
+
   function fnTimeAgo(iso){
     if(!iso) return '';
     const diffMin = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
@@ -6930,55 +6958,129 @@
     if(diffDay < 7) return toBnDigits(diffDay) + ' দিন আগে';
     return new Date(iso).toLocaleDateString('bn-BD', {day:'numeric', month:'short'});
   }
-  function fnAccentColor(str){
-    const colors = ['#378ADD','#1D9E75','#D85A30','#EF9F27','#639922','#7F77DD','#D4537E'];
-    let hash = 0;
-    for(let i = 0; i < str.length; i++){ hash = str.charCodeAt(i) + ((hash << 5) - hash); }
-    return colors[Math.abs(hash) % colors.length];
-  }
-  function renderFlashNewsStrip(){
-    const section = document.getElementById('home-flash-news-section');
-    const strip = document.getElementById('home-flash-news-strip');
+
+  function renderFlashNewsTicker(){
+    const card = document.getElementById('home-flash-news-card');
     if(!FLASH_NEWS_CACHE.length){
-      section.style.display = 'none';
-      strip.style.display = 'none';
-      strip.innerHTML = '';
+      card.style.display = 'none';
+      card.innerHTML = '';
       return;
     }
-    section.style.display = '';
-    strip.style.display = '';
-    strip.innerHTML = FLASH_NEWS_CACHE.map((n, i) => {
-      const accent = fnAccentColor(n.title || String(n.id));
+    card.style.display = '';
+    card.classList.toggle('expanded', FLASH_EXPANDED);
+
+    const latest = FLASH_NEWS_CACHE[0];
+    const latestMeta = fnCatMeta(latest.category);
+
+    const chips = FLASH_CATEGORIES_CACHE.map(c => {
+      const meta = fnCatMeta(c.category);
+      const active = FLASH_ACTIVE_CATEGORY === c.category;
       return `
-      <div class="fn-card" onclick="openFlashNews(${i})">
-        <div class="fn-accent-bar" style="background:${accent};"></div>
-        <div class="fn-img-frame">
-          ${n.image_url
-            ? `<img class="fn-img" src="${escapeHtml(n.image_url)}" alt="" loading="lazy">`
-            : `<div class="fn-img-ph" style="background:${accent};">📰</div>`}
-          <span class="fn-time-badge"><span class="fn-live-dot"></span>${fnTimeAgo(n.created_at)}</span>
+        <button class="fn-chip" style="background:${meta.bg}; color:${meta.fg};${active ? ' outline:2px solid '+meta.fg+';' : ''}" onclick="fnSelectCategory('${escapeHtml(c.category)}', event)">
+          ${meta.emoji} ${escapeHtml(c.category)} ${toBnDigits(c.count)}
+          ${c.has_unread ? '<span class="fn-unread-dot"></span>' : ''}
+        </button>
+      `;
+    }).join('');
+
+    const itemsToShow = FLASH_ACTIVE_CATEGORY
+      ? FLASH_NEWS_CACHE.filter(n => n.category === FLASH_ACTIVE_CATEGORY)
+      : FLASH_NEWS_CACHE;
+
+    const itemsHtml = FLASH_EXPANDED
+      ? itemsToShow.map(n => renderFlashItem(n)).join('')
+      : '';
+
+    card.innerHTML = `
+      <div class="fn-ticker-head" onclick="fnToggleExpand()">
+        <span class="fn-live-badge"><span class="fn-live-dot"></span>LIVE</span>
+        <div class="fn-headline-wrap">
+          <div class="fn-headline"><span class="fn-emoji">${latestMeta.emoji}</span>${escapeHtml(latest.title)}</div>
         </div>
-        <div class="fn-title">${escapeHtml(n.title)}</div>
+        <span class="fn-chevron"><svg class="ic" style="width:16px;height:16px;"><use href="#i-chevron-down"/></svg></span>
+      </div>
+      <div class="fn-chip-row">${chips}</div>
+      <div class="fn-expand"><div class="fn-expand-inner">${itemsHtml}</div></div>
+    `;
+  }
+
+  function renderFlashItem(n){
+    const meta = fnCatMeta(n.category);
+    const facts = (n.facts && n.facts.length) ? `
+      <div class="fn-facts">
+        ${n.facts.map(f => `<div class="fn-fact-row"><span class="fn-fact-label">${escapeHtml(f.label)}</span><span class="fn-fact-value">${escapeHtml(f.value)}</span></div>`).join('')}
+      </div>` : '';
+    const mcqs = (n.mcqs && n.mcqs.length) ? n.mcqs.map((m, mi) => `
+      <div class="fn-mcq" id="fn-mcq-${n.id}-${mi}">
+        <div class="fn-mcq-q">📝 ${escapeHtml(m.question)}</div>
+        ${m.options.map((opt, oi) => `<button class="fn-mcq-opt" onclick="fnAnswerMcq(${n.id}, ${mi}, ${oi}, this)">${escapeHtml(opt)}</button>`).join('')}
+        <div class="fn-mcq-explain hidden" id="fn-mcq-explain-${n.id}-${mi}"></div>
+      </div>
+    `).join('') : '';
+    const src = n.source_url ? `<a class="fn-item-src" href="${escapeHtml(n.source_url)}" target="_blank" rel="noopener">🔗 সোর্স দেখুন</a>` : '';
+    return `
+      <div class="fn-item" data-flash-id="${n.id}">
+        <div class="fn-item-title"><span>${meta.emoji}</span><span>${escapeHtml(n.title)}</span></div>
+        ${n.body ? `<div class="fn-item-body">${escapeHtml(n.body)}</div>` : ''}
+        <div class="fn-time-badge"><span class="fn-live-dot"></span>${fnTimeAgo(n.created_at)}</div>
+        ${facts}
+        ${mcqs}
+        ${src}
       </div>
     `;
-    }).join('');
   }
-  function openFlashNews(i){
-    const n = FLASH_NEWS_CACHE[i];
-    if(!n) return;
-    const img = n.image_url ? `<img class="fn-detail-img" src="${escapeHtml(n.image_url)}" alt="">` : '';
-    const body = n.body ? `<div class="fn-detail-body">${escapeHtml(n.body)}</div>` : '';
-    const src = n.source_url ? `<a class="fn-detail-src" href="${escapeHtml(n.source_url)}" target="_blank" rel="noopener">🔗 সোর্স দেখুন</a>` : '';
-    document.getElementById('flash-news-body').innerHTML = `
-      ${img}
-      <div class="fn-detail-title">${escapeHtml(n.title)}</div>
-      ${body}
-      ${src}
-    `;
-    document.getElementById('flash-news-overlay').classList.add('active');
+
+  function fnToggleExpand(){
+    FLASH_EXPANDED = !FLASH_EXPANDED;
+    if(FLASH_EXPANDED) fnMarkVisibleRead();
+    renderFlashNewsTicker();
   }
-  function closeFlashNews(){
-    document.getElementById('flash-news-overlay').classList.remove('active');
+
+  function fnSelectCategory(cat, ev){
+    if(ev) ev.stopPropagation();
+    FLASH_ACTIVE_CATEGORY = (FLASH_ACTIVE_CATEGORY === cat) ? null : cat;
+    FLASH_EXPANDED = true;
+    renderFlashNewsTicker();
+    fnMarkVisibleRead();
+  }
+
+  function fnMarkVisibleRead(){
+    const itemsToShow = FLASH_ACTIVE_CATEGORY
+      ? FLASH_NEWS_CACHE.filter(n => n.category === FLASH_ACTIVE_CATEGORY)
+      : FLASH_NEWS_CACHE;
+    itemsToShow.forEach(n => {
+      if(n.is_read === false){
+        n.is_read = true; // optimistic, avoids repeat calls
+        apiPost('/api/flash-news/' + n.id + '/read', {}, true).then(() => {
+          // once something is read, its category's unread dot may need to clear —
+          // cheapest correct fix is a light re-fetch of just the chip counts
+          (USER_TOKEN ? apiGetAuth('/api/flash-news/categories') : apiGet('/api/flash-news/categories'))
+            .then(d => { FLASH_CATEGORIES_CACHE = d.categories || []; renderFlashNewsTicker(); })
+            .catch(()=>{});
+        }).catch(()=>{});
+      }
+    });
+  }
+
+  async function fnAnswerMcq(newsId, mcqIndex, optionIndex, btnEl){
+    const block = document.getElementById('fn-mcq-' + newsId + '-' + mcqIndex);
+    if(!block || block.dataset.answered) return;
+    block.dataset.answered = '1';
+    const buttons = block.querySelectorAll('.fn-mcq-opt');
+    buttons.forEach(b => b.style.pointerEvents = 'none');
+    try{
+      const data = await apiPost('/api/flash-news/' + newsId + '/mcq/' + mcqIndex + '/answer', { answer: optionIndex }, true);
+      buttons[data.correct_index]?.classList.add('correct');
+      if(!data.correct) btnEl.classList.add('wrong');
+      if(data.explanation){
+        const ex = document.getElementById('fn-mcq-explain-' + newsId + '-' + mcqIndex);
+        ex.textContent = '💡 ' + data.explanation;
+        ex.classList.remove('hidden');
+      }
+    }catch(e){
+      buttons.forEach(b => b.style.pointerEvents = '');
+      delete block.dataset.answered;
+    }
   }
 
   // ---------- নোটস / ই-বুক লাইব্রেরি ----------
