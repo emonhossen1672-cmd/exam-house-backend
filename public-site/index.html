@@ -3171,6 +3171,17 @@
     try{
       const qs = category ? ('?category=' + encodeURIComponent(category)) : (subject ? ('?subject=' + encodeURIComponent(subject)) : '');
       const data = await apiGetAuth('/api/results/leaderboard/overall' + qs);
+      if(data.unlocked === false){
+        body.innerHTML = `
+          <div class="duel-guest">
+            <div class="dg-ic">🔒</div>
+            <p>লিডারবোর্ড আনলক করতে ${USER_TOKEN ? 'একটি পরীক্ষা দিন' : 'লগইন করে একটি পরীক্ষা দিন'}</p>
+            <button class="auth-btn" style="margin-top:0;" onclick="closeLeaderboard(); ${USER_TOKEN ? "goScreen('model');" : "goScreen('history'); showAuthForm('login');"}">
+              ${USER_TOKEN ? '📝 পরীক্ষা দিতে যান' : 'লগইন করুন'}
+            </button>
+          </div>`;
+        return;
+      }
       const rows = data.leaderboard || [];
       const me = data.me || null;
       if(!rows.length){
