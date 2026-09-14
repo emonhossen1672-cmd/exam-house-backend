@@ -4,17 +4,19 @@
 // Questions). Unlike utils/subjectMap.js (used by রিডিং লিস্ট/ডুয়েল
 // মোড/স্মার্ট প্র্যাকটিস, which auto-buckets raw subject text into 5 broad
 // groups), this feature needs an EXACT match — a question only shows up
-// under one of these 12 buttons if its `subject` column is set to exactly
+// under one of these 14 buttons if its `subject` column is set to exactly
 // one of these strings. Set it via the admin form's dropdown (offers
-// exactly these 12 values) or fix old mismatched data with the bulk-retag
+// exactly these 14 values) or fix old mismatched data with the bulk-retag
 // tool / PUT /admin/rename-subject.
 const TOPIC_JOB_SUBJECTS = [
   'বাংলা ব্যাকরণ',
   'বাংলা সাহিত্য',
+  'বাংলা মুখস্থবিদ্যা',
   'ইংরেজি ব্যাকরণ',
   'ইংরেজি সাহিত্য',
   'ভোকাবুলারি',
   'গণিত',
+  'মানসিক দক্ষতা',
   'বাংলাদেশ',
   'আন্তর্জাতিক',
   'বিজ্ঞান',
@@ -27,7 +29,7 @@ const UNTAGGED_TOPIC = 'অন্যান্য';
 const UNTAGGED_SUBTOPIC = 'অন্যান্য';
 
 // FULL_SYLLABUS_LABEL — sentinel auto_exam_subject value meaning "pull
-// questions from all 12 subjects", used by routine_days rows that are a
+// questions from all 14 subjects", used by routine_days rows that are a
 // রিভিশন পরীক্ষা or ফুল মডেল টেস্ট (scripts/seedYearlyCycle.js) rather than
 // a single-subject exam. services/routineExamScheduler.js special-cases
 // this exact string and returns TOPIC_JOB_SUBJECTS (below) for it instead
@@ -55,13 +57,13 @@ function normalizeText(raw) {
 
 // Pre-normalized lookup so we can snap a nearly-matching subject (extra
 // space, stray invisible char, NFD form, etc.) back onto the exact one of
-// the 12 canonical strings the topic-job feature checks against.
+// the 14 canonical strings the topic-job feature checks against.
 const NORMALIZED_TO_FIXED = new Map(TOPIC_JOB_SUBJECTS.map(s => [normalizeText(s), s]));
 
 // snapToFixedSubject — normalizes `raw`, and if the cleaned-up text matches
-// one of the 12 fixed subjects, returns that EXACT canonical string (byte
+// one of the 14 fixed subjects, returns that EXACT canonical string (byte
 // for byte) so it satisfies the topic-job feature's strict equality check.
-// If it doesn't match any of the 12 (a genuinely different subject), it
+// If it doesn't match any of the 14 (a genuinely different subject), it
 // still returns the cleaned-up text rather than the raw one, so at least
 // stray whitespace/invisible characters don't linger in the database.
 function snapToFixedSubject(raw) {
