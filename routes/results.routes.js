@@ -473,7 +473,26 @@ router.get('/me/achievements', requireUser, asyncHandler(async (req, res) => {
 // the ranking is then based only on scores within that category, not
 // site-wide totals. ?subject= does the same but keyed on the exam's raw
 // subject value (per-subject "Merit List" button).
+// Product decision (2026-09): competitor apps (e.g. জবস/Chorcha Jobs) gate
+// this leaderboard behind a single exam attempt — "লিডারবোর্ড আনলক করতে
+// একটি পরীক্ষা দিন" — as a lightweight first-session engagement hook. A
+// guest, or a logged-in user with zero rows in `results` yet, gets
+// { unlocked: false } instead of ranking data; the frontend then shows a
+// "take an exam to unlock" prompt. Once unlocked it stays unlocked forever
+// (results rows are never deleted), so this only ever nudges brand-new
+// users, never blocks anyone who has actually used the app.
 router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) => {
+  if (!req.user) {
+    return res.json({ unlocked: false });
+  }
+  const attemptRes = await pool.query(
+    'SELECT EXISTS(SELECT 1 FROM results WHERE user_id = $1) AS has_attempt',
+    [req.user.id]
+  );
+  if (!attemptRes.rows[0].has_attempt) {
+    return res.json({ unlocked: false });
+  }
+
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
   const { category, subject } = req.query;
   const scopeValue = category || subject;
@@ -527,7 +546,7 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
     }
   }
 
-  res.json({ leaderboard: rows, me });
+  res.json({ unlocked: true, leaderboard: rows, me });
 }));
 
 // GET /api/results/exam/:examId — merit list for ONE exam, public. Ties share
