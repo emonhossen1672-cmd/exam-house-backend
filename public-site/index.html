@@ -2000,6 +2000,7 @@
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
       <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
       <button class="mode-btn" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
+      <button class="mode-btn" id="mode-btn-org" onclick="setModelMode('org')"><span class="mb-ic">🗄️</span>প্রতিষ্ঠান আর্কাইভ</button>
       <button class="mode-btn" id="mode-btn-duel" onclick="setModelMode('duel')"><span class="mb-ic">⚔️</span>ডুয়েল মোড</button>
       <button class="mode-btn" id="mode-btn-custom" onclick="setModelMode('custom')"><span class="mb-ic">✍️</span>কাস্টম টেস্ট</button>
     </div>
@@ -4114,11 +4115,13 @@
     document.getElementById('mode-btn-ministry').classList.toggle('active', mode==='ministry');
     document.getElementById('mode-btn-practice').classList.toggle('active', mode==='practice');
     document.getElementById('mode-btn-topic').classList.toggle('active', mode==='topic');
+    document.getElementById('mode-btn-org').classList.toggle('active', mode==='org');
     document.getElementById('mode-btn-duel').classList.toggle('active', mode==='duel');
     document.getElementById('mode-btn-custom').classList.toggle('active', mode==='custom');
     if(mode === 'ministry'){ MODEL_NAV = {level:'ministries'}; }
     else if(mode === 'subject'){ SUBJECT_NAV = {level:'subjects'}; }
     else if(mode === 'topic'){ TOPIC_NAV = {level:'subjects'}; }
+    else if(mode === 'org'){ ORG_NAV = {level:'orgs'}; }
     else if(mode === 'written'){ WRITTEN_NAV = {level:'ministries'}; }
     else if(mode === 'written-library'){ WRITTEN_LIB_NAV = {level:'subjects'}; }
     renderModelScreen();
@@ -4129,6 +4132,7 @@
     if(MODEL_MODE === 'subject'){ renderSubjectModelScreen(); return; }
     if(MODEL_MODE === 'practice'){ renderPracticeScreen(); return; }
     if(MODEL_MODE === 'topic'){ renderTopicScreen(); return; }
+    if(MODEL_MODE === 'org'){ renderOrgArchiveScreen(); return; }
     if(MODEL_MODE === 'duel'){ renderDuelScreen(); return; }
     if(MODEL_MODE === 'custom'){ renderCustomTestScreen(); return; }
     if(MODEL_MODE === 'written'){ renderWrittenScreen(); return; }
@@ -4372,6 +4376,7 @@
   function drillNavAtTop(){
     if(MODEL_MODE === 'subject') return SUBJECT_NAV.level === 'subjects';
     if(MODEL_MODE === 'practice') return READING_NAV.level === 'subjects';
+    if(MODEL_MODE === 'org') return ORG_NAV.level === 'orgs';
     if(MODEL_MODE === 'topic') return TOPIC_NAV.level === 'subjects';
     if(MODEL_MODE === 'ministry') return MODEL_NAV.level === 'ministries';
     if(MODEL_MODE === 'written') return WRITTEN_NAV.level === 'ministries';
@@ -4387,6 +4392,12 @@
     }
     if(MODEL_MODE === 'practice'){
       READING_NAV = {level:'subjects'};
+      renderModelScreen();
+      window.scrollTo(0,0);
+      return;
+    }
+    if(MODEL_MODE === 'org'){
+      ORG_NAV = {level:'orgs'};
       renderModelScreen();
       window.scrollTo(0,0);
       return;
@@ -4782,6 +4793,122 @@
       listEl.innerHTML = prevHtml;
       alert(err.message || 'কুইজ শুরু করা যায়নি');
     }
+  }
+
+  // ---------- প্রতিষ্ঠানভিত্তিক আর্কাইভ (organization archive) ----------
+  // Same idea as Reading List just above (browse-through question bank,
+  // 30/page, tap-to-check answers), but the top-level picker is grouped by
+  // ministry/organization (রেলওয়ে, ডাক অধিদপ্তর, PSC...) instead of subject —
+  // each card shows a ✏️ question-count badge, like the archive screens in
+  // competitor apps. Backend: GET /api/questions/public/ministries for the
+  // card list, and /public/reading-list?ministry_id=N (same endpoint Reading
+  // List uses, just a different filter) for the drill-down page — so
+  // selectReadingAnswer/startReadingQuiz above work here unchanged.
+  let ORG_NAV = {level:'orgs'};
+  let ORG_MINISTRIES_CACHE = null;
+
+  async function renderOrgArchiveScreen(){
+    if(ORG_NAV.level === 'list'){ renderOrgReadingListPage(); return; }
+
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'none';
+    heading.textContent = 'প্রতিষ্ঠানভিত্তিক আর্কাইভ';
+    subtext.textContent = 'প্রতিষ্ঠান বেছে নিন — সেই প্রতিষ্ঠানের সব প্রশ্ন এক জায়গায় পড়তে পারবেন';
+
+    if(!ORG_MINISTRIES_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+      try{
+        ORG_MINISTRIES_CACHE = await apiGet('/api/questions/public/ministries');
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!ORG_MINISTRIES_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এখনো কোনো প্রতিষ্ঠান যুক্ত হয়নি।</div>';
+      return;
+    }
+
+    listEl.innerHTML = '<div class="an-subj-grid" style="grid-template-columns:1fr 1fr;">' + ORG_MINISTRIES_CACHE.map(m => `
+      <div class="group-card" style="flex-direction:column; align-items:flex-start; gap:6px;" onclick='openOrgReadingList(${m.id}, ${JSON.stringify(m.name)})'>
+        <div class="gc-left" style="width:100%;">
+          <div class="gc-ic post">🏛️</div>
+          <div>
+            <div class="gc-name">${escapeHtml(m.name)}</div>
+            <div class="gc-meta">✏️ ${toBnDigits(m.question_count)}টি প্রশ্ন</div>
+          </div>
+        </div>
+      </div>`).join('') + '</div>';
+  }
+
+  function openOrgReadingList(ministryId, ministryName){
+    ORG_NAV = {level:'list', ministry_id:ministryId, ministry_name:ministryName, page:1};
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  function goOrgReadingPage(delta){
+    ORG_NAV.page = Math.max(1, ORG_NAV.page + delta);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderOrgReadingListPage(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = ORG_NAV.ministry_name;
+    subtext.textContent = 'প্রতিষ্ঠান আর্কাইভ';
+    listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে...</div>';
+
+    let data;
+    try{
+      data = await apiGet('/api/questions/public/reading-list?ministry_id=' + ORG_NAV.ministry_id + '&page=' + ORG_NAV.page);
+    }catch(err){
+      listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+      return;
+    }
+
+    ORG_NAV.page = data.page;
+    READING_PAGE_QUESTIONS = data.questions; // shared with selectReadingAnswer/startReadingQuiz above
+    const startNum = (data.page - 1) * 30 + 1;
+
+    const cards = data.questions.map((q, i)=>{
+      const metaParts = [q.subject, q.post_name, q.exam_year ? toBnDigits(q.exam_year) : null].filter(Boolean);
+      const opts = [['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d]]
+        .map(([k, v])=>`<div class="rl-q-opt" data-key="${k}" onclick="selectReadingAnswer(${q.id}, '${k}', '${q.correct_option}')"><b>${k}</b> ${escapeHtml(v)}</div>`).join('');
+      const explainHtml = q.explanation ? `<div class="rl-q-explain" style="display:none;">💡 ${escapeHtml(q.explanation)}</div>` : '';
+      return `
+        <div class="rl-q-card" id="rl-q-${q.id}">
+          <div class="rl-q-top"><span class="rl-q-num">${toBnDigits(startNum + i)}.</span><span class="rl-q-text">${escapeHtml(q.question_text)}</span></div>
+          ${metaParts.length ? `<div class="rl-q-meta">${metaParts.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="rl-q-opts">${opts}</div>
+          ${explainHtml}
+        </div>`;
+    }).join('');
+
+    const quizCta = `
+      <div class="rl-quiz-cta" onclick="startReadingQuiz()">
+        <div class="rq-ic">⏱️</div>
+        <div class="rq-title">অটো কুইজ শুরু করুন</div>
+        <div class="rq-sub">এই ৩০টি প্রশ্নের উপর ভিত্তি করে ১০টি প্রশ্ন · ৫ মিনিট</div>
+      </div>`;
+
+    const pager = `
+      <div class="rl-pager">
+        <button class="rl-pager-btn" onclick="goOrgReadingPage(-1)" ${data.page<=1?'disabled':''}>← আগের পৃষ্ঠা</button>
+        <span class="rl-pager-info">${toBnDigits(data.page)} / ${toBnDigits(data.total_pages)}</span>
+        <button class="rl-pager-btn" onclick="goOrgReadingPage(1)" ${data.page>=data.total_pages?'disabled':''}>পরের পৃষ্ঠা →</button>
+      </div>`;
+
+    listEl.innerHTML = (data.questions.length ? cards : '<div class="empty-note">এই পৃষ্ঠায় কোনো প্রশ্ন নেই।</div>') + quizCta + pager;
   }
 
   // ---------- রিটেন জব সলুশন — reading list for written_questions (question +
