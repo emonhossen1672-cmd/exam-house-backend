@@ -605,7 +605,13 @@
   .fn-chip{ flex-shrink:0; display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:20px; cursor:pointer; border:none; position:relative; }
   .fn-chip.active{ outline:2px solid rgba(0,0,0,.15); }
   .fn-chip .fn-unread-dot{ width:6px; height:6px; border-radius:50%; background:var(--live-red-deep); box-shadow:0 0 0 0 rgba(226,53,43,.6); animation:fnPulse 1.7s infinite; }
-  .fn-item{ background:var(--card); box-shadow:var(--neu-shadow-sm); border-radius:12px; padding:13px; margin-bottom:12px; }
+  .fn-item{ background:var(--card); box-shadow:var(--neu-shadow-sm); border-radius:12px; padding:13px; margin-bottom:0; }
+  /* ---------- টাইমলাইন লেআউট (ডিজাইন ৪) ---------- */
+  .fn-timeline{ position:relative; padding-left:20px; }
+  .fn-tl-rail{ position:absolute; left:5px; top:6px; bottom:6px; width:2px; background:var(--border-soft, #e0ddd2); }
+  .fn-tl-item{ position:relative; margin-bottom:18px; }
+  .fn-tl-dot{ position:absolute; left:-20px; top:3px; width:12px; height:12px; border-radius:50%; border:2px solid var(--card); }
+  .fn-tl-time{ font-size:10.5px; color:var(--ink-soft); margin-bottom:5px; }
   .fn-item-title{ font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.5; display:flex; align-items:flex-start; gap:6px; }
   .fn-item-body{ font-size:12.5px; color:var(--ink-soft); line-height:1.7; margin-top:6px; white-space:pre-wrap; }
   .fn-item-src{ display:inline-block; margin-top:8px; font-size:11.5px; font-weight:700; color:var(--seal); text-decoration:none; }
@@ -7036,7 +7042,18 @@
       : FLASH_NEWS_CACHE;
 
     document.getElementById('fn-chip-row').innerHTML = chips;
-    document.getElementById('fn-overlay-list').innerHTML = itemsToShow.map(n => renderFlashItem(n)).join('');
+    document.getElementById('fn-overlay-list').innerHTML = `
+      <div class="fn-timeline">
+        <div class="fn-tl-rail"></div>
+        ${itemsToShow.map(n => `
+          <div class="fn-tl-item">
+            <span class="fn-tl-dot" style="background:${fnCatMeta(n.category).fg};"></span>
+            <div class="fn-tl-time">${fnTimeAgo(n.created_at)}</div>
+            ${renderFlashItem(n)}
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   function renderFlashItem(n){
@@ -7057,7 +7074,6 @@
       <div class="fn-item" data-flash-id="${n.id}">
         <div class="fn-item-title"><span>${meta.emoji}</span><span>${escapeHtml(n.title)}</span></div>
         ${n.body ? `<div class="fn-item-body">${escapeHtml(n.body)}</div>` : ''}
-        <div class="fn-time-badge"><span class="fn-live-dot"></span>${fnTimeAgo(n.created_at)}</div>
         ${facts}
         ${mcqs}
         ${src}
