@@ -12,18 +12,20 @@
 
 const CANONICAL_SUBJECTS = ['বাংলা', 'ইংরেজি', 'গণিত', 'সাধারণ জ্ঞান', 'বিজ্ঞান ও প্রযুক্তি'];
 
-// Exact map from the 12 টপিকভিত্তিক জব সলুশন subjects (utils/topicJobSubjects.js)
-// to their parent canonical group. Tagging a question with one of these 12
+// Exact map from the 14 টপিকভিত্তিক জব সলুশন subjects (utils/topicJobSubjects.js)
+// to their parent canonical group. Tagging a question with one of these 14
 // exact values now satisfies BOTH the topic-job feature (exact match) and
 // the reading list / duel / smart practice grouping (this map) in one go —
 // no need to tag a question twice.
 const TOPIC_JOB_TO_CANONICAL = {
   'বাংলা ব্যাকরণ': 'বাংলা',
   'বাংলা সাহিত্য': 'বাংলা',
+  'বাংলা মুখস্থবিদ্যা': 'বাংলা',
   'ইংরেজি ব্যাকরণ': 'ইংরেজি',
   'ইংরেজি সাহিত্য': 'ইংরেজি',
   'ভোকাবুলারি': 'ইংরেজি',
   'গণিত': 'গণিত',
+  'মানসিক দক্ষতা': 'গণিত',
   'বাংলাদেশ': 'সাধারণ জ্ঞান',
   'আন্তর্জাতিক': 'সাধারণ জ্ঞান',
   'বিজ্ঞান': 'বিজ্ঞান ও প্রযুক্তি',
@@ -37,12 +39,12 @@ function normalizeSubject(raw) {
   const trimmed = String(raw).trim();
   if (!trimmed) return null;
 
-  // 1) Exact match against the 12 topic-job subjects — preferred path.
+  // 1) Exact match against the 14 topic-job subjects — preferred path.
   if (TOPIC_JOB_TO_CANONICAL[trimmed]) return TOPIC_JOB_TO_CANONICAL[trimmed];
 
   // 2) Fallback prefix-matching for legacy free-text subject values that
-  //    predate the 12-subject dropdown (e.g. plain "বাংলা", "English").
-  //    Once old questions are retagged to one of the 12 exact values via
+  //    predate the 14-subject dropdown (e.g. plain "বাংলা", "English").
+  //    Once old questions are retagged to one of the 14 exact values via
   //    rename-subject / bulk-retag, they'll hit rule (1) instead.
   const low = trimmed.toLowerCase();
   if (low === 'সব') return null;
