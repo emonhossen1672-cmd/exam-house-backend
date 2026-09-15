@@ -96,10 +96,37 @@ const PAYMENT_BKASH_TYPE = process.env.PAYMENT_BKASH_TYPE || 'personal';
 const PAYMENT_NAGAD_NUMBER = process.env.PAYMENT_NAGAD_NUMBER || '';
 const PAYMENT_NAGAD_TYPE = process.env.PAYMENT_NAGAD_TYPE || 'personal';
 
+// Optional — bKash "Tokenized Checkout" Payment Gateway (PGW) credentials.
+// This is the *automated* gateway referenced in routes/packages.routes.js —
+// when set, students pay instantly through bKash's own checkout page and
+// their package activates immediately (see routes/bkashPayment.routes.js),
+// instead of the manual "send money + type TrxID + wait for admin" flow.
+// Get these from bKash's merchant onboarding (sandbox creds for testing are
+// issued instantly at https://developer.bka.sh — production creds require a
+// signed merchant agreement with bKash). Left optional so the server still
+// starts, and the manual flow above keeps working, without these set; the
+// gateway routes just return a clear "not configured yet" error until they
+// are.
+const BKASH_APP_KEY = process.env.BKASH_APP_KEY || '';
+const BKASH_APP_SECRET = process.env.BKASH_APP_SECRET || '';
+const BKASH_USERNAME = process.env.BKASH_USERNAME || '';
+const BKASH_PASSWORD = process.env.BKASH_PASSWORD || '';
+// bKash publishes separate hosts for sandbox and production — swap this env
+// var when you're ready to go live, no code change needed.
+//   sandbox:    https://tokenized.sandbox.bka.sh/v1.2.0-beta
+//   production: https://tokenized.pay.bka.sh/v1.2.0-beta
+const BKASH_BASE_URL = process.env.BKASH_BASE_URL || 'https://tokenized.sandbox.bka.sh/v1.2.0-beta';
+// Where to send the student's browser back to after bKash's checkout page
+// (success or failure) — your frontend's packages screen. bKash appends its
+// own query params (paymentID, status) to whatever you pass as callbackURL,
+// so this should be a bare page URL with no query string of its own.
+const FRONTEND_URL = process.env.FRONTEND_URL || '';
+
 module.exports = {
   JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, IS_PRODUCTION, GOOGLE_CLIENT_ID,
   ANTHROPIC_API_KEY, ANTHROPIC_MODEL, GEMINI_API_KEY, GEMINI_MODEL,
   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
   STUDENT_ID_PREFIX, CRON_SECRET,
-  PAYMENT_BKASH_NUMBER, PAYMENT_BKASH_TYPE, PAYMENT_NAGAD_NUMBER, PAYMENT_NAGAD_TYPE
+  PAYMENT_BKASH_NUMBER, PAYMENT_BKASH_TYPE, PAYMENT_NAGAD_NUMBER, PAYMENT_NAGAD_TYPE,
+  BKASH_APP_KEY, BKASH_APP_SECRET, BKASH_USERNAME, BKASH_PASSWORD, BKASH_BASE_URL, FRONTEND_URL
 };
