@@ -1455,6 +1455,11 @@
   .merit-name{flex:1; font-size:13.5px; color:var(--q-tan-ink);}
   .merit-score{font-family:'Space Mono',monospace; font-size:13px; color:var(--q-tan-accent); font-weight:700;}
 
+  /* ---------- Leaderboard tabs (সার্বিক বনাম আমার লক্ষ্য) ---------- */
+  .lb-tabs{display:flex; gap:5px; margin:0 18px 12px; background:var(--q-tan-bg); border-radius:14px; padding:5px; box-shadow:var(--q-tan-shadow-inset);}
+  .lb-tab{flex:1; background:transparent; border:none; border-radius:10px; padding:9px 6px; font-size:12px; font-weight:700; color:var(--q-tan-ink-soft); font-family:'Noto Sans Bengali'; cursor:pointer; transition:background .2s ease, color .2s ease;}
+  .lb-tab.active{background:var(--q-tan-bg); color:var(--q-tan-accent); box-shadow:var(--q-tan-shadow-sm);}
+
   /* ---------- Leaderboard podium — সান্ড/তান নিউমরফিক ---------- */
   .lb-podium{display:flex; align-items:flex-end; justify-content:center; gap:10px; padding:6px 0 18px;}
   .lb-p-col{display:flex; flex-direction:column; align-items:center; gap:6px;}
@@ -2400,6 +2405,10 @@
       <div style="font-size:13px; font-weight:700; color:var(--ink);" id="leaderboard-overlay-title">সার্বিক র‍্যাংকিং</div>
       <div style="width:20px;"></div>
     </div>
+    <div class="lb-tabs" id="leaderboard-tabs" style="display:none;">
+      <button class="lb-tab active" id="lb-tab-overall" onclick="switchLeaderboardTab('overall')">🌐 সার্বিক</button>
+      <button class="lb-tab" id="lb-tab-goal" onclick="switchLeaderboardTab('goal')">🎯 আমার লক্ষ্য</button>
+    </div>
     <div class="exam-body" id="leaderboard-body" style="padding:14px 18px 40px;"></div>
   </div>
 
@@ -3229,10 +3238,33 @@
   }
 
   // ---------- Overall (site-wide) leaderboard ----------
+  let LB_ACTIVE_TAB = 'overall';
   function openLeaderboard(category, subject){
     document.getElementById('leaderboard-overlay-title').textContent = subject ? (subject + ' — মেধা তালিকা') : (category ? 'মেধা তালিকা' : 'সার্বিক র‍্যাংকিং');
     document.getElementById('leaderboard-overlay').classList.add('active');
+    const tabsEl = document.getElementById('leaderboard-tabs');
+    // তাদের own goal অনুযায়ী মেধা তালিকা শুধু general র‍্যাংকিং-এ প্রাসঙ্গিক —
+    // কোনো নির্দিষ্ট category/subject-এর মেধা তালিকায় (যেমন রুটিন এক্সাম বা
+    // per-subject merit list) এটা দেখানো বিভ্রান্তিকর, তাই সেখানে ট্যাব লুকানো।
+    if(!category && !subject){
+      tabsEl.style.display = 'flex';
+      LB_ACTIVE_TAB = 'overall';
+      document.getElementById('lb-tab-overall').classList.add('active');
+      document.getElementById('lb-tab-goal').classList.remove('active');
+    } else {
+      tabsEl.style.display = 'none';
+    }
     loadOverallLeaderboard(category, subject);
+  }
+
+  // সার্বিক ⇄ আমার লক্ষ্য (preparing_for peer group) ট্যাব সুইচ
+  function switchLeaderboardTab(tab){
+    if(tab === LB_ACTIVE_TAB) return;
+    LB_ACTIVE_TAB = tab;
+    document.getElementById('lb-tab-overall').classList.toggle('active', tab === 'overall');
+    document.getElementById('lb-tab-goal').classList.toggle('active', tab === 'goal');
+    document.getElementById('leaderboard-overlay-title').textContent = tab === 'goal' ? 'আমার লক্ষ্যের মেধা তালিকা' : 'সার্বিক র‍্যাংকিং';
+    if(tab === 'goal') loadGoalLeaderboard(); else loadOverallLeaderboard();
   }
 
   function lbInitial(name){
@@ -3314,6 +3346,92 @@
 
   function closeLeaderboard(){
     document.getElementById('leaderboard-overlay').classList.remove('active');
+  }
+
+  // ---------- Goal-based (একই preparing_for লক্ষ্যের বাকিদের সাথে) leaderboard ----------
+  // GET /api/results/leaderboard/goal — একই কাঠামোর ডেটা যা /leaderboard/overall
+  // দেয়, শুধু ছাত্রের নিজের preparing_for অনুযায়ী স্কোপড। রেন্ডারিং ইচ্ছাকৃতভাবে
+  // loadOverallLeaderboard-এর মতোই (podium + list + "me" row), যাতে ছাত্র দুই
+  // ট্যাবের মধ্যে সুইচ করলে চেনা অভিজ্ঞতা পায় — শুধু no_goal অবস্থার জন্য
+  // আলাদা প্রম্পট আছে।
+  async function loadGoalLeaderboard(){
+    const body = document.getElementById('leaderboard-body');
+    body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">লোড হচ্ছে...</p>';
+    try{
+      const data = await apiGetAuth('/api/results/leaderboard/goal');
+      if(data.unlocked === false){
+        body.innerHTML = `
+          <div class="duel-guest">
+            <div class="dg-ic">🔒</div>
+            <p>লিডারবোর্ড আনলক করতে ${USER_TOKEN ? 'একটি পরীক্ষা দিন' : 'লগইন করে একটি পরীক্ষা দিন'}</p>
+            <button class="auth-btn" style="margin-top:0;" onclick="closeLeaderboard(); ${USER_TOKEN ? "goScreen('model');" : "goScreen('history'); showAuthForm('login');"}">
+              ${USER_TOKEN ? '📝 পরীক্ষা দিতে যান' : 'লগইন করুন'}
+            </button>
+          </div>`;
+        return;
+      }
+      if(data.no_goal){
+        body.innerHTML = `
+          <div class="duel-guest">
+            <div class="dg-ic">🎯</div>
+            <p>একই লক্ষ্যের ছাত্রদের সাথে র‍্যাংকিং দেখতে প্রোফাইলে আপনার প্রস্তুতির লক্ষ্য (যেমন: ব্যাংক জব, বিসিএস) যোগ করুন</p>
+            <button class="auth-btn" style="margin-top:0;" onclick="closeLeaderboard(); openEditProfile();">🎯 লক্ষ্য সেট করুন</button>
+          </div>`;
+        return;
+      }
+      const rows = data.leaderboard || [];
+      const me = data.me || null;
+      const goal = data.goal || '';
+      if(!rows.length){
+        body.innerHTML = '<p style="padding:20px 0; color:var(--ink-faint,#888);">এখনো আপনার লক্ষ্যের কেউ পরীক্ষা দেয়নি — প্রথম হোন!</p>';
+        return;
+      }
+      const myId = USER_INFO ? USER_INFO.id : null;
+      const top3 = rows.slice(0, 3);
+      const rest = rows.slice(3);
+      const meInTop = myId && rows.some(r => r.user_id === myId);
+
+      let html = `<div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:10px; text-align:center;">🎯 ${escapeHtml(goal)}${data.total_participants ? ' — মোট ' + toBnDigits(data.total_participants) + ' জন প্রতিযোগী' : ''}</div>`;
+      if(top3.length === 3){
+        const order = [top3[1], top3[0], top3[2]];
+        const cls = ['silver', 'gold', 'bronze'];
+        html += '<div class="lb-podium">' + order.map((r, i) => `
+          <div class="lb-p-col ${cls[i]}">
+            <div class="lb-p-avatar">${escapeHtml(lbInitial(r.name))}</div>
+            <div class="lb-p-name">${escapeHtml(r.name)}</div>
+            <div class="lb-p-score">${r.total_score}</div>
+            <div class="lb-p-stand">${cls[i]==='gold' ? '<span style=\"font-size:18px;\">🏆</span>' : toBnDigits(r.rank)}</div>
+          </div>`).join('') + '</div>';
+      }
+
+      const listRows = top3.length === 3 ? rest : rows;
+      if(listRows.length){
+        html += '<div class="lb-list-wrap">' + listRows.map(r => `
+          <div class="lb-row ${myId && r.user_id===myId ? 'me' : ''}">
+            <span class="lb-row-rank">${toBnDigits(r.rank)}</span>
+            <span class="lb-row-avatar">${escapeHtml(lbInitial(r.name))}</span>
+            <span class="lb-row-name">${myId && r.user_id===myId ? 'আপনি' : escapeHtml(r.name)}<br><span style="font-size:10px; color:var(--ink-faint);">${toBnDigits(r.exams_taken)}টি পরীক্ষা</span></span>
+            <span class="lb-row-score">${r.total_score}</span>
+          </div>`).join('') + '</div>';
+      }
+
+      if(me && !meInTop){
+        html += '<div class="lb-list-wrap" style="margin-top:10px;"><div class="lb-row me">'
+          + `<span class="lb-row-rank">${toBnDigits(me.rank)}</span>`
+          + `<span class="lb-row-avatar">${escapeHtml(lbInitial(USER_INFO ? USER_INFO.name : me.name))}</span>`
+          + `<span class="lb-row-name">আপনি<br><span style="font-size:10px; color:var(--ink-faint);">${toBnDigits(me.exams_taken)}টি পরীক্ষা</span></span>`
+          + `<span class="lb-row-score">${me.total_score}</span>`
+          + '</div></div>';
+        if(me.next_rank_score != null){
+          const gap = (parseFloat(me.next_rank_score) - parseFloat(me.total_score)).toFixed(2);
+          if(gap > 0) html += `<div class="lb-gap-note">আর ${gap} নম্বর বেশি পেলে ${toBnDigits(me.rank - 1)}তম স্থানে উঠবেন</div>`;
+        }
+      }
+
+      body.innerHTML = html;
+    }catch(e){
+      body.innerHTML = '<p style="padding:20px 0; color:var(--wrong,#c0392b);">লোড করা যায়নি: ' + e.message + '</p>';
+    }
   }
 
   // ---------- Achievements / badges ----------
