@@ -2271,7 +2271,7 @@
     <div id="pkg-status-wrap"></div>
     <div id="pkg-referral-wrap"></div>
     <div id="pkg-cards-wrap"><p style="font-size:12.5px; color:var(--ink-faint);">লোড হচ্ছে...</p></div>
-    <div class="pkg-note">অনুমোদনের পর সাথে সাথে প্যাকেজ সক্রিয় হবে না — অ্যাডমিন bKash/Nagad অ্যাপে টাকা যাচাই করে সাধারণত কিছুক্ষণের মধ্যেই অনুমোদন করেন।</div>
+    <div class="pkg-note" id="pkg-approval-note">অনুমোদনের পর সাথে সাথে প্যাকেজ সক্রিয় হবে না — অ্যাডমিন bKash/Nagad অ্যাপে টাকা যাচাই করে সাধারণত কিছুক্ষণের মধ্যেই অনুমোদন করেন।</div>
   </div>
 
   <!-- ============ BOTTOM NAV ============ -->
@@ -3702,6 +3702,7 @@
 
   // ---------- Packages / monetization ----------
   let PKG_PAYMENT_METHODS = null; // cached bKash/Nagad numbers from the server
+  let BKASH_GATEWAY_ON = false;   // whether the automated bKash checkout is configured server-side
 
   async function loadPackagesScreen(){
     const statusWrap = document.getElementById('pkg-status-wrap');
@@ -3712,11 +3713,17 @@
     cardsWrap.innerHTML = '<p style="font-size:12.5px; color:var(--ink-faint);">লোড হচ্ছে...</p>';
 
     try{
-      const [{packages}, methodsData] = await Promise.all([
+      const [{packages}, methodsData, gatewayStatus] = await Promise.all([
         apiGet('/api/packages/public/list'),
-        apiGet('/api/packages/public/payment-info')
+        apiGet('/api/packages/public/payment-info'),
+        apiGet('/api/payments/bkash/status').catch(()=>({configured:false}))
       ]);
       PKG_PAYMENT_METHODS = methodsData.methods || [];
+      BKASH_GATEWAY_ON = Boolean(gatewayStatus.configured);
+      const approvalNote = document.getElementById('pkg-approval-note');
+      if(approvalNote && BKASH_GATEWAY_ON){
+        approvalNote.textContent = 'bKash-এ পে করলে প্যাকেজ সাথে সাথে সক্রিয় হয়ে যায়। ম্যানুয়ালি bKash/Nagad নম্বরে পাঠিয়ে TrxID জমা দিলে অ্যাডমিন যাচাই করে সাধারণত কিছুক্ষণের মধ্যেই অনুমোদন করেন।';
+      }
 
       if(USER_TOKEN){
         try{
@@ -4091,13 +4098,27 @@
     const slot = btn.nextElementSibling;
     if(slot.innerHTML){ slot.innerHTML = ''; return; } // toggle closed if already open
 
+    // Instant gateway option — shown above the manual form whenever bKash's
+    // Payment Gateway is configured server-side (see /api/payments/bkash/status).
+    // Skips typing a TrxID entirely; the package activates the moment bKash
+    // confirms the payment, no admin approval wait.
+    const bkashInstantHtml = BKASH_GATEWAY_ON
+      ? `<button class="pkg-form-submit" style="background:#E2136E;" onclick="payWithBkash(${packageId}, this)">📱 bKash দিয়ে এখনই পে করুন (তাৎক্ষণিক)</button>
+         <div class="pkg-note" style="margin:8px 0;">অথবা নিচে ম্যানুয়ালি টাকা পাঠিয়ে TrxID জমা দিন:</div>`
+      : '';
+
     if(!PKG_PAYMENT_METHODS || !PKG_PAYMENT_METHODS.length){
-      slot.innerHTML = '<div class="pkg-form"><div class="pay-instruction">এখনো ম্যানুয়াল পেমেন্ট চালু করা হয়নি — শীঘ্রই আসছে।</div></div>';
+      if(bkashInstantHtml){
+        slot.innerHTML = `<div class="pkg-form">${bkashInstantHtml.replace('অথবা নিচে ম্যানুয়ালি টাকা পাঠিয়ে TrxID জমা দিন:','')}</div>`;
+      } else {
+        slot.innerHTML = '<div class="pkg-form"><div class="pay-instruction">এখনো পেমেন্ট চালু করা হয়নি — শীঘ্রই আসছে।</div></div>';
+      }
       return;
     }
     const methodOptions = PKG_PAYMENT_METHODS.map(m =>
       `<option value="${m.method}">${m.method === 'bkash' ? 'bKash' : 'Nagad'}</option>`).join('');
     slot.innerHTML = `<div class="pkg-form">
+      ${bkashInstantHtml}
       <label>পেমেন্ট মাধ্যম</label>
       <select id="pf-method-${packageId}" onchange="updatePayInstruction(${packageId})">${methodOptions}</select>
       <div class="pay-instruction" id="pf-instruction-${packageId}"></div>
@@ -4109,6 +4130,40 @@
       <button class="pkg-form-cancel" onclick="this.parentElement.innerHTML=''">বাতিল</button>
     </div>`;
     updatePayInstruction(packageId);
+  }
+
+  // Kicks off the automated bKash checkout — opens a session on our server,
+  // then hands the browser off to bKash's own payment page. bKash redirects
+  // back to our server's /api/payments/bkash/callback when the student is
+  // done, which itself redirects to this same packages screen with
+  // ?payment=success|failed (handled by handleBkashReturn() below).
+  async function payWithBkash(packageId, btn){
+    if(btn){ btn.disabled = true; btn.textContent = 'সংযোগ হচ্ছে...'; }
+    try{
+      const { bkashURL } = await apiPost('/api/payments/bkash/create', { package_id: packageId }, true);
+      window.location.href = bkashURL;
+    }catch(err){
+      ehToast(err.message || 'bKash সংযোগ করা যায়নি');
+      if(btn){ btn.disabled = false; btn.textContent = '📱 bKash দিয়ে এখনই পে করুন (তাৎক্ষণিক)'; }
+    }
+  }
+
+  // Called once on page load — if the browser was just redirected back from
+  // the bKash gateway callback, show the result and clean the URL so a
+  // refresh doesn't re-trigger the toast.
+  function handleBkashReturn(){
+    const params = new URLSearchParams(location.search);
+    const payment = params.get('payment');
+    if(!payment) return;
+    if(payment === 'success'){
+      ehToast('✅ পেমেন্ট সফল — প্যাকেজ সক্রিয় হয়েছে');
+    } else if(payment === 'failed'){
+      ehToast('পেমেন্ট সম্পন্ন হয়নি — আবার চেষ্টা করুন');
+    }
+    params.delete('payment');
+    const cleanUrl = location.pathname + (params.toString() ? '?' + params.toString() : '');
+    history.replaceState({}, '', cleanUrl);
+    goScreen('packages');
   }
 
   function updatePayInstruction(packageId){
@@ -4156,6 +4211,7 @@
     }
   }
   renderProfile();
+  handleBkashReturn();
 
   // Invite links (?ref=CODE) — a friend's referral code shared via the
   // packages screen. If the visitor isn't logged in, pre-fill it into the
