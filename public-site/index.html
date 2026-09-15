@@ -1901,6 +1901,8 @@
       <div class="cat-tile" data-live-cat="bcs-51" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="openCategoryHub('bcs-51','৫১তম বিসিএস প্রস্তুতি')"><span class="ct-live-dot"></span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">📜</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>৫১তম বিসিএস প্রস্তুতি</span></div>
       <div class="cat-tile" data-live-cat="bcs-notun" style="--t-bg:#CFE0F5; --t-bd:#B7CFEC; --t-fg:#2C4E7A;" onclick="openCategoryHub('bcs-notun','নতুনদের বিসিএস প্রস্তুতি')"><span class="ct-live-dot"></span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🌱</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>নতুনদের বিসিএস প্রস্তুতি</span></div>
       <div class="cat-tile" data-live-cat="teacher-recruitment" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="openCategoryHub('teacher-recruitment','শিক্ষক নিয়োগ ও নিবন্ধন')"><span class="ct-live-dot"></span><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🍎</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>শিক্ষক নিয়োগ ও নিবন্ধন</span></div>
+      <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="goScreen('model'); setModelMode('org');"><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>প্রতিষ্ঠান আর্কাইভ</span></div>
+      <div class="cat-tile" style="--t-bg:#F3C9C9; --t-bd:#E8A9A9; --t-fg:#8A2418;" onclick="goScreen('model'); setModelMode('custom');"><span class="ct-emoji" style="left:auto; right:8px; top:26px;">✍️</span><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>কাস্টম টেস্ট</span></div>
     </div>
 
     <div class="cat-section-bar"><span class="cat-bar"></span><h2>পড়াশোনা বিভাগ</h2></div>
@@ -2033,7 +2035,7 @@
   <!-- ============ MODEL TEST SCREEN ============ -->
   <div class="screen" id="screen-model">
     <button class="model-back" id="model-back-btn" onclick="modelGoBack()" style="display:none;">← পেছনে</button>
-    <div class="mode-toggle" id="model-mode-toggle">
+    <div class="mode-toggle" id="model-mode-toggle" style="display:none;">
       <button class="mode-btn active" id="mode-btn-ministry" onclick="setModelMode('ministry')"><span class="mb-ic">🏛️</span>মন্ত্রণালয় অনুযায়ী</button>
       <button class="mode-btn" id="mode-btn-practice" onclick="setModelMode('practice')"><span class="mb-ic">📖</span>রিডিং লিস্ট</button>
       <button class="mode-btn" id="mode-btn-topic" onclick="setModelMode('topic')"><span class="mb-ic">🗂️</span>টপিকভিত্তিক জব সলুশন</button>
