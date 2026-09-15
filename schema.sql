@@ -672,6 +672,11 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER REFERENCES users(
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
 CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
 
+-- Supports GET /api/results/leaderboard/goal (routes/results.routes.js),
+-- which joins results -> users filtered by preparing_for to rank a student
+-- only against peers targeting the same job/exam.
+CREATE INDEX IF NOT EXISTS idx_users_preparing_for ON users(preparing_for);
+
 -- ===================== Written (রিটেন) exams go premium =====================
 -- Product decision (2026-09): written exams move from free-for-everyone to
 -- the same package-gated model as live/model exams (see
