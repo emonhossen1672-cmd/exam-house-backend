@@ -549,6 +549,79 @@ router.get('/leaderboard/overall', optionalUser, asyncHandler(async (req, res) =
   res.json({ unlocked: true, leaderboard: rows, me });
 }));
 
+// GET /api/results/leaderboard/goal — like /leaderboard/overall, but scoped
+// to students who share the caller's own `preparing_for` (target job/exam,
+// e.g. "ব্যাংক জব" vs "বিসিএস" — see profile update in auth.routes.js).
+// Ranking against people prepping for the SAME job is far more meaningful
+// than a site-wide leaderboard mixing every exam type together, and it's a
+// stronger motivational hook ("তোমার মতো ৪১২ জন ব্যাংক জব প্রার্থীর মধ্যে
+// তুমি ৭ম") than an anonymous global rank.
+// Requires login (need the caller's own goal to scope by) — unlike
+// /leaderboard/overall this has no useful "logged-out" shape. Same
+// unlock-after-first-attempt gate as /leaderboard/overall, for the same
+// first-session engagement-hook reason. If the student hasn't set a goal in
+// their profile yet, returns no_goal:true so the frontend can prompt them to
+// pick one instead of silently showing an empty/misleading leaderboard.
+router.get('/leaderboard/goal', requireUser, asyncHandler(async (req, res) => {
+  const attemptRes = await pool.query(
+    'SELECT EXISTS(SELECT 1 FROM results WHERE user_id = $1) AS has_attempt',
+    [req.user.id]
+  );
+  if (!attemptRes.rows[0].has_attempt) {
+    return res.json({ unlocked: false });
+  }
+
+  const meGoalRes = await pool.query('SELECT preparing_for FROM users WHERE id=$1', [req.user.id]);
+  const goal = meGoalRes.rows[0]?.preparing_for || null;
+  if (!goal) {
+    return res.json({ unlocked: true, no_goal: true, goal: null, leaderboard: [], me: null, total_participants: 0 });
+  }
+
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const { rows } = await pool.query(`
+    SELECT
+      u.id AS user_id, u.name,
+      COUNT(r.id)::int AS exams_taken,
+      SUM(r.score)::numeric(10,2) AS total_score,
+      ROUND(AVG(r.score)::numeric, 2) AS avg_score,
+      SUM(r.correct_count)::int AS total_correct,
+      RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank,
+      COUNT(*) OVER ()::int AS total_participants
+    FROM results r
+    JOIN users u ON u.id = r.user_id AND u.preparing_for = $2
+    WHERE r.user_id IS NOT NULL
+    GROUP BY u.id, u.name
+    ORDER BY total_score DESC
+    LIMIT $1
+  `, [limit, goal]);
+
+  const total_participants = rows.length ? rows[0].total_participants : 0;
+
+  let me = rows.find(r => r.user_id === req.user.id) || null;
+  if (!me) {
+    const meRes = await pool.query(`
+      WITH totals AS (
+        SELECT
+          u.id AS user_id, u.name,
+          COUNT(r.id)::int AS exams_taken,
+          SUM(r.score)::numeric(10,2) AS total_score,
+          ROUND(AVG(r.score)::numeric, 2) AS avg_score,
+          SUM(r.correct_count)::int AS total_correct,
+          RANK() OVER (ORDER BY SUM(r.score) DESC) AS rank
+        FROM results r
+        JOIN users u ON u.id = r.user_id AND u.preparing_for = $1
+        WHERE r.user_id IS NOT NULL
+        GROUP BY u.id, u.name
+      )
+      SELECT t.*, (SELECT MIN(total_score) FROM totals WHERE rank = t.rank - 1) AS next_rank_score
+      FROM totals t WHERE t.user_id = $2
+    `, [goal, req.user.id]);
+    if (meRes.rows.length) me = meRes.rows[0];
+  }
+
+  res.json({ unlocked: true, no_goal: false, goal, leaderboard: rows, me, total_participants });
+}));
+
 // GET /api/results/exam/:examId — merit list for ONE exam, public. Ties share
 // the same rank (RANK(), not ROW_NUMBER()) since two identical scores tying
 // for 2nd place in a live exam is a very real case. If the caller is a
