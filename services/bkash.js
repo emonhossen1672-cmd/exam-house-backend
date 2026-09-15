@@ -1,7 +1,7 @@
-// services/bkash.js — talks to bKash's "Tokenized Checkout" Payment Gateway
-// (PGW) REST API so a student's payment is verified automatically instead of
-// an admin eyeballing a TrxID. Flow (see routes/bkashPayment.routes.js for
-// the HTTP side that drives this):
+// services/bkash.js — talks to bKash's "Checkout" Payment Gateway (PGW)
+// REST API so a student's payment is verified automatically instead of an
+// admin eyeballing a TrxID. Flow (see routes/bkashPayment.routes.js for the
+// HTTP side that drives this):
 //
 //   1. grantToken()      — logs in with app key/secret + username/password,
 //                           gets a short-lived id_token to authorize the
@@ -18,6 +18,13 @@
 //                           'approved' — never trust the redirect's query
 //                           params alone, since those are just for the
 //                           browser and aren't signed.
+//
+// Endpoint paths below match bKash's current documented "Checkout" API
+// (developer.bka.sh/reference, host checkout.sandbox.bka.sh) as of this
+// writing — bKash has renamed this host/path family before (older guides
+// online still reference a retired "tokenized.sandbox.bka.sh/tokenized/..."
+// path), so if bKash changes it again, check developer.bka.sh/reference and
+// update the paths + BKASH_BASE_URL in config.js accordingly.
 //
 // isConfigured is false until all four credentials are set — same pattern
 // as services/google.js / services/sms.js — so the server still starts and
@@ -61,7 +68,7 @@ async function grantToken() {
   if (!isConfigured) throw new Error('bKash গেটওয়ে কনফিগার করা নেই');
   if (cachedToken && Date.now() < cachedTokenExpiresAt - 60_000) return cachedToken;
 
-  const data = await bkashFetch('/tokenized/checkout/token/grant', {
+  const data = await bkashFetch('/checkout/token/grant', {
     method: 'POST',
     body: { app_key: BKASH_APP_KEY, app_secret: BKASH_APP_SECRET }
   });
@@ -82,17 +89,15 @@ async function grantToken() {
 // later.
 async function createPayment({ amount, invoiceRef, callbackURL }) {
   const token = await grantToken();
-  const data = await bkashFetch('/tokenized/checkout/create', {
+  const data = await bkashFetch('/checkout/payment/create', {
     method: 'POST',
     token,
     body: {
-      mode: '0011', // tokenized checkout, single payment
-      payerReference: String(invoiceRef),
-      callbackURL,
       amount: String(amount),
       currency: 'BDT',
       intent: 'sale',
-      merchantInvoiceNumber: String(invoiceRef)
+      merchantInvoiceNumber: String(invoiceRef),
+      callbackURL
     }
   });
   if (!data.bkashURL || !data.paymentID) {
@@ -107,24 +112,24 @@ async function createPayment({ amount, invoiceRef, callbackURL }) {
 // marks a payment approved when this returns transactionStatus 'Completed'.
 // Safe to call once per paymentID; bKash rejects a second execute for an
 // already-completed payment, which the route treats as "already handled".
+// NOTE: paymentID is a URL path segment for this endpoint, not a body field.
 async function executePayment(paymentID) {
   const token = await grantToken();
-  return bkashFetch('/tokenized/checkout/execute', {
+  return bkashFetch(`/checkout/payment/execute/${encodeURIComponent(paymentID)}`, {
     method: 'POST',
-    token,
-    body: { paymentID }
+    token
   });
 }
 
 // Used if a student's browser never makes it back to our callback (closed
 // tab, network drop) — lets an admin or a retry job ask bKash directly
 // "did this paymentID actually complete?" without double-charging.
+// Also a path segment, GET method (same pattern as executePayment above).
 async function queryPayment(paymentID) {
   const token = await grantToken();
-  return bkashFetch('/tokenized/checkout/payment/status', {
-    method: 'POST',
-    token,
-    body: { paymentID }
+  return bkashFetch(`/checkout/payment/status/${encodeURIComponent(paymentID)}`, {
+    method: 'GET',
+    token
   });
 }
 
