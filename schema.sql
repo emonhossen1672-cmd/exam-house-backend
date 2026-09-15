@@ -641,6 +641,16 @@ CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_trxid_unique ON payments(trx_id)
   WHERE trx_id IS NOT NULL AND method IN ('bkash','nagad');
 
+-- Automated bKash Payment Gateway (PGW) flow — see services/bkash.js and
+-- routes/bkashPayment.routes.js. gateway_payment_id is bKash's own
+-- `paymentID` for the checkout session; unique so the same session can never
+-- be executed twice into two approved payments. method='bkash_gateway' is
+-- used (kept distinct from the existing manual 'bkash') so admin screens can
+-- tell at a glance which payments were auto-verified vs hand-approved.
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS gateway_payment_id VARCHAR(50);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_gateway_payment_id ON payments(gateway_payment_id)
+  WHERE gateway_payment_id IS NOT NULL;
+
 -- Safety net for deployments where `packages` already existed before
 -- original_price was added (CREATE TABLE IF NOT EXISTS above is a no-op then).
 ALTER TABLE packages ADD COLUMN IF NOT EXISTS original_price NUMERIC(8,2);
