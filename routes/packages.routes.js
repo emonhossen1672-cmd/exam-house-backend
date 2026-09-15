@@ -20,7 +20,7 @@ const {
   PAYMENT_BKASH_NUMBER, PAYMENT_BKASH_TYPE, PAYMENT_NAGAD_NUMBER, PAYMENT_NAGAD_TYPE,
   STUDENT_ID_PREFIX
 } = require('../config');
-const { getTrialStatus } = require('../utils/packageAccess');
+const { getTrialStatus, activatePackage } = require('../utils/packageAccess');
 
 // ---------- Student-facing ----------
 
@@ -229,18 +229,7 @@ router.post('/admin/:id/approve', requireAdmin, asyncHandler(async (req, res) =>
     return res.status(400).json({ error: 'এই পেমেন্ট আগেই প্রসেস করা হয়েছে' });
   }
 
-  const userRes = await pool.query('SELECT active_package_expires_at FROM users WHERE id=$1', [payment.user_id]);
-  const currentExpiry = userRes.rows[0]?.active_package_expires_at;
-  const stillActive = currentExpiry && new Date(currentExpiry) > new Date();
-  const baseDate = stillActive ? new Date(currentExpiry) : new Date();
-  const newExpiry = new Date(baseDate.getTime() + payment.duration_days * 24 * 60 * 60 * 1000);
-
-  await pool.query(
-    `UPDATE users SET active_package_id=$1, active_package_name=$2, active_package_expires_at=$3,
-       active_package_started_at = CASE WHEN $4 THEN active_package_started_at ELSE NOW() END
-     WHERE id=$5`,
-    [payment.package_id, payment.package_name, newExpiry, stillActive, payment.user_id]
-  );
+  const newExpiry = await activatePackage(payment.user_id, payment.package_id);
   await pool.query(
     `UPDATE payments SET status='approved', reviewed_by=$1, reviewed_at=NOW() WHERE id=$2`,
     [req.admin.id, req.params.id]
