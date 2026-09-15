@@ -153,4 +153,34 @@ async function checkExamAccess(userId, exam) {
   return { allowed: true };
 }
 
-module.exports = { isPremiumExam, getActivePackage, getTrialStatus, checkExamAccess, TRIAL_BASE_LIMIT, TRIAL_WINDOW_DAYS };
+// Activates (or extends) a student's package after a payment is confirmed —
+// shared by the manual admin-approval flow (routes/packages.routes.js
+// POST /admin/:id/approve) and the automated bKash gateway flow
+// (routes/bkashPayment.routes.js callback). Keeping this in one place means
+// "how a package's expiry is extended" can never drift between the two
+// payment paths. Renewing while a package is still active adds the new
+// duration on top of the remaining time rather than wasting it.
+async function activatePackage(userId, packageId) {
+  const pkgRes = await pool.query('SELECT name, duration_days FROM packages WHERE id=$1', [packageId]);
+  if (!pkgRes.rows.length) throw new Error('প্যাকেজ পাওয়া যায়নি');
+  const pkg = pkgRes.rows[0];
+
+  const userRes = await pool.query('SELECT active_package_expires_at FROM users WHERE id=$1', [userId]);
+  const currentExpiry = userRes.rows[0]?.active_package_expires_at;
+  const stillActive = currentExpiry && new Date(currentExpiry) > new Date();
+  const baseDate = stillActive ? new Date(currentExpiry) : new Date();
+  const newExpiry = new Date(baseDate.getTime() + pkg.duration_days * 24 * 60 * 60 * 1000);
+
+  await pool.query(
+    `UPDATE users SET active_package_id=$1, active_package_name=$2, active_package_expires_at=$3,
+       active_package_started_at = CASE WHEN $4 THEN active_package_started_at ELSE NOW() END
+     WHERE id=$5`,
+    [packageId, pkg.name, newExpiry, stillActive, userId]
+  );
+  return newExpiry;
+}
+
+module.exports = {
+  isPremiumExam, getActivePackage, getTrialStatus, checkExamAccess, activatePackage,
+  TRIAL_BASE_LIMIT, TRIAL_WINDOW_DAYS
+};
