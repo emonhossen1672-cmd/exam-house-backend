@@ -113,9 +113,12 @@ const BKASH_USERNAME = process.env.BKASH_USERNAME || '';
 const BKASH_PASSWORD = process.env.BKASH_PASSWORD || '';
 // bKash publishes separate hosts for sandbox and production — swap this env
 // var when you're ready to go live, no code change needed.
-//   sandbox:    https://tokenized.sandbox.bka.sh/v1.2.0-beta
-//   production: https://tokenized.pay.bka.sh/v1.2.0-beta
-const BKASH_BASE_URL = process.env.BKASH_BASE_URL || 'https://tokenized.sandbox.bka.sh/v1.2.0-beta';
+//   sandbox:    https://checkout.sandbox.bka.sh/v1.2.0-beta
+//   production: https://checkout.pay.bka.sh/v1.2.0-beta (bKash will confirm
+//               your exact production host during merchant onboarding —
+//               it has changed names before, so treat what they hand you at
+//               go-live time as authoritative over this default).
+const BKASH_BASE_URL = process.env.BKASH_BASE_URL || 'https://checkout.sandbox.bka.sh/v1.2.0-beta';
 // Where to send the student's browser back to after bKash's checkout page
 // (success or failure) — your frontend's packages screen. bKash appends its
 // own query params (paymentID, status) to whatever you pass as callbackURL,
