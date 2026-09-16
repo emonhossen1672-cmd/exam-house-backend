@@ -867,3 +867,16 @@ CREATE TABLE IF NOT EXISTS flash_news_answers (
 -- created_by_user_id (নিজের হিস্ট্রি: GET /api/exams/public/custom/mine)।
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_custom BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE exams ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
+-- ফিচার: টপিক-ভিত্তিক (অধ্যায়-ভিত্তিক) মডেল টেস্ট — প্রতিটা সাবজেক্ট+টপিকের
+-- জন্য কমপক্ষে MODEL_TESTS_MIN_PER_TOPIC (দেখুন utils/topicModelTestGen.js)
+-- সংখ্যক মডেল টেস্ট থাকবে, ছাত্র প্রথমবার "মডেল টেস্ট" ট্যাব খুললেই lazily
+-- তৈরি হয় (GET /api/exams/public/topic-model-tests) — কোনো cron দরকার নেই।
+-- নতুন প্রশ্ন যোগ হওয়ার পর admin চাইলে জোর করে আবার বানাতে পারে
+-- (POST /api/exams/admin/topic-model-tests/regenerate), এবং প্রতিটা টেস্ট
+-- আসলে একটা সাধারণ 'model' exams রো বলে admin normal exam-edit UI দিয়েই
+-- প্রশ্ন বদলে/টাইটেল বদলে দিতে পারবে। is_auto_topic=true থাকা টেস্টগুলো
+-- is_auto_subject-এর মতোই ফ্রি (প্যাকেজ-গেটেড না) — দেখুন utils/packageAccess.js।
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS topic VARCHAR(200);
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS is_auto_topic BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_exams_auto_topic ON exams(subject, topic) WHERE is_auto_topic = true;
