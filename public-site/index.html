@@ -5405,6 +5405,7 @@
   let TOPIC_NAV = {level:'subjects'};
   let TOPIC_TOPICS_CACHE = null; // topics for the currently open subject
   let TOPIC_SUBTOPICS_CACHE = null; // subtopics for the currently open topic
+  let TOPIC_MODEL_TESTS_CACHE = null; // model tests (min ১০টা, auto-generated) for the currently open topic
   let TOPIC_PAGE_QUESTIONS = []; // current page's questions, for the auto-quiz CTA
   // Per-page browsing controls (Live MCQ style): filter tab, unique-only
   // toggle, and the two "reveal everything on this page" bulk switches.
@@ -5576,6 +5577,7 @@
   async function renderTopicScreen(){
     if(TOPIC_NAV.level === 'topics'){ renderTopicListScreen(); return; }
     if(TOPIC_NAV.level === 'importance'){ renderTopicImportanceScreen(); return; }
+    if(TOPIC_NAV.level === 'model-tests'){ renderTopicModelTestsScreen(); return; }
     if(TOPIC_NAV.level === 'subtopics'){ renderSubtopicListScreen(); return; }
     if(TOPIC_NAV.level === 'questions'){ renderTopicQuestionsPage(); return; }
     if(TOPIC_NAV.level === 'all'){ renderTopicAllQuestionsPage(); return; }
@@ -6088,9 +6090,63 @@
               <div class="gc-meta">${toBnDigits(t.question_count)}টি প্রশ্ন · ${toBnDigits(t.subtopic_count)}টি সাবটপিক</div>
             </div>
           </div>
+          <button class="tj2-pill" style="flex:none; margin-right:6px;"
+            onclick='event.stopPropagation(); openTopicModelTests(${JSON.stringify(t.topic)})'>📝 মডেল টেস্ট</button>
           <div class="gc-arrow">›</div>
         </div>`;
     }).join('');
+  }
+
+  // ---------- এই টপিকের (অধ্যায়ের) মডেল টেস্ট — কমপক্ষে ১০টা, দরকার হলে
+  // প্রথমবার খোলার সময় ব্যাকএন্ড নিজেই বানিয়ে নেয় (দেখুন
+  // GET /api/exams/public/topic-model-tests) ----------
+  function openTopicModelTests(topic){
+    TOPIC_NAV = {level:'model-tests', subject:TOPIC_NAV.subject, topic};
+    TOPIC_MODEL_TESTS_CACHE = null;
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  async function renderTopicModelTestsScreen(){
+    const backBtn = document.getElementById('model-back-btn');
+    const heading = document.getElementById('model-heading');
+    const subtext = document.getElementById('model-subtext');
+    const listEl = document.getElementById('model-list');
+    backBtn.style.display = 'flex';
+    heading.textContent = TOPIC_NAV.topic;
+    subtext.textContent = TOPIC_NAV.subject + ' · মডেল টেস্ট';
+
+    if(!TOPIC_MODEL_TESTS_CACHE){
+      listEl.innerHTML = '<div class="loading-note">লোড হচ্ছে... (প্রথমবার একটু সময় লাগতে পারে)</div>';
+      try{
+        const data = await apiGet('/api/exams/public/topic-model-tests?subject=' + encodeURIComponent(TOPIC_NAV.subject)
+          + '&topic=' + encodeURIComponent(TOPIC_NAV.topic));
+        TOPIC_MODEL_TESTS_CACHE = data.model_tests;
+        // ticketHtml/openNameSheet/openArchive সবই ALL_EXAMS থেকে exam-এর
+        // বাড়তি তথ্য (প্রশ্ন সংখ্যা, নেগেটিভ মার্কিং ইত্যাদি) খুঁজে নেয় —
+        // তাই এখানে fetch করা টেস্টগুলোও সেই একই cache-এ মিশিয়ে দিচ্ছি,
+        // যাতে "পরীক্ষা দিন" শিট আর প্র্যাকটিস/আর্কাইভ ভিউ অন্য সব মডেল
+        // টেস্টের মতোই পুরো তথ্যসহ কাজ করে — আলাদা কোনো নতুন কোড ছাড়াই।
+        TOPIC_MODEL_TESTS_CACHE.forEach(e=>{
+          e.type = 'model';
+          if(!ALL_EXAMS.find(x=>x.id===e.id)) ALL_EXAMS.push(e);
+        });
+      }catch(err){
+        listEl.innerHTML = `<div class="empty-note">${err.message || 'লোড করা যায়নি'}</div>`;
+        return;
+      }
+    }
+
+    if(!TOPIC_MODEL_TESTS_CACHE.length){
+      listEl.innerHTML = '<div class="empty-note">এই অধ্যায়ে এখনো কোনো প্রশ্ন নেই বলে মডেল টেস্ট তৈরি করা যায়নি।</div>';
+      return;
+    }
+
+    listEl.innerHTML = `<div class="tj-banner"><div class="tj-banner-stat" style="background:${TJ_PALETTE[1].fill}">
+        <div class="tj-banner-num">${toBnDigits(TOPIC_MODEL_TESTS_CACHE.length)}</div>
+        <div class="tj-banner-label">টি মডেল টেস্ট</div></div></div>`
+      + TOPIC_MODEL_TESTS_CACHE.map(ticketHtml).join('');
   }
 
   function openTopicTopic(topic){
