@@ -369,6 +369,151 @@ router.get('/public/custom/mine', requireUser, asyncHandler(async (req, res) => 
   res.json(rows);
 }));
 
+// ---------- অধ্যায়ভিত্তিক (টপিক-ভিত্তিক) মডেল টেস্ট ----------
+// "পড়ালেখা" সেকশনের বিষয়ভিত্তিক প্রস্তুতি → অধ্যায়ভিত্তিক প্রস্তুতি ড্রিলডাউনের
+// শেষ ধাপ: একটা নির্দিষ্ট সাবজেক্ট+টপিকের (অধ্যায়) জন্য কমপক্ষে
+// MODEL_TESTS_MIN_PER_TOPIC-টা রেডিমেড মডেল টেস্ট (utils/topicModelTestGen.js
+// এর চাঙ্কিং হিসাব অনুযায়ী)। GET হলে lazily তৈরি হয় (প্রথমবার কেউ ট্যাবটা
+// খুললে) — কোনো cron দরকার নেই, ঠিক daily-quiz প্যাটার্নের মতোই।
+const { buildTopicTestChunks } = require('../utils/topicModelTestGen');
+
+// একটা subject+topic-এর জন্য is_auto_topic মডেল টেস্ট তৈরি করে (যদি প্রশ্ন
+// থাকে)। কলার নিশ্চিত করবে আগের auto টেস্ট থাকলে সেগুলো আগে থেকেই মুছে
+// দিয়েছে বা এখনো নেই — এই ফাংশন শুধু নতুন করে বানায়, ডুপ্লিকেট চেক করে না।
+async function generateTopicModelTests(client, subject, topic) {
+  const qRes = await client.query(
+    `SELECT id FROM questions WHERE subject = $1 AND TRIM(topic) = TRIM($2)`,
+    [subject, topic]
+  );
+  const questionIds = qRes.rows.map(r => r.id);
+  const chunks = buildTopicTestChunks(questionIds);
+  if (!chunks.length) return 0;
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const serial = genSerial('model');
+    const title = `${topic} — অধ্যায় মডেল টেস্ট ${i + 1}`;
+    const durationMinutes = Math.max(10, Math.round(chunk.length * 50 / 60));
+    const examResult = await client.query(
+      `INSERT INTO exams (title, type, duration_minutes, serial, status, negative_marks, subject, topic, is_auto_topic)
+       VALUES ($1,'model',$2,$3,'active',0,$4,$5,true) RETURNING id`,
+      [title, durationMinutes, serial, subject, topic]
+    );
+    const examId = examResult.rows[0].id;
+    for (let pos = 0; pos < chunk.length; pos++) {
+      await client.query(
+        'INSERT INTO exam_questions (exam_id, question_id, position) VALUES ($1,$2,$3)',
+        [examId, chunk[pos], pos + 1]
+      );
+    }
+  }
+  return chunks.length;
+}
+
+// GET /api/exams/public/topic-model-tests?subject=X&topic=Y — this topic's
+// model-test cards (auto-generated + any admin-created ones sharing the
+// same subject+topic tag). Auto-generates on first request if none exist
+// yet; if questions were added later and an admin wants a fresh batch, use
+// the regenerate endpoint below instead (this endpoint never deletes/rebuilds
+// existing tests on its own, so admin hand-edits to individual tests stick).
+router.get('/public/topic-model-tests', optionalUser, asyncHandler(async (req, res) => {
+  const subject = (req.query.subject || '').trim();
+  const topic = (req.query.topic || '').trim();
+  if (!subject || !topic) {
+    return res.status(400).json({ error: 'বিষয় ও অধ্যায় নির্বাচন করুন' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const existing = await client.query(
+      `SELECT id FROM exams WHERE is_auto_topic = true AND subject = $1 AND topic = $2 LIMIT 1`,
+      [subject, topic]
+    );
+    if (!existing.rows.length) {
+      await client.query('BEGIN');
+      await generateTopicModelTests(client, subject, topic);
+      await client.query('COMMIT');
+    }
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    return res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+
+  const userId = req.user ? req.user.id : null;
+  const { rows } = await pool.query(
+    `SELECT e.id, e.title, e.subject, e.topic, e.negative_marks, e.duration_minutes, e.serial,
+            e.is_auto_topic, e.created_at,
+            (SELECT COUNT(*)::int FROM exam_questions eq WHERE eq.exam_id = e.id) AS question_count,
+            EXISTS(SELECT 1 FROM results r WHERE r.exam_id = e.id AND r.user_id = $3) AS attempted
+     FROM exams e
+     WHERE e.type = 'model' AND e.subject = $1 AND e.topic = $2
+       AND (e.is_auto_topic = true OR e.is_custom = false)
+     ORDER BY e.is_auto_topic DESC, e.id ASC`,
+    [subject, topic, userId]
+  );
+  res.json({ subject, topic, model_test_count: rows.length, model_tests: rows });
+}));
+
+// POST /api/exams/admin/topic-model-tests/regenerate — body: { subject?, topic? }
+// Force-rebuilds is_auto_topic tests from the CURRENT question bank:
+//   { subject, topic } -> just that one chapter
+//   { subject }        -> every topic under that subject
+//   {}                 -> every subject+topic combo in the whole question bank
+// Deletes the old auto batch for the targeted scope first (exam_questions
+// cascades), then regenerates — safe to call anytime, e.g. right after a
+// bulk question upload. Admin edits made directly on individual generated
+// exams (via the normal PUT /api/exams/:id) are lost for whichever scope
+// gets regenerated, same tradeoff as /sync-subject-tests above.
+router.post('/admin/topic-model-tests/regenerate', requireAdmin, asyncHandler(async (req, res) => {
+  const subject = (req.body.subject || '').trim() || null;
+  const topic = (req.body.topic || '').trim() || null;
+  if (topic && !subject) {
+    return res.status(400).json({ error: 'শুধু টপিক দিয়ে regenerate করা যাবে না, সাবজেক্টও দিন' });
+  }
+
+  let pairs;
+  if (subject && topic) {
+    pairs = [{ subject, topic }];
+  } else if (subject) {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT TRIM(topic) AS topic FROM questions
+       WHERE subject = $1 AND TRIM(COALESCE(topic, '')) <> ''`,
+      [subject]
+    );
+    pairs = rows.map(r => ({ subject, topic: r.topic }));
+  } else {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT subject, TRIM(topic) AS topic FROM questions
+       WHERE TRIM(COALESCE(topic, '')) <> ''`
+    );
+    pairs = rows.map(r => ({ subject: r.subject, topic: r.topic }));
+  }
+
+  const client = await pool.connect();
+  const results = [];
+  try {
+    for (const pair of pairs) {
+      await client.query('BEGIN');
+      await client.query(
+        `DELETE FROM exams WHERE is_auto_topic = true AND subject = $1 AND topic = $2`,
+        [pair.subject, pair.topic]
+      );
+      const testsCreated = await generateTopicModelTests(client, pair.subject, pair.topic);
+      await client.query('COMMIT');
+      results.push({ subject: pair.subject, topic: pair.topic, tests_created: testsCreated });
+    }
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    return res.status(500).json({ error: 'সার্ভার সমস্যা: ' + err.message });
+  } finally {
+    client.release();
+  }
+
+  res.json({ topics_processed: results.length, results });
+}));
+
 // GET /api/exams/public/:id/questions — questions WITHOUT correct answers (for taking the exam)
 router.get('/public/:id/questions', optionalUser, asyncHandler(async (req, res) => {
   const examRes = await pool.query('SELECT * FROM exams WHERE id=$1', [req.params.id]);
