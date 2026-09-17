@@ -579,6 +579,36 @@
   .tj2-fc-dots span{ width:6px; height:6px; border-radius:50%; background:var(--tj2-line); cursor:pointer; transition:all .2s ease; }
   .tj2-fc-dots span.on{ background:var(--tj2-teal); width:16px; border-radius:4px; }
 
+  /* পড়ালেখা — হোমপেজ বিষয়ভিত্তিক/অধ্যায়ভিত্তিক ক্যারুসেল (সেপিয়া নিউমরফিক,
+     ফাইনাল কনফার্মড ডিজাইন)। --pdl-* এই দুটো ব্লকের ভেতরেই স্কোপড, বাকি সাইটের
+     সবুজ থিমের সাথে কনফ্লিক্ট করবে না। */
+  .pdl-carousel-wrap{
+    --pdl-bg:#f3f1e8; --pdl-ink:#3a3527; --pdl-ink-faint:#8a8368;
+    --pdl-sh-light:rgba(255,253,245,0.9); --pdl-sh-dark:rgba(180,172,140,0.4);
+    background:var(--pdl-bg); border-radius:18px; padding:12px 10px 14px; margin-bottom:14px;
+  }
+  .pdl-sec-head{ display:flex; align-items:center; gap:8px; padding:2px 4px 10px; }
+  .pdl-sec-title{ flex:1; font-weight:800; font-size:13.5px; color:var(--pdl-ink); }
+  .pdl-carousel{
+    display:grid; grid-auto-flow:column; grid-template-rows:repeat(2,1fr);
+    gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none;
+  }
+  .pdl-carousel::-webkit-scrollbar{ display:none; }
+  .pdl-tile{
+    scroll-snap-align:start; width:150px; height:82px; border-radius:14px;
+    background:var(--pdl-bg); box-shadow:5px 5px 10px var(--pdl-sh-dark), -5px -5px 10px var(--pdl-sh-light);
+    padding:9px 10px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer;
+  }
+  .pdl-tile:active{ box-shadow:inset 3px 3px 6px var(--pdl-sh-dark), inset -3px -3px 6px var(--pdl-sh-light); }
+  .pdl-tile-top{ display:flex; align-items:center; gap:8px; }
+  .pdl-sticker{
+    width:26px; height:26px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-size:14px; flex-shrink:0; box-shadow:inset 2px 2px 4px rgba(0,0,0,0.08);
+  }
+  .pdl-tile-title{ font-size:11px; font-weight:800; line-height:1.25; color:var(--pdl-ink); margin:0; }
+  .pdl-tile-count{ font-size:10px; font-weight:700; padding-left:2px; }
+  .pdl-empty{ font-size:12px; color:var(--pdl-ink-faint); padding:10px 4px; }
+
   /* ফ্ল্যাশ নিউজ — হোমপেজে ছোট্ট ডাইনামিক বাটন, ভেতরের সব কনটেন্ট আলাদা ওভারলে-তে */
   /* ---------- হোমপেজ কারেন্ট অ্যাফেয়ার্স বাটন ---------- */
   .fn-home-card{
@@ -1910,9 +1940,20 @@
       <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="goScreen('history'); if(USER_TOKEN) openBookmarks(); else showAuthForm('login');"><span class="ct-emoji">⭐</span><span class="ct-ic"><svg class="ic"><use href="#i-star"/></svg></span><span>বুকমার্ক</span></div>
       <div class="cat-tile" style="--t-bg:#D3F3F0; --t-bd:#B7E8E1; --t-fg:#0F7A78;" onclick="openCentralArchive()"><span class="ct-emoji" style="left:auto; right:8px; top:26px;">🗄️</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>সেন্ট্রাল আর্কাইভ</span></div>
       <div class="cat-tile" style="--t-bg:#E4EBD8; --t-bd:#D2DFC0; --t-fg:#4A5C2E;" onclick="if(USER_TOKEN) openRevision(); else showAuthForm('login');"><span class="ct-emoji">❌</span><span class="ct-ic"><svg class="ic"><use href="#i-xcircle"/></svg></span><span>ভুল প্রশ্ন রিভিশন</span></div>
-      <div class="cat-tile" style="--t-bg:#BFE3C7; --t-bd:#A6D6B1; --t-fg:#1F5C3A;" onclick="goHomeTopicSolution()"><span class="ct-emoji">📁</span><span class="ct-ic"><svg class="ic"><use href="#i-folder"/></svg></span><span>টপিকভিত্তিক জব সলুশন</span></div>
-      <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('practice');"><span class="ct-emoji">🏷️</span><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিডিং লিস্ট</span></div>
       <div class="cat-tile" style="--t-bg:#F3DEC0; --t-bd:#E8C89A; --t-fg:#8A5518;" onclick="openNotesScreen()"><span class="ct-emoji">📓</span><span class="ct-ic"><svg class="ic"><use href="#i-book"/></svg></span><span>নোটস / ই-বুক</span></div>
+    </div>
+
+    <!-- পড়ালেখা — বিষয়ভিত্তিক প্রস্তুতি (রিডিং লিস্ট, সরাসরি সাবজেক্টের পুরো
+         প্রশ্নব্যাংক পড়া) ও অধ্যায়ভিত্তিক প্রস্তুতি (টপিকভিত্তিক জব সলুশন,
+         সাবজেক্ট → অধ্যায় ড্রিলডাউন) — দুটো হোম ক্যারুসেল, পুরোনো একক
+         cat-tile দুটোর জায়গায়। ডেটা initHomeStudyCarousels() থেকে লাইভ লোড হয়। -->
+    <div class="pdl-carousel-wrap">
+      <div class="pdl-sec-head"><span>📘</span><div class="pdl-sec-title">বিষয় ভিত্তিক প্রস্তুতি</div></div>
+      <div class="pdl-carousel" id="home-study-subject-track"><div class="pdl-empty">লোড হচ্ছে...</div></div>
+    </div>
+    <div class="pdl-carousel-wrap">
+      <div class="pdl-sec-head"><span>📗</span><div class="pdl-sec-title">অধ্যায় ভিত্তিক প্রস্তুতি</div></div>
+      <div class="pdl-carousel" id="home-study-topic-track"><div class="pdl-empty">লোড হচ্ছে...</div></div>
     </div>
 
     <div class="sec-head"><h2>টপিক প্র্যাকটিস</h2><a onclick="goHomeTopicSolution()">সবগুলো →</a></div>
@@ -7702,6 +7743,7 @@
       loadHomePackagePromo();
       loadHeroZoneBanner();
       initHomeTopicCarousel();
+      initHomeStudyCarousels();
       loadFlashNews();
     }catch(err){
       document.getElementById('home-live-list').innerHTML = `<div class="empty-note">লোড করা যায়নি — একটু পর আবার চেষ্টা করুন।</div>`;
@@ -7780,6 +7822,65 @@
     history.pushState({drill:true}, '', location.pathname);
     renderModelScreen();
     window.scrollTo(0,0);
+  }
+
+  // হোম "বিষয় ভিত্তিক প্রস্তুতি" ক্যারুসেল-কার্ড থেকে সরাসরি সেই সাবজেক্টের
+  // রিডিং লিস্টে (১ম পৃষ্ঠা) ঢুকিয়ে দেয় — goHomeTopicSolution()-এর ঠিক
+  // একই প্যাটার্ন, শুধু MODEL_MODE='practice' আর READING_NAV ব্যবহার করে।
+  function goHomeReadingList(subject){
+    goScreen('model');
+    MODEL_MODE = 'practice';
+    document.getElementById('mode-btn-ministry').classList.remove('active');
+    document.getElementById('mode-btn-practice').classList.add('active');
+    document.getElementById('mode-btn-topic').classList.remove('active');
+    document.getElementById('mode-btn-duel').classList.remove('active');
+    READING_NAV = subject ? {level:'list', subject, page:1} : {level:'subjects'};
+    history.pushState({drill:true}, '', location.pathname);
+    renderModelScreen();
+    window.scrollTo(0,0);
+  }
+
+  // হোমপেজ পড়ালেখা ক্যারুসেল দুটো (বিষয়ভিত্তিক + অধ্যায়ভিত্তিক) — ডেটা
+  // যথাক্রমে /api/exams/public/subjects (রিডিং লিস্টের সাবজেক্ট লিস্ট, একই
+  // ক্যাশ রিডিং লিস্ট স্ক্রিন নিজেও ব্যবহার করে) আর
+  // /api/questions/public/topic-job-subjects থেকে আসে। রঙ/ইমোজি
+  // টপিকভিত্তিক জব সলুশনের বিদ্যমান tjStyleFor()/TJ_TOPIC_EMOJI থেকেই
+  // পুনর্ব্যবহার করা, যাতে পুরো সাইটে একই সাবজেক্টের রঙ সবখানে মেলে।
+  async function initHomeStudyCarousels(){
+    const subjTrack = document.getElementById('home-study-subject-track');
+    const topicTrack = document.getElementById('home-study-topic-track');
+    if(subjTrack && subjTrack.dataset.ready) return;
+    if(subjTrack) subjTrack.dataset.ready = '1';
+
+    try{
+      if(!PRACTICE_SUBJECTS_CACHE) PRACTICE_SUBJECTS_CACHE = await apiGet('/api/exams/public/subjects');
+      renderHomeStudyCarousel(subjTrack, PRACTICE_SUBJECTS_CACHE, 'goHomeReadingList');
+    }catch(err){
+      if(subjTrack) subjTrack.innerHTML = '<div class="pdl-empty">লোড করা যায়নি</div>';
+    }
+
+    try{
+      if(!TOPIC_SUBJECTS_CACHE) TOPIC_SUBJECTS_CACHE = await apiGetAuth('/api/questions/public/topic-job-subjects');
+      renderHomeStudyCarousel(topicTrack, TOPIC_SUBJECTS_CACHE, 'goHomeTopicSolution');
+    }catch(err){
+      if(topicTrack) topicTrack.innerHTML = '<div class="pdl-empty">লোড করা যায়নি</div>';
+    }
+  }
+
+  function renderHomeStudyCarousel(track, items, clickFn){
+    if(!track) return;
+    if(!items || !items.length){ track.innerHTML = '<div class="pdl-empty">এখনো কোনো প্রশ্ন যুক্ত হয়নি</div>'; return; }
+    track.innerHTML = items.map(s=>{
+      const st = tjStyleFor(s.subject);
+      const emoji = TJ_TOPIC_EMOJI[s.subject] || '📌';
+      return `<div class="pdl-tile" onclick='${clickFn}(${JSON.stringify(s.subject)})'>
+        <div class="pdl-tile-top">
+          <div class="pdl-sticker" style="background:${st.fill}22; color:${st.fill};">${emoji}</div>
+          <p class="pdl-tile-title">${escapeHtml(s.subject)}</p>
+        </div>
+        <div class="pdl-tile-count" style="color:${st.fill};">প্রশ্ন ${toBnDigits(s.question_count)}</div>
+      </div>`;
+    }).join('');
   }
 
   // হোমপেজ "টপিক প্র্যাকটিস" ফিচার্ড কার্ড ক্যারুসেল — অটো-ঘোরে, ডট/সোয়াইপে
