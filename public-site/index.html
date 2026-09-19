@@ -526,6 +526,35 @@
   .group-card .gc-meta{font-size:11.5px; color:var(--t-fg,var(--ink-faint)); opacity:.75; margin-top:3px;}
   .group-card .gc-arrow{color:var(--t-fg,var(--ink-faint)); opacity:.6; font-size:18px; flex-shrink:0;}
 
+  /* ---------- Ministry list: single-color (deep green) neumorphic card ---------- */
+  .group-card.neu-card{
+    --nb-line:#1F6B57; --nb-accent:#1F6B57; --nb-name:#17503F; --nb-meta:#2F7A66; --nb-bg:#FFFFFF;
+    --nb-sh:6px 6px 14px rgba(140,158,188,0.38), -6px -6px 14px rgba(255,255,255,1);
+    --nb-sh-sm:3px 3px 7px rgba(140,158,188,0.35), -3px -3px 7px rgba(255,255,255,1);
+    --nb-press:inset 5px 5px 10px rgba(140,158,188,0.40), inset -5px -5px 10px rgba(255,255,255,1);
+    background:var(--nb-bg); border:1.5px solid var(--nb-line); border-radius:18px;
+    padding:14px 15px; margin-bottom:16px; box-shadow:var(--nb-sh);
+    transition:transform .1s ease, box-shadow .15s ease;
+  }
+  .group-card.neu-card:active{ box-shadow:var(--nb-press); transform:scale(0.985); }
+  .group-card.neu-card .gc-ic{
+    width:44px; height:44px; border-radius:12px;
+    background:var(--nb-bg); color:var(--nb-accent);
+    border:1.5px solid var(--nb-line); box-shadow:var(--nb-sh-sm);
+  }
+  .group-card.neu-card .gc-ic svg{ width:22px; height:22px; display:block; }
+  .group-card.neu-card .gc-name{ color:var(--nb-name); font-weight:700; }
+  .group-card.neu-card .gc-meta{ color:var(--nb-meta); opacity:1; }
+  .group-card.neu-card .gc-arrow{ color:var(--nb-accent); opacity:1; font-size:24px; line-height:1; }
+  #model-subtext{ color:#1F6B57 !important; }
+  html[data-theme="dark"] .group-card.neu-card{
+    --nb-line:#4FB595; --nb-accent:#4FB595; --nb-name:var(--ink); --nb-meta:var(--ink-soft); --nb-bg:var(--paper);
+    --nb-sh:6px 6px 12px rgba(0,0,0,0.45), -6px -6px 12px rgba(255,255,255,0.04);
+    --nb-sh-sm:3px 3px 7px rgba(0,0,0,0.42), -3px -3px 7px rgba(255,255,255,0.04);
+    --nb-press:inset 5px 5px 10px rgba(0,0,0,0.45), inset -5px -5px 10px rgba(255,255,255,0.04);
+  }
+  html[data-theme="dark"] #model-subtext{ color:#4FB595 !important; }
+
   /* টপিকভিত্তিক জব সলুশন — টপিক ও সাবটপিক নামের লিস্ট কার্ড: sand/teal
      নিউমরফিক (এই ফিচারের বাকি অংশে ব্যবহৃত --tj2-* থিমের সাথে মিলিয়ে)।
      .tj2-topic-card ক্লাসে স্কোপ করা, তাই মন্ত্রণালয়/পোস্ট/লাইভ ক্যাটাগরির
@@ -4354,6 +4383,42 @@
     {bg:'#FCEEE3', bd:'#F0D3B8', fg:'#8A4E1D'},
     {bg:'#F0F1E6', bd:'#DADCC0', fg:'#565E2E'},
   ];
+  // Ministry-card icons (stroke icons, 24x24). ministryIcon() picks one from keywords in the name.
+  const MIN_ICONS = {
+    bank:  '<path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/>',
+    cap:   '<path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+    anchor:'<path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><circle cx="12" cy="5" r="3"/>',
+    shield:'<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><rect x="10" y="10.5" width="4" height="3.5" rx=".8"/>',
+    leaf:  '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6C9.5 14.5 12 13 13 12"/>',
+    tree:  '<path d="M12 22v-6"/><path d="M12 16a5 5 0 0 0 5-5c0-2-1-3-2-4 0-2-1.5-4-3-4S9 5 9 7c-1 1-2 2-2 4a5 5 0 0 0 5 5z"/>',
+    scale: '<path d="M12 3v18"/><path d="M6 21h12"/><path d="M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0z"/><path d="M19 7l-3 7a3 3 0 0 0 6 0z"/>',
+    pill:  '<path d="M10.5 20.5l-7-7a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7z"/><path d="M8.5 8.5l7 7"/>',
+    cross: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18-3-3-3-15 0-18z"/>',
+    bolt:  '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    drop:  '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>'
+  };
+  const MIN_ICON_RULES = [
+    ['anchor', ['নৌ']],
+    ['shield', ['গোয়েন্দা','নিরাপত্তা','পুলিশ','আনসার','সেনা','বিজিবি','সীমান্ত','প্রতিরক্ষা']],
+    ['pill',   ['মাদক']],
+    ['scale',  ['জুডিশিয়াল','বিচার','আদালত','আইন','আইনগত']],
+    ['cap',    ['শিক্ষা','বিদ্যালয়','বিশ্ববিদ্যালয়','কলেজ']],
+    ['cross',  ['স্বাস্থ্য','চিকিৎসা','হাসপাতাল','ঔষধ']],
+    ['tree',   ['পরিবেশ','বন','জলবায়ু']],
+    ['leaf',   ['খাদ্য','কৃষি','মৎস্য','প্রাণিসম্পদ']],
+    ['bolt',   ['বিদ্যুৎ','জ্বালানি','খনিজ']],
+    ['drop',   ['পানি','পানিসম্পদ']],
+    ['globe',  ['পররাষ্ট্র','তথ্য','যোগাযোগ','ডাক','টেলিযোগাযোগ','আইসিটি']]
+  ];
+  function ministryIcon(name){
+    let key = 'bank';
+    const n = String(name||'');
+    outer: for(const [k, words] of MIN_ICON_RULES){
+      for(const w of words){ if(n.includes(w)){ key = k; break outer; } }
+    }
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + MIN_ICONS[key] + '</svg>';
+  }
   function tintFor(name){
     let h = 0;
     for(let i=0;i<name.length;i++){ h = (h*31 + name.charCodeAt(i)) >>> 0; }
@@ -4415,9 +4480,9 @@
         const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
         const t = tintFor(name);
         return `
-          <div class="group-card" style="--t-bg:${t.bg}; --t-bd:${t.bd}; --t-fg:${t.fg};" onclick='modelPickMinistry(${JSON.stringify(name)})'>
+          <div class="group-card neu-card" onclick='modelPickMinistry(${JSON.stringify(name)})'>
             <div class="gc-left">
-              <div class="gc-ic">🏛️</div>
+              <div class="gc-ic">${ministryIcon(name)}</div>
               <div>
                 <div class="gc-name">${name}</div>
                 <div class="gc-meta">${toBnDigits(posts.size)}টি পদ · ${toBnDigits(exams.length)}টি টেস্ট</div>
@@ -4521,9 +4586,9 @@
         const posts = new Set(exams.map(e=>(e.post_name||'সাধারণ')+'|'+(e.grade||'')));
         const t = tintFor(name);
         return `
-          <div class="group-card" style="--t-bg:${t.bg}; --t-bd:${t.bd}; --t-fg:${t.fg};" onclick='writtenPickMinistry(${JSON.stringify(name)})'>
+          <div class="group-card neu-card" onclick='writtenPickMinistry(${JSON.stringify(name)})'>
             <div class="gc-left">
-              <div class="gc-ic">🏛️</div>
+              <div class="gc-ic">${ministryIcon(name)}</div>
               <div>
                 <div class="gc-name">${name}</div>
                 <div class="gc-meta">${toBnDigits(posts.size)}টি পদ · ${toBnDigits(exams.length)}টি টেস্ট</div>
