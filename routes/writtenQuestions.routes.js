@@ -16,8 +16,9 @@ const { requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const { normalizeText, UNTAGGED_TOPIC, UNTAGGED_SUBTOPIC } = require('../utils/topicJobSubjects');
 const { resolveTopic } = require('../utils/topicAutoDetect');
+const { WRITTEN_SUBJECTS, writtenSubjectBucket } = require('../utils/writtenSubjectBuckets');
 
-// রিটেন জব সলুশন reading screen drill-down: মন্ত্রণালয় → টপিক → প্রশ্ন.
+// রিটেন জব সলুশন reading screen drill-down: মন্ত্রণালয় → বিষয় (বাংলা/ইংরেজি/গণিত/সাধারণ জ্ঞান) → প্রশ্ন.
 // Questions uploaded without a ministry are grouped under this bucket so
 // they never disappear from the reading screen.
 const UNTAGGED_MINISTRY = 'অন্যান্য';
@@ -285,73 +286,92 @@ router.get('/public/subtopics', asyncHandler(async (req, res) => {
 
 // GET /api/written-questions/public/ministries — first screen of the
 // রিটেন জব সলুশন reading feature: every ministry/organization that has at
-// least one written question, with its question + topic counts. Questions
-// with no ministry are grouped into one extra "অন্যান্য" card.
+// least one written question, with its question count. Questions with no
+// ministry are grouped into one extra "অন্যান্য" card.
 router.get('/public/ministries', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT m.id::text AS ministry_id, m.name AS ministry_name,
-            COUNT(*)::int AS question_count,
-            COUNT(DISTINCT COALESCE(NULLIF(TRIM(wq.topic), ''), $1))::int AS topic_count
+    `SELECT m.id::text AS ministry_id, m.name AS ministry_name, COUNT(*)::int AS question_count
      FROM written_questions wq
      JOIN ministries m ON m.id = wq.ministry_id
      GROUP BY m.id, m.name
-     ORDER BY m.name`,
-    [UNTAGGED_TOPIC]
+     ORDER BY m.name`
   );
   const none = await pool.query(
-    `SELECT COUNT(*)::int AS question_count,
-            COUNT(DISTINCT COALESCE(NULLIF(TRIM(topic), ''), $1))::int AS topic_count
-     FROM written_questions WHERE ministry_id IS NULL`,
-    [UNTAGGED_TOPIC]
+    `SELECT COUNT(*)::int AS question_count FROM written_questions WHERE ministry_id IS NULL`
   );
   if (none.rows[0].question_count > 0) {
-    rows.push({ ministry_id: NO_MINISTRY_ID, ministry_name: UNTAGGED_MINISTRY, ...none.rows[0] });
+    rows.push({ ministry_id: NO_MINISTRY_ID, ministry_name: UNTAGGED_MINISTRY, question_count: none.rows[0].question_count });
   }
   res.json(rows);
 }));
 
-// GET /api/written-questions/public/ministry-topics?ministry_id=X — second
-// screen: the topics inside one ministry, each with its question_count.
-// ministry_id may be a real id or "none" (the অন্যান্য bucket). Questions
-// whose topic is blank are listed under one "অন্যান্য" topic.
-router.get('/public/ministry-topics', asyncHandler(async (req, res) => {
+// Builds the WHERE fragment for one ministry (real id or "none"). Returns
+// null for an invalid id. `params` is mutated (id pushed when needed).
+function ministryClause(mid, params) {
+  if (mid === NO_MINISTRY_ID) return 'wq.ministry_id IS NULL';
+  if (!/^\d+$/.test(String(mid))) return null;
+  params.push(mid);
+  return `wq.ministry_id = $${params.length}`;
+}
+
+// GET /api/written-questions/public/ministry-subjects?ministry_id=X — second
+// screen: always the 4 fixed subjects (বাংলা, ইংরেজি, গণিত, সাধারণ জ্ঞান)
+// with their question_count inside this ministry. Raw `subject` values from
+// uploads are auto-sorted into these 4 (see utils/writtenSubjectBuckets.js).
+router.get('/public/ministry-subjects', asyncHandler(async (req, res) => {
   const mid = String(req.query.ministry_id || '').trim();
   if (!mid) return res.status(400).json({ error: 'মন্ত্রণালয় নির্বাচন করুন' });
+  const params = [];
+  const clause = ministryClause(mid, params);
+  if (!clause) return res.status(400).json({ error: 'মন্ত্রণালয় সঠিক নয়' });
 
   let ministryName = UNTAGGED_MINISTRY;
-  const params = [UNTAGGED_TOPIC];
-  let ministryClause = 'wq.ministry_id IS NULL';
   if (mid !== NO_MINISTRY_ID) {
-    if (!/^\d+$/.test(mid)) return res.status(400).json({ error: 'মন্ত্রণালয় সঠিক নয়' });
     const m = await pool.query('SELECT name FROM ministries WHERE id=$1', [mid]);
     if (!m.rows.length) return res.status(404).json({ error: 'মন্ত্রণালয় পাওয়া যায়নি' });
     ministryName = m.rows[0].name;
-    params.push(mid);
-    ministryClause = `wq.ministry_id = $2`;
   }
 
   const { rows } = await pool.query(
-    `SELECT COALESCE(NULLIF(TRIM(wq.topic), ''), $1) AS topic, COUNT(*)::int AS question_count
-     FROM written_questions wq WHERE ${ministryClause}
-     GROUP BY 1 ORDER BY question_count DESC, topic`,
+    `SELECT wq.subject, COUNT(*)::int AS n FROM written_questions wq WHERE ${clause} GROUP BY wq.subject`,
     params
   );
-  res.json({ ministry_id: mid, ministry_name: ministryName, topics: rows });
+  const totals = Object.fromEntries(WRITTEN_SUBJECTS.map(s => [s, 0]));
+  rows.forEach(r => { totals[writtenSubjectBucket(r.subject)] += r.n; });
+  res.json({
+    ministry_id: mid,
+    ministry_name: ministryName,
+    subjects: WRITTEN_SUBJECTS.map(s => ({ subject: s, question_count: totals[s] })),
+  });
 }));
 
-// GET /api/written-questions/public/library?ministry_id=&subject=&topic=&subtopic=&limit=
-// — full reading list (question + model answer). With ministry_id the list
-// is in upload order (so a book's questions read in sequence); without it
-// the old most-recent-first order is kept for the subject-based callers.
+// GET /api/written-questions/public/library?ministry_id=&bucket=&subject=&topic=&subtopic=&limit=
+// — full reading list (question + model answer). `bucket` is one of the 4
+// WRITTEN_SUBJECTS and matches every raw subject that auto-sorts into it.
+// With ministry_id the list is in upload order (a book's questions read in
+// sequence); without it the old most-recent-first order is kept for the
+// older subject-based callers.
 router.get('/public/library', asyncHandler(async (req, res) => {
-  const { ministry_id, subject, topic, subtopic } = req.query;
+  const { ministry_id, bucket, subject, topic, subtopic } = req.query;
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 300, 1), 1000);
   const clauses = [];
   const params = [];
   if (ministry_id) {
-    if (ministry_id === NO_MINISTRY_ID) clauses.push('wq.ministry_id IS NULL');
-    else if (/^\d+$/.test(String(ministry_id))) { params.push(ministry_id); clauses.push(`wq.ministry_id = $${params.length}`); }
-    else return res.status(400).json({ error: 'মন্ত্রণালয় সঠিক নয়' });
+    const c = ministryClause(String(ministry_id), params);
+    if (!c) return res.status(400).json({ error: 'মন্ত্রণালয় সঠিক নয়' });
+    clauses.push(c);
+  }
+  if (bucket) {
+    if (!WRITTEN_SUBJECTS.includes(bucket)) return res.status(400).json({ error: 'বিষয় সঠিক নয়' });
+    const distinctParams = [];
+    const dClause = ministry_id ? `WHERE ${ministryClause(String(ministry_id), distinctParams)}` : '';
+    const d = await pool.query(
+      `SELECT DISTINCT wq.subject FROM written_questions wq ${dClause}`, distinctParams
+    );
+    const matching = d.rows.map(r => r.subject).filter(sub => writtenSubjectBucket(sub) === bucket);
+    if (!matching.length) return res.json([]);
+    params.push(matching);
+    clauses.push(`wq.subject = ANY($${params.length})`);
   }
   if (subject) { params.push(subject); clauses.push(`wq.subject = $${params.length}`); }
   if (topic) {
