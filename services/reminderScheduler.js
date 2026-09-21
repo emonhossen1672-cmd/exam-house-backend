@@ -30,7 +30,7 @@ async function sendDueReminders() {
       JOIN exams e ON e.id = er.exam_id
       JOIN users u ON u.id = er.user_id
       WHERE er.sent_at IS NULL
-        AND e.type = 'live'
+        AND e.type IN ('live','written')
         AND e.status != 'closed'
         AND e.start_time IS NOT NULL
         AND e.start_time > NOW()
