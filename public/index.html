@@ -635,7 +635,7 @@
         </div>
         <div class="grid-2" id="e_start_time_wrap">
           <div class="field">
-            <label>শুরুর সময় (শুধু লাইভ পরীক্ষার জন্য)</label>
+            <label>শুরুর সময় (লাইভ পরীক্ষায় বাধ্যতামূলক; রিটেনে ফাঁকা রাখলে সবসময় খোলা মডেল টেস্ট, দিলে ওই সময়ে চালু হওয়া রিটেন লাইভ পরীক্ষা)</label>
             <input type="datetime-local" id="e_start_time">
           </div>
           <div class="field">
@@ -1062,7 +1062,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 document.getElementById('e_type').addEventListener('change', (e) => {
   const type = e.target.value;
-  document.getElementById('e_start_time_wrap').style.display = type === 'live' ? 'grid' : 'none';
+  document.getElementById('e_start_time_wrap').style.display = (type === 'live' || type === 'written') ? 'grid' : 'none';
   document.getElementById('e_subject_wrap').style.display = type === 'model' ? 'block' : 'none';
   document.getElementById('e_grading_mode_wrap').style.display = type === 'written' ? 'block' : 'none';
   document.getElementById('e_mcq_picker_wrap').style.display = type === 'written' ? 'none' : 'block';
@@ -1223,7 +1223,7 @@ document.getElementById('examForm').addEventListener('submit', async (e) => {
       subject: isWritten ? null : (document.getElementById('e_subject').value.trim() || null),
       grade: document.getElementById('e_grade').value || null,
       duration_minutes: document.getElementById('e_duration').value || 60,
-      start_time: type === 'live' ? document.getElementById('e_start_time').value : null,
+      start_time: (type === 'live' || type === 'written') ? (document.getElementById('e_start_time').value || null) : null,
       negative_marks: document.getElementById('e_negative_marks').value || 0,
       application_deadline: document.getElementById('e_application_deadline').value || null,
       exam_probable_date: document.getElementById('e_exam_probable_date').value || null,
