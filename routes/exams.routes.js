@@ -59,7 +59,12 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
          application_deadline, exam_probable_date, circular_url, routine_category, grading_mode)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [title, type, ministry_id || null, post_name || null, subject || null, grade || null, duration_minutes || 60,
-       type === 'live' ? start_time : null, serial, 'scheduled', negative_marks || 0,
+       // Live exams require start_time (checked above). Written exams may
+       // optionally carry one too — a scheduled রিটেন লাইভ পরীক্ষা that stays
+       // locked until then (written-questions + written-answers already
+       // enforce start_time). Written with no start_time = always-open
+       // written model test, as before.
+       (type === 'live' || isWritten) ? (start_time || null) : null, serial, 'scheduled', negative_marks || 0,
        application_deadline || null, exam_probable_date || null, circular_url || null, routine_category || null,
        isWritten ? grading_mode : null]
     );
@@ -190,7 +195,7 @@ router.post('/public/:id/remind', requireUser, asyncHandler(async (req, res) => 
   const examRes = await pool.query('SELECT id, type, start_time FROM exams WHERE id=$1', [req.params.id]);
   if (!examRes.rows.length) return res.status(404).json({ error: 'পরীক্ষা পাওয়া যায়নি' });
   const exam = examRes.rows[0];
-  if (exam.type !== 'live' || !exam.start_time) {
+  if (!(exam.type === 'live' || exam.type === 'written') || !exam.start_time) {
     return res.status(400).json({ error: 'শুধু লাইভ পরীক্ষার জন্য রিমাইন্ডার সেট করা যায়' });
   }
   if (new Date(exam.start_time) <= new Date()) {
@@ -591,7 +596,7 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
   // the moment their actual attempt window ends, not 12 hours later. The
   // 12-hour minimum only controls how long the exam stays tagged "লাইভ"
   // and out of the central archive list, not when solutions become visible.
-  if (exam.type === 'live' && exam.start_time) {
+  if ((exam.type === 'live' || exam.type === 'written') && exam.start_time) {
     const end = new Date(exam.start_time).getTime() + (exam.duration_minutes || 60) * 60000;
     if (Date.now() < end) {
       return res.status(403).json({ error: 'পরীক্ষা এখনো চলছে — শেষ হলে সমাধান দেখা যাবে' });
@@ -599,6 +604,22 @@ router.get('/public/:id/archive', asyncHandler(async (req, res) => {
   }
   if (exam.type === 'live' && !exam.start_time) {
     return res.status(403).json({ error: 'পরীক্ষার সময় এখনো নির্ধারিত হয়নি' });
+  }
+
+  // Scheduled রিটেন লাইভ পরীক্ষা: after its window closes, show each
+  // question with the model answer. An always-open written model test (no
+  // start_time) has no "window closed" moment, so its answers stay hidden
+  // here (students see them via the self-check/review flow instead).
+  if (exam.type === 'written') {
+    if (!exam.start_time) {
+      return res.status(403).json({ error: 'এই পরীক্ষার সমাধান এখানে দেখা যায় না' });
+    }
+    const wrows = await pool.query(`
+      SELECT wq.id, wq.subject, wq.question_text, wq.model_answer, wq.marks, ewq.position
+      FROM exam_written_questions ewq JOIN written_questions wq ON wq.id = ewq.written_question_id
+      WHERE ewq.exam_id = $1 ORDER BY ewq.position
+    `, [req.params.id]);
+    return res.json({ exam, questions: wrows.rows });
   }
 
   const { rows } = await pool.query(`
