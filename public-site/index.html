@@ -4558,7 +4558,7 @@
         <div class="cat-tile" style="--t-bg:#F3E9A9; --t-bd:#E8D97E; --t-fg:#7A5E12;" onclick="goScreen('model'); setModelMode('topic');"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>প্রশ্নব্যাংক</span></div>
         <div class="cat-tile" style="--t-bg:#E7EEF9; --t-bd:#C6D6EE; --t-fg:#1E3E78;" onclick="goScreen('model'); setModelMode('ministry');"><span class="ct-ic"><svg class="ic"><use href="#i-doc"/></svg></span><span>মডেল টেস্ট</span></div>
         <div class="cat-tile" style="--t-bg:#FDE9E9; --t-bd:#F3C6C6; --t-fg:#8A1F1F;" onclick="goScreen('live')"><span class="ct-ic"><svg class="ic"><use href="#i-target"/></svg></span><span>লাইভ</span></div>
-        <div class="cat-tile" style="--t-bg:#D9EAD3; --t-bd:#B9D9AE; --t-fg:#2E5E1F;" onclick="goScreen('model'); setModelMode('written-library');"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিটেন জব সলুশন (পড়ুন)</span></div>
+        <div class="cat-tile" style="--t-bg:#D9EAD3; --t-bd:#B9D9AE; --t-fg:#2E5E1F;" onclick="goScreen('model'); setModelMode('written-library'); history.pushState({drill:true}, '', location.pathname);"><span class="ct-ic"><svg class="ic"><use href="#i-tag"/></svg></span><span>রিটেন জব সলুশন (পড়ুন)</span></div>
       </div>`;
   }
 
@@ -4697,7 +4697,8 @@
     if(MODEL_MODE === 'topic') return TOPIC_NAV.level === 'subjects';
     if(MODEL_MODE === 'ministry') return MODEL_NAV.level === 'ministries';
     if(MODEL_MODE === 'written') return WRITTEN_NAV.level === 'ministries';
-    if(MODEL_MODE === 'written-library') return WRITTEN_LIB_NAV.level === 'ministries';
+    // never "at top": even the ministry list steps back (to the রিটেন পরীক্ষা list)
+    if(MODEL_MODE === 'written-library') return false;
     return true;
   }
   function drillBackStep(){
@@ -4751,6 +4752,7 @@
       return;
     }
     if(MODEL_MODE === 'written-library'){
+      if(WRITTEN_LIB_NAV.level === 'ministries'){ setModelMode('written'); window.scrollTo(0,0); return; }
       if(WRITTEN_LIB_NAV.level === 'list'){
         WRITTEN_LIB_NAV = {level:'subjects', ministry_id:WRITTEN_LIB_NAV.ministry_id, ministry_name:WRITTEN_LIB_NAV.ministry_name};
       }
@@ -5237,7 +5239,8 @@
     const heading = document.getElementById('model-heading');
     const subtext = document.getElementById('model-subtext');
     const listEl = document.getElementById('model-list');
-    backBtn.style.display = 'none';
+    // পেছনে যাওয়ার বাটন এখানেও থাকবে — এটা রিটেন পরীক্ষার তালিকায় (setModelMode('written')) ফেরত নেয়।
+    backBtn.style.display = 'flex';
     heading.textContent = 'রিটেন জব সলুশন';
     subtext.textContent = 'মন্ত্রণালয় বেছে নিন — প্রশ্ন ও আদর্শ উত্তর দুটোই পড়তে পারবেন';
 
