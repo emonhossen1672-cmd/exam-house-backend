@@ -6777,6 +6777,11 @@
   // so the badge here and the central-archive listing agree).
   const LIVE_WINDOW_MIN_MS = 12*60*60*1000; // 12 hours
 
+  // A "live-style" exam: a real live MCQ exam, OR a written exam the admin
+  // gave a start_time (scheduled রিটেন লাইভ পরীক্ষা). Written exams with no
+  // start_time stay always-open written model tests.
+  function isLiveType(e){ return e.type === 'live' || (e.type === 'written' && !!e.start_time); }
+
   function examStatus(exam){
     const now = Date.now();
     // Written (রিটেন) tests behave like model tests when the admin hasn't set
@@ -6918,9 +6923,12 @@
           // blocks a future start_time or an admin-closed exam, it does
           // NOT block on the live window having ended).
           if(st.archive){
+            // Written exams have no /retake clone flow — the server keeps a
+            // written exam open after its window, so just open it directly.
+            const retakeAction = exam.type === 'written' ? `openNameSheet(${exam.id})` : `retakeArchivedExam(${exam.id})`;
             return `<div class="ticket-btn-group">
                  <button class="btn-enter archive" onclick="openArchive(${exam.id})">🧾 সমাধান দেখুন</button>
-                 <button class="btn-enter" onclick="retakeArchivedExam(${exam.id})">📝 পরীক্ষা দিন</button>
+                 <button class="btn-enter" onclick="${retakeAction}">📝 পরীক্ষা দিন</button>
                </div>`;
           }
           const disabled = st.canEnter ? '' : 'disabled';
@@ -6931,7 +6939,7 @@
           // practice first without spending their one official attempt.
           // Needs exam.subject to draw from — routine-auto-generated exams
           // have it; a manually uploaded exam without one just skips this.
-          const practiceBtn = (st.live && exam.subject)
+          const practiceBtn = (st.live && exam.subject && exam.type === 'live')
             ? `<button class="btn-enter practice" onclick='startExamSubjectPractice(${JSON.stringify(exam.subject)})'>📖 প্র্যাকটিস কুইজ</button>`
             : '';
           // Reminder bell: only for a logged-in student, only while the exam
@@ -6953,7 +6961,7 @@
     // of pill tags, and no countdown box (status shown as plain inline text
     // next to the button). Agreed & finalized in chat on 2026-09-09.
     // Model-test cards keep the original pill-tag ticket markup below.
-    if(exam.type === 'live'){
+    if(isLiveType(exam)){
       // Archived (window closed) — gold-tint header-strip card, distinct
       // from the plain-white currently-live look below.
       if(st.archive){
@@ -7697,7 +7705,7 @@
     try{
       const all = await apiGet('/api/exams/public/list');
       ALL_EXAMS = all;
-      const live = all.filter(e=>e.type==='live')
+      const live = all.filter(e=>isLiveType(e))
         .slice()
         .sort((a,b) => new Date(b.start_time || 0) - new Date(a.start_time || 0));
       // "মোট পরীক্ষা" should reflect only exams the admin actually uploaded —
@@ -7738,7 +7746,7 @@
   function refreshHomeLiveDots(){
     const tiles = document.querySelectorAll('#screen-home .cat-tile[data-live-cat]');
     if(!tiles.length) return;
-    const liveNow = ALL_EXAMS.filter(e => e.type === 'live' && examStatus(e).live);
+    const liveNow = ALL_EXAMS.filter(e => isLiveType(e) && examStatus(e).live);
     tiles.forEach(t => {
       const key = t.dataset.liveCat;
       let on = false;
@@ -8014,7 +8022,7 @@
     // "লাইভ পরীক্ষা" ট্যাবে শুধু আসলেই-চলমান/আসন্ন পরীক্ষা দেখাবে — সময় শেষ
     // হওয়া (আর্কাইভ) পরীক্ষাগুলো এখান থেকে বাদ। আর্কাইভ এখনো খোঁজা যাবে
     // সার্চ ও নির্দিষ্ট আর্কাইভ স্ক্রিন থেকে।
-    const live = ALL_EXAMS.filter(e => e.type==='live' && !examStatus(e).archive && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
+    const live = ALL_EXAMS.filter(e => isLiveType(e) && !examStatus(e).archive && (!LIVE_CATEGORY_FILTER || e.routine_category===LIVE_CATEGORY_FILTER));
     const el = document.getElementById('live-list');
     if(!live.length){
       el.innerHTML = `<div class="empty-note">${LIVE_CATEGORY_FILTER ? 'এই ক্যাটাগরিতে এখন কোনো লাইভ পরীক্ষা নেই।' : 'এখন কোনো লাইভ পরীক্ষা নেই — শীঘ্রই যুক্ত হবে।'}</div>`;
@@ -8206,7 +8214,7 @@
     // since those have no countdowns and re-rendering them mid-session was
     // wiping the student's scroll position / revealed answers every 15s.
     if(ALL_EXAMS.length){
-      const live = ALL_EXAMS.filter(e=>e.type==='live');
+      const live = ALL_EXAMS.filter(e=>isLiveType(e));
       const model = ALL_EXAMS.filter(e=>e.type==='model');
       const currentlyLive = live.filter(e => examStatus(e).live);
       renderList('home-live-list', currentlyLive.slice(0,3), 'এখন কোনো লাইভ পরীক্ষা নেই।');
@@ -8287,6 +8295,17 @@
       const data = await apiGet('/api/exams/public/'+examId+'/archive');
       document.getElementById('archive-mode-label').textContent = modeLabel || 'সমাধান / আর্কাইভ';
       document.getElementById('archive-title').textContent = data.exam.title;
+      if(data.exam.type === 'written'){
+        // রিটেন লাইভ পরীক্ষা শেষ — প্রতিটা প্রশ্নের সাথে আদর্শ উত্তর
+        document.getElementById('archive-body').innerHTML = data.questions.map((q,i)=>`
+          <div class="aq">
+            <div class="aq-num">প্রশ্ন ${toBnDigits(i+1)} · ${escapeHtml(q.subject)}</div>
+            <div class="aq-text">${escapeHtml(q.question_text)}</div>
+            <div class="aq-opt correct" style="white-space:pre-wrap;"><span>${escapeHtml(q.model_answer)}</span></div>
+          </div>`).join('');
+        document.getElementById('archive-overlay').classList.add('active');
+        return;
+      }
       const letters = ['A','B','C','D'];
       const optKeys = ['option_a','option_b','option_c','option_d'];
       document.getElementById('archive-body').innerHTML = data.questions.map((q,i)=>`
