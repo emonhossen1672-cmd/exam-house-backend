@@ -553,6 +553,10 @@
       <div class="drop-zone">
         <input type="file" id="wqCsvFile" accept=".csv,.xlsx,.xls">
       </div>
+      <label style="display:flex; gap:8px; align-items:center; margin:10px 0; font-size:14px;">
+        <input type="checkbox" id="wqAutoTest" checked style="width:auto;">
+        আপলোড হওয়া প্রশ্ন থেকে অটোমেটিক রিটেন মডেল টেস্টও বানান (মন্ত্রণালয় ও পদ অনুযায়ী; মন্ত্রণালয় না থাকলে বানাবে না)
+      </label>
       <button class="btn btn-primary" id="wqCsvBtn" style="width:auto; padding-left:26px; padding-right:26px;">আপলোড করুন</button>
       <div class="upload-result" id="wqCsvResult" style="display:none;"></div>
 
@@ -1568,8 +1572,8 @@ document.getElementById('wqBulkSubmitBtn').addEventListener('click', async () =>
   resultBox.style.display = 'block';
   resultBox.textContent = 'জমা দেওয়া হচ্ছে...';
   try{
-    const result = await api('/api/written-questions/bulk', { method: 'POST', body: JSON.stringify({ questions }) });
-    resultBox.textContent = `${result.added} টি যোগ হয়েছে${result.failed ? `, ${result.failed} টি ব্যর্থ` : ''}`;
+    const result = await api('/api/written-questions/bulk', { method: 'POST', body: JSON.stringify({ questions, create_test: document.getElementById('wqAutoTest') ? document.getElementById('wqAutoTest').checked : true }) });
+    resultBox.textContent = `${result.added} টি যোগ হয়েছে${result.failed ? `, ${result.failed} টি ব্যর্থ` : ''}` + (result.tests || []).map(t => `\n📝 ${t.created ? 'নতুন মডেল টেস্ট তৈরি' : 'আগের মডেল টেস্টে যোগ'}: ${t.title}`).join('');
     document.getElementById('wqBulkText').value = '';
     wrapEl.style.display = 'none';
     loadWrittenQuestions();
@@ -1595,8 +1599,10 @@ document.getElementById('wqCsvBtn').addEventListener('click', async () => {
   try{
     const fd = new FormData();
     fd.append('file', fileInput.files[0]);
+    fd.append('create_test', document.getElementById('wqAutoTest').checked ? '1' : '0');
     const data = await api('/api/written-questions/bulk-upload', { method: 'POST', body: fd });
     let msg = `${data.added} টি প্রশ্ন যোগ হয়েছে।`;
+    (data.tests || []).forEach(t => { msg += `\n📝 ${t.created ? 'নতুন মডেল টেস্ট তৈরি' : 'আগের মডেল টেস্টে যোগ'}: ${t.title} (${t.added} টি প্রশ্ন)`; });
     if (data.failed) msg += `\n${data.failed} টি সারিতে সমস্যা হয়েছে:\n` + data.errors.join('\n');
     resultBox.textContent = msg;
     resultBox.style.display = 'block';
